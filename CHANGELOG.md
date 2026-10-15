@@ -17,7 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Changed
 
 - `get_shop_by_name` now searches shops and returns only a unique exact case-insensitive name match.
+- Shop-name lookup scans up to five pages (500 candidates) and reports incomplete searches explicitly.
 - `get_shop_listings` now uses the public active-listings endpoint.
+- `get_shop_listings` accepts optional `keywords`; Etsy's sort options are effective with search options such as keywords.
 - `get_listing_details` no longer accepts or returns `Inventory`.
 - **Breaking:** Removed `get_trending_listings` because Etsy does not document a supported trending endpoint.
 - Raised the minimum supported Node.js version to 22 and made TypeScript source the sole implementation.
@@ -27,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added Node.js 22 and 24 CI for locked installs, builds, targeted tests, and production dependency audits.
 - Removed the npm publishing job and stopped committing generated build output.
 
-## [1.0.0] - 2024-12-12
+## [1.0.0] - 2025-12-12
 
 ### Added
 

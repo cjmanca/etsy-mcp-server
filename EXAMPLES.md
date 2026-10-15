@@ -47,6 +47,19 @@ Find the Etsy shop named "ArtisanCrafts" and show its active listings.
 }
 ```
 
+To filter and sort a shop's active listings, supply `keywords` along with the sort fields:
+
+```json
+{
+  "shop_id": 12345678,
+  "keywords": "ceramic mug",
+  "limit": 25,
+  "offset": 0,
+  "sort_on": "price",
+  "sort_order": "asc"
+}
+```
+
 ```text
 Get recent reviews for shop 12345678.
 ```

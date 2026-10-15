@@ -25,12 +25,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/administrativetrick/etsy-mcp-server.git"
+    "url": "git+https://github.com/cjmanca/etsy-mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/administrativetrick/etsy-mcp-server/issues"
+    "url": "https://github.com/cjmanca/etsy-mcp-server/issues"
   },
-  "homepage": "https://github.com/administrativetrick/etsy-mcp-server#readme",
+  "homepage": "https://github.com/cjmanca/etsy-mcp-server#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "axios": "^1.20.0"

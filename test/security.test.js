@@ -171,6 +171,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         ["get_listing_details", { listing_id: "1/../shops" }],
         ["get_listing_details", { listing_id: Number.MAX_SAFE_INTEGER + 1 }],
         ["get_listing_details", { listing_id: 1, includes: ["Inventory"] }],
+        ["get_shop_listings", { shop_id: 73, keywords: "  " }],
         ["search_listings", { keywords: "  " }],
         ["search_listings", { keywords: "mugs", limit: 101 }],
         ["search_listings", { keywords: "mugs", offset: 12001 }],
@@ -277,6 +278,97 @@ test("shop-name lookup reports ambiguous and missing exact matches", async () =>
       assert.equal(jsonText(missing).found, false);
       assert.equal(jsonText(missing).shop_name, "missing");
       assert.equal(calls.length, 2);
+    },
+  );
+});
+
+test("shop-name lookup finds an exact match on the second results page", async () => {
+  const calls = [];
+  await withMcp(
+    mockAdapter((config) => {
+      if (config.url === "/application/shops" && config.params.offset === 0) {
+        return successResponse(config, {
+          count: 101,
+          results: Array.from({ length: 100 }, (_, index) => ({
+            shop_id: index + 1,
+            shop_name: `OtherShop${index}`,
+          })),
+        });
+      }
+      if (config.url === "/application/shops" && config.params.offset === 100) {
+        return successResponse(config, {
+          count: 101,
+          results: [{ shop_id: 73, shop_name: "TargetShop" }],
+        });
+      }
+      if (config.url === "/application/shops/73") {
+        return successResponse(config, { shop_id: 73, shop_name: "TargetShop" });
+      }
+      throw new Error(`Unexpected mocked URL: ${config.url}`);
+    }, calls),
+    async ({ client }) => {
+      const response = await client.callTool({
+        name: "get_shop_by_name",
+        arguments: { shop_name: "targetshop" },
+      });
+      const result = jsonText(response);
+      assert.equal(result.found, true);
+      assert.equal(result.shop_id, 73);
+      assert.equal(calls[0].params.offset, 0);
+      assert.equal(calls[1].params.offset, 100);
+      assert.equal(calls[2].url, "/application/shops/73");
+    },
+  );
+});
+
+test("shop-name lookup marks searches incomplete at its bounded result limit", async () => {
+  const calls = [];
+  await withMcp(
+    mockAdapter((config) => {
+      const offset = config.params.offset;
+      return successResponse(config, {
+        count: 1000,
+        results: Array.from({ length: 100 }, (_, index) => ({
+          shop_id: offset + index + 1,
+          shop_name: `OtherShop${offset + index}`,
+        })),
+      });
+    }, calls),
+    async ({ client }) => {
+      const response = await client.callTool({
+        name: "get_shop_by_name",
+        arguments: { shop_name: "MissingExactShop" },
+      });
+      const result = jsonText(response);
+      assert.equal(result.status, "incomplete");
+      assert.equal(result.incomplete, true);
+      assert.equal(Object.hasOwn(result, "found"), false);
+      assert.equal(result.examined, 500);
+      assert.equal(result.search_result_count, 1000);
+      assert.deepEqual(calls.map((config) => config.params.offset), [0, 100, 200, 300, 400]);
+    },
+  );
+});
+
+test("shop listing keywords are forwarded with sorting options", async () => {
+  const calls = [];
+  await withMcp(
+    mockAdapter((config) => successResponse(config, { count: 0, results: [] }), calls),
+    async ({ client }) => {
+      await client.callTool({
+        name: "get_shop_listings",
+        arguments: {
+          shop_id: 73,
+          keywords: "ceramic mug",
+          sort_on: "price",
+          sort_order: "asc",
+        },
+      });
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].url, "/application/shops/73/listings/active");
+      assert.equal(calls[0].params.keywords, "ceramic mug");
+      assert.equal(calls[0].params.sort_on, "price");
+      assert.equal(calls[0].params.sort_order, "asc");
     },
   );
 });

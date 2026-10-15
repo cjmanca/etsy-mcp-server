@@ -6,6 +6,7 @@ export class ValidationError extends Error {
 }
 
 export type ToolArguments = Record<string, unknown>;
+export const MAX_PAGINATION_OFFSET = 12000;
 
 export function asArguments(value: unknown): ToolArguments {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -14,12 +15,13 @@ export function asArguments(value: unknown): ToolArguments {
   return value as ToolArguments;
 }
 
-export function requiredString(
+export function optionalString(
   args: ToolArguments,
   key: string,
   maxLength: number,
-): string {
+): string | undefined {
   const value = args[key];
+  if (value === undefined) return undefined;
   if (typeof value !== "string") {
     throw new ValidationError(`${key} must be a string.`);
   }
@@ -31,6 +33,18 @@ export function requiredString(
     throw new ValidationError(`${key} must not be empty.`);
   }
   return trimmed;
+}
+
+export function requiredString(
+  args: ToolArguments,
+  key: string,
+  maxLength: number,
+): string {
+  const value = optionalString(args, key, maxLength);
+  if (value === undefined) {
+    throw new ValidationError(`${key} must be a string.`);
+  }
+  return value;
 }
 
 export function positiveSafeInteger(
@@ -101,7 +115,7 @@ export function pagination(args: ToolArguments): {
 } {
   return {
     limit: optionalInteger(args, "limit", 1, 100) ?? 25,
-    offset: optionalInteger(args, "offset", 0, 12000) ?? 0,
+    offset: optionalInteger(args, "offset", 0, MAX_PAGINATION_OFFSET) ?? 0,
   };
 }
 

@@ -13,7 +13,7 @@ Etsy documents the required `x-api-key` format in its [request standards](https:
 ## Install from the source checkout
 
 ```bash
-git clone https://github.com/administrativetrick/etsy-mcp-server.git
+git clone https://github.com/cjmanca/etsy-mcp-server.git
 cd etsy-mcp-server
 npm ci --ignore-scripts
 npm run build
@@ -45,8 +45,8 @@ On Windows, use an absolute path with escaped backslashes, such as `C:\\Users\\y
 
 - `search_listings` — search active listings with price, pagination, and sorting filters.
 - `get_listing_details` — read a listing and optionally include `Shop`, `Images`, `User`, or `Videos`.
-- `get_shop_by_name` — resolve a case-insensitive exact shop-name match. It returns a not-found result or an ambiguity result when appropriate.
-- `get_shop_listings` — list public active listings for a numeric shop ID.
+- `get_shop_by_name` — resolve a case-insensitive exact shop-name match. It returns a not-found or ambiguity result when appropriate; searches are bounded to five pages (up to 500 candidates) and report when incomplete.
+- `get_shop_listings` — list public active listings for a numeric shop ID, optionally filtered by keywords. Etsy only applies sorting with search options such as keywords.
 - `search_shops` — search shops by name.
 - `get_shop_reviews` — retrieve public reviews for a shop, with optional date filters.
 
