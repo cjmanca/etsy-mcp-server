@@ -1,6 +1,6 @@
 {
   "name": "etsy-mcp-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "MCP server for Etsy API integration",
   "type": "module",
   "bin": {
@@ -11,9 +11,10 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build",
+    "test": "npm run build && node --test test/*.test.js",
     "watch": "tsc --watch",
-    "dev": "node --loader ts-node/esm src/index.ts"
+    "dev": "npm run build && node build/index.js",
+    "start": "node build/index.js"
   },
   "keywords": [
     "mcp",
@@ -21,18 +22,24 @@
     "api",
     "model-context-protocol"
   ],
-  "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/administrativetrick/etsy-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/administrativetrick/etsy-mcp-server/issues"
+  },
+  "homepage": "https://github.com/administrativetrick/etsy-mcp-server#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "axios": "^1.7.2"
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "axios": "^1.20.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }

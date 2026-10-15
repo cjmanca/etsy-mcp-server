@@ -2,29 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2026-10-15
+
+### Security
+
+- Blocked redirects, disabled environment proxy discovery, fixed the Etsy API origin, and added request timeouts and response-size limits.
+- Validated the `ETSY_API_KEY` keystring/shared-secret format and sanitized upstream errors.
+- Updated the MCP SDK, Axios, and vulnerable transitive dependencies.
+- Added request throttling, bounded retries, input validation, and response-size caps.
+- Returned selected Etsy fields as bounded JSON and marked third-party text as untrusted data.
+
+### Changed
+
+- `get_shop_by_name` now searches shops and returns only a unique exact case-insensitive name match.
+- `get_shop_listings` now uses the public active-listings endpoint.
+- `get_listing_details` no longer accepts or returns `Inventory`.
+- **Breaking:** Removed `get_trending_listings` because Etsy does not document a supported trending endpoint.
+- Raised the minimum supported Node.js version to 22 and made TypeScript source the sole implementation.
+
+### Build and CI
+
+- Added Node.js 22 and 24 CI for locked installs, builds, targeted tests, and production dependency audits.
+- Removed the npm publishing job and stopped committing generated build output.
 
 ## [1.0.0] - 2024-12-12
 
 ### Added
-- Initial release of Etsy MCP Server
-- `search_listings` tool for searching active Etsy listings
-- `get_listing_details` tool for retrieving detailed product information
-- `get_shop_by_name` tool for fetching shop information by name
-- `get_shop_listings` tool for getting all listings from a specific shop
-- `search_shops` tool for searching shops by name
-- `get_trending_listings` tool for discovering trending products
-- `get_shop_reviews` tool for retrieving shop reviews
-- Support for price filtering in searches
-- Pagination support for large result sets
-- Comprehensive error handling
-- TypeScript implementation with full type safety
-- GitHub Actions CI/CD workflow
-- Detailed documentation and usage examples
 
-### Technical
-- Built with MCP TypeScript SDK v1.0.4
-- Etsy API v3 integration
-- Axios for HTTP requests
-- Node.js 18+ support
+- Initial Etsy MCP server with search, listing, shop, trending, and review tools.

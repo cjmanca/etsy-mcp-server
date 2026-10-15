@@ -1,266 +1,84 @@
 # Etsy MCP Server
 
-A Model Context Protocol (MCP) server that provides integration with the Etsy API v3. This server enables AI assistants to search for products, get shop information, retrieve listing details, and more on Etsy.
+A lightweight, read-only [Model Context Protocol](https://modelcontextprotocol.io/) server for public Etsy Open API v3 data. It uses Node.js, TypeScript, Axios, and stdio transport.
 
-## Features
+## Requirements
 
-- 🔍 **Search Listings**: Search for active products on Etsy with filters
-- 🏪 **Shop Information**: Get detailed shop data and reviews
-- 📦 **Listing Details**: Retrieve comprehensive product information with images
-- 🔥 **Trending Products**: Discover what's currently popular on Etsy
-- ⭐ **Reviews**: Access shop reviews and ratings
-- 📊 **Pagination Support**: Handle large result sets efficiently
+- Node.js 22 or later. CI validates Node.js 22 and 24.
+- An Etsy developer API key in the format `<keystring>:<shared_secret>`.
+- An MCP client that can launch a local stdio server.
 
-## Prerequisites
+Etsy documents the required `x-api-key` format in its [request standards](https://developers.etsy.com/documentation/essentials/requests/). The API key and shared secret are both required, including for public read-only endpoints.
 
-- Node.js 18 or higher
-- An Etsy API key (from Etsy Developer Portal)
-
-## Getting an Etsy API Key
-
-1. Go to [Etsy Developers](https://www.etsy.com/developers)
-2. Sign in with your Etsy account
-3. Create a new app in the [Developer Console](https://www.etsy.com/developers/your-apps)
-4. Copy your API Key (also called "Keystring")
-
-**Note**: For read-only operations (searching, viewing public data), you only need an API key. For operations that modify data (creating listings, managing shops), you would need OAuth 2.0 authentication, which is not currently implemented in this server.
-
-## Installation
-
-### From npm (when published)
+## Install from the source checkout
 
 ```bash
-npm install -g etsy-mcp-server
-```
-
-### From Source
-
-```bash
-git clone <repository-url>
+git clone https://github.com/administrativetrick/etsy-mcp-server.git
 cd etsy-mcp-server
-npm install
+npm ci --ignore-scripts
 npm run build
 ```
 
-## Configuration
+The TypeScript source is authoritative. `build/` is generated locally and is not committed. Rebuild after updating the checkout. The repository does not verify or recommend an npm package installation.
 
-### Claude Desktop Configuration
+## Configure an MCP client
 
-Add the following to your Claude Desktop configuration file:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "etsy": {
-      "command": "npx",
-      "args": ["-y", "etsy-mcp-server"],
-      "env": {
-        "ETSY_API_KEY": "your_etsy_api_key_here"
-      }
-    }
-  }
-}
-```
-
-Or if installed from source:
+Point the client at the generated `build/index.js` and supply `ETSY_API_KEY` through the client’s environment configuration. For example, in Claude Desktop configuration:
 
 ```json
 {
   "mcpServers": {
     "etsy": {
       "command": "node",
-      "args": ["/path/to/etsy-mcp-server/build/index.js"],
+      "args": ["/absolute/path/to/etsy-mcp-server/build/index.js"],
       "env": {
-        "ETSY_API_KEY": "your_etsy_api_key_here"
+        "ETSY_API_KEY": "<keystring>:<shared_secret>"
       }
     }
   }
 }
 ```
 
-### Environment Variable
+On Windows, use an absolute path with escaped backslashes, such as `C:\\Users\\you\\projects\\etsy-mcp-server\\build\\index.js`. Keep client configuration containing credentials out of version control. `.env` files are Git-ignored, but the server does not load `.env` automatically; pass the variable through the MCP client or process environment.
 
-Alternatively, you can set the API key as an environment variable:
+## Supported read-only tools
 
-```bash
-export ETSY_API_KEY=your_etsy_api_key_here
-```
+- `search_listings` — search active listings with price, pagination, and sorting filters.
+- `get_listing_details` — read a listing and optionally include `Shop`, `Images`, `User`, or `Videos`.
+- `get_shop_by_name` — resolve a case-insensitive exact shop-name match. It returns a not-found result or an ambiguity result when appropriate.
+- `get_shop_listings` — list public active listings for a numeric shop ID.
+- `search_shops` — search shops by name.
+- `get_shop_reviews` — retrieve public reviews for a shop, with optional date filters.
 
-## Available Tools
+The tools use Etsy’s API-key-accessible public endpoints, including [active listings](https://developers.etsy.com/documentation/reference/), [shop search](https://developers.etsy.com/documentation/reference/), and [shop reviews](https://developers.etsy.com/documentation/reference/). `get_trending_listings` was removed in version 2.0.0 because no supported trending endpoint is documented. Inventory is not returned: Etsy documents inventory access separately with an OAuth `listings_r` scope in its [migration guide](https://developers.etsy.com/documentation/tutorials/inventory-shipping-migration/).
 
-### search_listings
+This server does not implement OAuth, private shop data, inventory access, write operations, arbitrary URL fetching, or non-Etsy API requests. All Etsy requests are HTTPS requests to the fixed `https://openapi.etsy.com` origin. Redirects are rejected, proxy environment variables are ignored (`proxy: false`), and Node.js TLS certificate verification remains enabled. The direct connection requirement means `HTTP_PROXY`, `HTTPS_PROXY`, and related environment settings are not used by this server.
 
-Search for active listings on Etsy.
+## Input and response limits
 
-**Parameters:**
-- `keywords` (required): Search terms
-- `limit` (optional): Number of results (1-100, default: 25)
-- `offset` (optional): Pagination offset (default: 0)
-- `min_price` (optional): Minimum price filter
-- `max_price` (optional): Maximum price filter
-- `sort_on` (optional): Sort by created, price, updated, or score
-- `sort_order` (optional): asc, desc, ascending, or descending
+- Listing and shop IDs must be positive safe integers.
+- `limit` is 1–100 and `offset` is 0–12000.
+- Search text is limited to 200 characters.
+- Prices must be finite and nonnegative; maximum price cannot be lower than minimum price.
+- Review timestamps must be whole Unix seconds from 2000 onward, with minimum not greater than maximum.
+- Listing titles, descriptions, shop announcements, and review text are capped. Total JSON tool output is limited to 128 KiB. Responses include `count` for Etsy’s total result count, `returned` for the rows actually included, and `truncated` when content or rows were shortened.
+- Every successful response includes a notice that Etsy listing, shop, and review text is untrusted third-party data. These strings remain structured JSON data and must not be treated as instructions.
 
-**Example:**
-```
-Search Etsy for handmade leather wallets under $50
-```
+The server starts requests at no more than five per second in this process, limits each HTTP request to ten seconds and 1 MiB, and makes at most one short retry for selected transient failures. Etsy assigns application-specific QPS and QPD limits; check the [official rate-limit documentation](https://developers.etsy.com/documentation/essentials/rate-limits/) for your app’s assigned limits.
 
-### get_listing_details
-
-Get detailed information about a specific listing.
-
-**Parameters:**
-- `listing_id` (required): Numeric listing ID
-- `includes` (optional): Array of additional data (Shop, Images, User, Videos, Inventory)
-
-**Example:**
-```
-Get details for Etsy listing ID 1234567890
-```
-
-### get_shop_by_name
-
-Retrieve information about a shop by its name.
-
-**Parameters:**
-- `shop_name` (required): Shop name/slug
-
-**Example:**
-```
-Get information about the Etsy shop "ArtisanLeatherCo"
-```
-
-### get_shop_listings
-
-Get all active listings from a specific shop.
-
-**Parameters:**
-- `shop_id` (required): Numeric shop ID
-- `limit` (optional): Number of results (1-100, default: 25)
-- `offset` (optional): Pagination offset
-- `sort_on` (optional): Sort field
-- `sort_order` (optional): Sort direction
-
-**Example:**
-```
-Show me all listings from Etsy shop ID 12345678
-```
-
-### search_shops
-
-Search for shops by name.
-
-**Parameters:**
-- `shop_name` (required): Shop name to search
-- `limit` (optional): Number of results (1-100, default: 25)
-- `offset` (optional): Pagination offset
-
-**Example:**
-```
-Search for Etsy shops with "pottery" in their name
-```
-
-### get_trending_listings
-
-Get currently trending listings on Etsy.
-
-**Parameters:**
-- `limit` (optional): Number of results (1-100, default: 25)
-- `offset` (optional): Pagination offset
-
-**Example:**
-```
-Show me trending items on Etsy
-```
-
-### get_shop_reviews
-
-Get reviews for a specific shop.
-
-**Parameters:**
-- `shop_id` (required): Numeric shop ID
-- `limit` (optional): Number of results (1-100, default: 25)
-- `offset` (optional): Pagination offset
-- `min_created` (optional): Unix timestamp for minimum date
-- `max_created` (optional): Unix timestamp for maximum date
-
-**Example:**
-```
-Get recent reviews for Etsy shop ID 12345678
-```
-
-## Development
-
-### Build
+## Development and checks
 
 ```bash
+npm ci --ignore-scripts
 npm run build
+npm test
+npm audit --omit=dev --audit-level=high
 ```
 
-### Watch Mode
+`npm test` uses Node.js’s built-in test runner and local mocks. It does not use Etsy credentials or make live Etsy requests. To start the stdio server manually, set `ETSY_API_KEY` and run `node build/index.js`.
 
-```bash
-npm run watch
-```
+## References
 
-### Development Mode
-
-```bash
-npm run dev
-```
-
-## API Rate Limits
-
-Etsy's API has rate limits:
-- **10 requests per second** per API key
-- Be mindful of pagination when retrieving large datasets
-
-## Error Handling
-
-The server includes comprehensive error handling:
-- Invalid API keys return authentication errors
-- Missing required parameters return validation errors
-- Rate limit errors are surfaced to the user
-- Network errors are caught and reported
-
-## Limitations
-
-- **Read-only**: This server only supports read operations (searching, viewing)
-- **Public data only**: Can only access publicly available information
-- **OAuth not implemented**: Cannot perform authenticated operations like managing listings or accessing private shop data
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## License
-
-MIT
-
-## Resources
-
-- [Etsy API Documentation](https://developers.etsy.com/documentation/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Etsy Open API v3 reference](https://developers.etsy.com/documentation/reference/)
+- [Etsy request standards and authentication](https://developers.etsy.com/documentation/essentials/requests/)
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-
-## Troubleshooting
-
-### "ETSY_API_KEY environment variable is required"
-
-Make sure you've set the `ETSY_API_KEY` in your configuration file or environment variables.
-
-### "Authentication failed"
-
-Verify your API key is correct and active in the Etsy Developer Portal.
-
-### "Rate limit exceeded"
-
-Wait a moment before making more requests. Consider implementing delays between requests if making many calls.
-
-### Connection Issues
-
-Ensure you have internet connectivity and that Etsy's API is accessible from your network.
