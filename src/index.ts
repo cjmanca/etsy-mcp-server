@@ -49,6 +49,7 @@ import {
   mapListingImagesAssociation,
   mapListingVideosAssociation,
 } from "./listing-media.js";
+import { createListingPropertiesRegistrations } from "./listing-properties.js";
 import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
@@ -1967,6 +1968,7 @@ export function createEtsyMcpServer(
       handler: (args) => getListingReviews(args, get),
     },
     ...createListingMediaRegistrations(mediaDependencies),
+    ...createListingPropertiesRegistrations({ get, responseText }),
   ];
   const registry = new CapabilityRegistry({
     enabledCapabilities: ["public"],

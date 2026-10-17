@@ -24,6 +24,7 @@ const PUBLIC_TOOL_NAMES = [
   "get_listing_details",
   "get_listing_image",
   "get_listing_images",
+  "get_listing_properties",
   "get_listing_reviews",
   "get_listing_video",
   "get_listing_videos",

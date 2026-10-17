@@ -62,6 +62,19 @@ Supported includes are `Shop`, `Images`, `User`, `Videos`, `Translations`, and `
 
 Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. Etsy's batch-only `BuyerPrice` association is exposed through the separate `get_listing_buyer_prices` tool, not through single-listing details. `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
 
+## Listing-selected property values
+
+Provide the listing and shop IDs to read the values Etsy returns for that listing:
+
+```json
+{
+  "shop_id": 12345678,
+  "listing_id": 1234567890
+}
+```
+
+Use these arguments with `get_listing_properties`. The response selects `property_id`, `property_name`, `scale_id`, `scale_name`, `value_ids`, and `values`; these are listing-selected values, not the category's allowed options. Empty lists are valid, and output is bounded with a `truncated` flag. The shop ID addresses the documented API route and does not prove caller ownership. Etsy's paired `get_listing_property` detail route is not exposed because its current reference says it returns only HTTP 501.
+
 ## Listing media metadata
 
 Use the listing ID to retrieve selected image or video metadata, then provide the returned media ID for a focused detail lookup:

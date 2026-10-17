@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added public shop section browsing and shop-curated featured listings.
 - Added public listing review samples with supported date filters and bounded output.
 - Added dedicated image and video metadata lookup for listings, including image rank, dimensions, and alt text.
+- Added a bounded public read of the selected property values returned for a listing.
 
 ### Documentation
 

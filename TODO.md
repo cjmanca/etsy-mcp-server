@@ -32,7 +32,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [x] Listing-specific feedback: `get_listing_reviews` (M2.3; verification in [TASK.md](TASK.md)).
 - [x] Dedicated image metadata, including rank/dimensions/alt text: `get_listing_images`, `get_listing_image` (M2.4; verification in [TASK.md](TASK.md)).
 - [x] Dedicated video metadata: `get_listing_videos`, `get_listing_video` (M2.4; verification in [TASK.md](TASK.md)).
-- [ ] Structured attribute reads: `get_listing_properties`, `get_listing_property`.
+- [ ] Structured attribute reads (partial: supported selected-value list `get_listing_properties` is implemented in M2.5a; single-property detail `get_listing_property` remains blocked by the official 501-only contract in M2.5b).
 - [ ] Personalization question/option/add-on reads: `get_listing_personalization`.
 - [ ] Existing localized listing content: `get_listing_translation`.
 - [ ] Public return-policy reads: `get_shop_return_policies`, `get_shop_return_policy`; OAuth `listings_r` linked listings: `get_return_policy_listings` (no paging query declared). See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).

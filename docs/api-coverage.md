@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-one current tools reach twenty-one distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **84 operations are Planned**.
+- Twenty-two current tools reach twenty-two distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **83 operations remain Planned** (including the explicitly blocked detail route).
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -35,7 +35,7 @@ M1.4 extends the existing `getListing` surface without changing its public API-k
 | PUT | `updateListingProperty` | `update_listing_property` | Planned |
 | DELETE | `deleteListingProperty` | `delete_listing_property` | Planned |
 | GET | `getListingProperty` | `get_listing_property` — blocked: reference says 501-only | Planned |
-| GET | `getListingProperties` | `get_listing_properties` | Planned |
+| GET | `getListingProperties` | `get_listing_properties` (M2.5a; selected listing values only) | Current |
 | GET | `getListingsShippingByListingIds` | `get_listings_shipping_batch` | Planned |
 | PATCH | `updateListing` | `update_listing` | Planned |
 | GET | `getListingsByShopReceipt` | `get_receipt_listings` | Planned |

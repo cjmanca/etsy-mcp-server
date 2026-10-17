@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, and M2.4 dedicated media metadata are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, M2.4 dedicated media metadata, and the supported M2.5a listing-properties list are implemented; M2.5b single-property detail remains blocked by Etsy's 501-only reference. All other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -105,12 +105,23 @@ Only the required positive safe-integer IDs are accepted. None of these operatio
 
 Image and video URLs and image alt text are untrusted bounded strings, not instructions. URLs remain JSON data and are never fetched or followed. Each list requires a valid `results` array, preserves Etsy's optional `count` only when present, reports `returned`, and marks the 20-image/10-video and shared 128 KiB output bounds with `truncated`. The existing listing `Images` and `Videos` includes remain compatible, gain selected image rank/dimensions/alt text, and do not trigger additional calls. See [listing discovery](listing-discovery.md#read-dedicated-listing-media-metadata) for input/output examples and limits.
 
+## Current M2.5a: selected listing properties
+
+`get_listing_properties` uses the public, API-key-only `GET /v3/application/shops/{shop_id}/listings/{listing_id}/properties` (`getListingProperties`) once with positive safe-integer `shop_id` and `listing_id`. The operation declares no query parameters. It returns only the selected property fields `property_id`, `property_name`, `scale_id`, `scale_name`, `value_ids`, and `values`; these are listing-selected values, not category-allowed taxonomy values. The optional source `count` may be zero and, when supplied, must equal the unpaged `results` length. An empty `results` array is valid; a missing `results` array is malformed. Optional schema fields stay omitted when absent, and nullable `property_name`, `scale_id`, and `scale_name` preserve explicit nulls. IDs are positive safe integers.
+
+The list is bounded to 100 properties and 25 selected IDs/labels per property, with text up to 200 characters and the shared 128 KiB output cap. Any local shortening sets `truncated`; unrecognized and private fields are omitted, and selected property/scale/value text is untrusted. If parent listing/shop references are supplied upstream, they are checked against the requested IDs; their absence is not filled in, and the caller's shop ID does not prove ownership.
+
+## M2.5b: single-property detail remains blocked
+
+The paired `get_listing_property` operation (`GET /v3/application/listings/{listing_id}/properties/{property_id}`) is currently feedback-only and explicitly returns HTTP 501. Do not register a tool or invent a fallback route until Etsy releases the operation.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_listing_properties`, `get_listing_property` | Listing ID; shop ID for the all-properties route; property ID for detail. | Actual structured product attributes and their selected values. |
+| `get_listing_properties` | Shop ID and listing ID. | **Current M2.5a:** bounded actual listing-selected values. |
+| `get_listing_property` | Listing ID and property ID. | **Blocked M2.5b:** current Etsy reference promises only HTTP 501. |
 | `get_listing_personalization` | Listing ID. | Questions, required flags, character/file limits, options, and add-on prices when present. |
 | `get_listing_translation` | Shop ID, listing ID, IETF language tag. | Etsy's existing localized title, description, and tags, not an AI-generated translation. |
 | `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; return-policy ID for detail. | Return/exchange acceptance and deadlines. |

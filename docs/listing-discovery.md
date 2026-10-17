@@ -35,6 +35,16 @@ Each result can include listing ID, title, description excerpt, formatted origin
 
 The tool continues to require keywords even though Etsy permits broader searches. Syntactically valid but unsupported currency codes or unparseable shop locations may still be rejected by Etsy; errors are sanitized. `score` is a search ordering, not a documented measure of trending demand or sales. A buyer-country filter indicates shipping eligibility only, not a final buyer-facing price or checkout quote.
 
+## Inspect selected listing properties
+
+`get_listing_properties` calls the public, API-key-only `GET /v3/application/shops/{shop_id}/listings/{listing_id}/properties` (`getListingProperties`) once. Supply positive safe-integer numeric `shop_id` and `listing_id`. The route declares no query parameters, so the tool does not accept paging or filters. A user-supplied shop ID identifies the route only; it does not establish shop ownership or authorize private access. If Etsy includes a listing or shop reference in its response, the reference is checked against the request, but missing references are not inferred.
+
+The result selects only fields in Etsy's `ListingPropertyValue` schema: `property_id`, `property_name`, `scale_id`, `scale_name`, `value_ids`, and `values`. These are the values Etsy returns for the listing, not taxonomy `possible_values` or category-allowed options. The optional source `count` is nonnegative (zero is valid) and, when supplied, must match the unpaged source `results`; `results: []` is a valid empty list. A missing or malformed `results` field is rejected rather than treated as empty.
+
+All six property fields are optional. `property_name`, `scale_id`, and `scale_name` may also be explicitly null; other schema fields do not allow null. Missing fields stay absent and allowed nulls remain null. Property, scale, and selected value IDs must be positive safe integers. Output is limited to 100 properties, 25 `value_ids` and 25 `values` per property, and 200 characters per label; row, array, or string shortening sets `truncated`, and the shared 128 KiB JSON output cap still applies. Only those selected fields are returned; private or unrecognized fields such as SKUs, emails, or account data are omitted. Property labels, scale labels, and values are untrusted third-party text.
+
+The paired `get_listing_property` route is **not available**: Etsy's current reference marks it feedback-only and says it returns only HTTP 501. No detail tool or alternate endpoint is exposed.
+
 ## Inspect a listing
 
 `get_listing_details` requires a positive safe-integer `listing_id`. It retains the existing core fields and formatted original `price`, plus materials and shipping-profile ID when supplied by Etsy. Selected fields are returned only when the endpoint supplies them: `taxonomy_id`, `return_policy_id`, `readiness_state_id`, `listing_type`, `is_customizable`, `is_personalizable`, `has_variations`, and the listing's `language`. These IDs are references only: a return-policy ID is not policy text, and a readiness-state ID is not a processing-time or fulfillment guarantee. Etsy supplies `readiness_state_id` only for active physical listings on this single-listing route; a missing or null value is not inferred.

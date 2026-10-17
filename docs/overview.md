@@ -12,6 +12,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_listing_details` | Inspect a product and optionally its shop, images, public user summary, or videos. | [Listings](listing-discovery.md) |
 | `get_listing_images` | Read bounded image metadata, including rank, dimensions, alt text, selected URLs, and color information. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_image` | Read one listing image's selected metadata by image ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
+| `get_listing_properties` | Read a bounded list of the selected property values Etsy returns for a listing. | [Listings](listing-discovery.md#inspect-selected-listing-properties) |
 | `get_listing_videos` | Read bounded video metadata, dimensions, state, and URLs for a listing. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_video` | Read one listing video's selected metadata by video ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listings_batch` | Retrieve up to 100 selected public listings in one request, preserving requested ID order. | [Listings](listing-discovery.md#fetch-a-batch-of-listings) |
@@ -42,6 +43,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
 - **Category attributes:** use the ID from the matching buyer or seller tree to inspect category-supported properties, scales, and values. Seller-only flags can filter properties by attribute or variation support.
+- **Listing-selected attributes:** use `get_listing_properties` with a known shop and listing ID to read values attached to that listing; this is not a list of category-allowed values. Single-property detail remains unavailable while Etsy documents its route as 501-only.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 - **Product-feedback summaries:** sample public reviews for a known listing ID; one page is not its complete review history.
 
