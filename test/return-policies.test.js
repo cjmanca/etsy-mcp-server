@@ -23,7 +23,7 @@ test("public return-policy tools are discoverable without the private affected-l
     mockAdapter((config) => successResponse(config, { count: 0, results: [] })),
     async ({ client }) => {
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 26);
+      assert.equal(tools.length, 28);
       assert.deepEqual(
         tools.filter((tool) => POLICY_TOOL_NAMES.includes(tool.name)).map((tool) => tool.name).sort(),
         POLICY_TOOL_NAMES,

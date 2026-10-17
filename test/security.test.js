@@ -112,6 +112,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_listing_video",
         "get_listing_videos",
         "get_listings_batch",
+        "get_shipping_carriers",
         "get_shop",
         "get_shop_by_name",
         "get_shop_by_owner",
@@ -124,6 +125,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_shop_sections",
         "get_taxonomy_nodes",
         "get_taxonomy_properties",
+        "ping_etsy",
         "search_listings",
         "search_shops",
       ]);

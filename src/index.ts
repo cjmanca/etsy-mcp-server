@@ -57,6 +57,7 @@ import {
 } from "./listing-media.js";
 import { createListingPropertiesRegistrations } from "./listing-properties.js";
 import { createShopReturnPolicyRegistrations } from "./shop-return-policies.js";
+import { createShippingDiagnosticsRegistrations } from "./shipping-diagnostics.js";
 import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
@@ -1740,6 +1741,7 @@ export function createEtsyMcpServer(
   const { get } = createEtsyRequester(client);
   const taxonomyCache = new TaxonomyTreeCache(options.now);
   const mediaDependencies = { get, responseObject, textField, responseText };
+  const shippingDiagnosticsDependencies = { get, textField, responseText };
   const contentDependencies = {
     get,
     responseText,
@@ -1848,6 +1850,7 @@ export function createEtsyMcpServer(
     ...createListingMediaRegistrations(mediaDependencies),
     ...createListingPropertiesRegistrations({ get, responseText }),
     ...createShopReturnPolicyRegistrations({ get, responseText }),
+    ...createShippingDiagnosticsRegistrations(shippingDiagnosticsDependencies),
     ...createListingContentRegistrations(contentDependencies),
   ];
   const registry = new CapabilityRegistry({

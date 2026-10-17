@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-six current tools reach twenty-six distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **79 operations remain Planned** (including explicitly blocked/deferred routes).
+- Twenty-eight current tools reach twenty-eight distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **77 operations remain Planned** (including explicitly blocked/deferred routes).
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -118,7 +118,7 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
-| GET | `getShippingCarriers` | `get_shipping_carriers` | Planned |
+| GET | `getShippingCarriers` | `get_shipping_carriers` (M2.8; bounded carrier/mail-class reference data) | Current |
 | GET | `getShopShippingProfiles` | `get_shop_shipping_profiles` | Planned |
 | POST | `createShopShippingProfile` | `create_shop_shipping_profile` | Planned |
 | GET | `getShopShippingProfile` | `get_shop_shipping_profile` | Planned |
@@ -185,7 +185,7 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
-| GET | `ping` | `ping_etsy` | Planned |
+| GET | `ping` | `ping_etsy` (M2.8; application connectivity only, not OAuth/private access) | Current |
 | POST | `tokenScopes` | `get_etsy_token_scopes` with internally resolved token | Planned |
 
 ## Non-catalog supporting capabilities

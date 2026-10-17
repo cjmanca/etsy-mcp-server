@@ -13,7 +13,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Protected per-connection credential storage, expiry/refresh lifecycle, granted-scope tracking, and reconnect handling.
 - [ ] Account/connection isolation, least-privilege scope bundles, resource authorization, and capability-aware tool discovery.
 - [ ] Connection controls: `begin_etsy_connection`, `get_etsy_connection_status`, `disconnect_etsy_connection`.
-- [ ] Application connectivity: `ping_etsy`.
+- [x] Application connectivity diagnostic: `ping_etsy` (M2.8; confirms application API connectivity only, not OAuth scopes or private access).
 - [ ] Internal-token scope inspection: `get_etsy_token_scopes`.
 - [ ] Shared mutation authorization, payload-bound confirmations, read-back verification, and uncertain-outcome handling.
 - [ ] Accurate new-tool safety annotations, sensitive-field minimization, and validated attachment handles for uploads.
@@ -37,7 +37,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [x] Existing localized listing content: `get_listing_translation` (M2.6; selected existing fields, bounded syntax-only language validation).
 - [ ] Public return-policy list/detail: `get_shop_return_policies`, `get_shop_return_policy` (M2.7a implementation pending review; selected public fields only, no legal/refund/impact conclusions).
 - [ ] OAuth `listings_r` policy-linked listing lookup: `get_return_policy_listings` (M2.7b follows M3; no paging query declared). The broader M2.7 item remains incomplete until this private child is implemented. See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
-- [ ] Shipping carrier/mail-class discovery: `get_shipping_carriers`.
+- [x] Shipping carrier/mail-class discovery: `get_shipping_carriers` (M2.8; bounded public reference data by origin country).
 
 ## Listings and inventory — [plan](docs/planned-listing-management.md)
 

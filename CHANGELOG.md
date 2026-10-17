@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added a bounded public read of the selected property values returned for a listing.
 - Added public reads for current listing personalization questions and existing listing translations.
 - Added public shop return-policy list and detail lookups with bounded selected fields.
+- Added public carrier/mail-class reference lookup by origin country and an Etsy application connectivity diagnostic that does not imply OAuth or private access.
 
 ### Documentation
 

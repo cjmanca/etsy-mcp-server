@@ -1,6 +1,6 @@
 # Planned shop, shipping, and policy management
 
-**Status: mostly unimplemented proposals.** Shop settings, private configuration, and policy mutations remain planned; M2.7a public return-policy list/detail reads are implemented in [public discovery](planned-public-discovery.md). Use the [OAuth plan](planned-oauth-and-accounts.md), [access policy](access-policy.md), and [operation matrix](api-coverage.md). Public profile and section reads are also described in [shop discovery](shops.md).
+**Status: mostly unimplemented proposals.** Shop settings, private configuration, and policy mutations remain planned; M2.7a public return-policy list/detail reads and M2.8 public carrier discovery are implemented in [public discovery](planned-public-discovery.md). Use the [OAuth plan](planned-oauth-and-accounts.md), [access policy](access-policy.md), and [operation matrix](api-coverage.md). Public profile and section reads are also described in [shop discovery](shops.md).
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -41,7 +41,7 @@ There is no shop-create/delete or production-partner-write operation in the rese
 
 The inspected profile-list and batch-shipping endpoints require `shops_r`. Batch shipping requires all requested listing IDs to exist, otherwise the whole request returns 404. Profiles and their IDs are nulled for listings not owned by the connected user; digital listings may have no shipping profile. Null is not an empty profile or proof of free shipping.
 
-Do not restore `includes=Shipping` in listing lookup. Use `getListingsShippingByListingIds` and the required scope. The public carrier lookup supplies supported carrier/mail-class IDs; it does not buy postage or generate a label.
+Do not restore `includes=Shipping` in listing lookup. Use `getListingsShippingByListingIds` and the required scope. The current public `get_shipping_carriers` lookup (M2.8) supplies bounded carrier/mail-class reference data; it does not configure a profile, buy postage, or generate a label.
 
 Etsy documents that calculated shipping templates cannot be created through this API; existing calculated profiles created in Shop Manager may be associated with listings. Respect origin/postal-code, country/region, money, carrier/mail-class, and delivery-range requirements rather than substituting arbitrary defaults. A shared-profile destination/upgrade change can affect every linked listing; preview the scope and confirm before applying it.
 

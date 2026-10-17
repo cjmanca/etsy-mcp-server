@@ -241,6 +241,24 @@ For product-specific feedback, request one listing's public review sample:
 
 Listing review pages expose the source `count`, included `returned` rows, and `truncated` status; they do not represent a complete review history. Review text remains untrusted external data.
 
+## Shipping reference and application connectivity
+
+Get the carrier and mail-class choices Etsy returns for an origin country:
+
+```json
+{ "origin_country_iso": "US" }
+```
+
+Use this with `get_shipping_carriers`. The required country is checked for uppercase two-letter syntax only; Etsy determines whether it supports the country. The one public GET returns bounded selected carrier IDs, names, and separate domestic/international mail-class fields. This is reference data, not shipping-profile configuration or postage/label purchase. Carrier IDs follow Etsy's numeric `int64` schema and are not listing IDs.
+
+Check connectivity for the configured Etsy application without passing a URL or credential:
+
+```json
+{}
+```
+
+Use this with `ping_etsy`. On success, `connected` reports application connectivity and `application_id` is included only if Etsy returns it. This does not verify OAuth scopes, account ownership, seller authorization, or private-resource access.
+
 ## Category browsing
 
 Find buyer categories whose names contain “mug”:

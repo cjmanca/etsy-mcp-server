@@ -18,14 +18,16 @@ need listings_r. Scope bundles must reflect per-operation security, not verbs.
 ## M0.3 capability boundary
 
 The runtime has typed `public`, `account`, `write`, and `event` registration
-groups, but currently registers and enables only the twenty-six public tools. The other
+groups, but currently registers and enables only the twenty-eight public tools. The other
 groups are disabled and undiscoverable; no OAuth flow, stored connection, scope
 inspection, ownership check, write authorization, or event receiver is thereby
 implemented. Registry enablement is trusted server configuration, never a model
 argument or metadata hint. Any later tool handler must still enforce actual
 granted scopes and account/resource boundaries. Test-owned registrations verify
 that disabled tools stay hidden and that direct calls fail with server-generated
-prerequisites before handler or request execution.
+prerequisites before handler or request execution. The public M2.8 `ping_etsy`
+tool is only an application connectivity diagnostic; it does not establish
+OAuth consent, actual scopes, or account access.
 
 ## Account-connection experience
 

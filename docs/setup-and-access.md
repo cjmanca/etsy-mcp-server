@@ -77,6 +77,12 @@ For an MCP client configuration, add the switch alongside the API key:
 - Redirects are blocked and normal TLS certificate verification stays enabled.
 - The startup message is written to stderr so stdout remains available for MCP messages.
 
+## Application diagnostics
+
+Use `ping_etsy` with an empty object to check connectivity for the configured Etsy application. A successful ping confirms application access to the Open API only; it does not verify OAuth consent, scopes, account ownership, or private-resource permissions. It accepts no URL, key, or token from the caller.
+
+Use `get_shipping_carriers` with the required `origin_country_iso` when you need carrier reference data. The tool checks uppercase two-letter syntax without maintaining a country registry; Etsy may reject a syntactically valid country it does not support. It returns bounded selected carrier/mail-class data and does not set up shipping or buy postage.
+
 ## Troubleshooting
 
 | Symptom | Check |
@@ -85,6 +91,6 @@ For an MCP client configuration, add the switch alongside the API key:
 | Credential format rejected | Supply the full keystring/shared-secret pair without spaces or line breaks. Never paste the actual value into an issue. |
 | Etsy rejects credentials | Verify the application credentials and access with Etsy; correct formatting does not prove authorization. |
 | Secure connection fails | Direct network access and TLS trust; proxy-only environments are not supported by current behavior. |
-| Some requested feature is unavailable | Only the ten tools in the [overview](overview.md) exist. API availability does not imply MCP availability. |
+| Some requested feature is unavailable | Only the twenty-eight tools in the [overview](overview.md) exist. API availability does not imply MCP availability. |
 
 `npm test` builds and runs local mocked behavioral tests using synthetic credentials, not live Etsy requests. Passing tests does not establish that a particular Etsy application has live access.
