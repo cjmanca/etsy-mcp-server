@@ -45,6 +45,10 @@ reference; the coverage matrix is a research baseline, not a frozen API contract
 Keep implemented capabilities distinct from planned ones. A roadmap or task
 entry does not authorize unrelated implementation or live Etsy actions.
 
+You can use the mcp tool `etsy-api-dev-information` to retrieve information about the etsy API.
+
+This tool that this workspace is building is also an MCP server. It is setup for you to use for testing, as the tool `mcp-etsy`. It's launched with --watch, so each time you re-build the project, it will automatically be updated for testing. Don't call mutating endpoints at `mcp-etsy`.
+
 ## Sub-agent model policy
 
 Use sub-agents only when needed. When delegating, explicitly select the model
