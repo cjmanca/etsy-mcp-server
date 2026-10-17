@@ -22,7 +22,7 @@ test("carrier and ping tools are public read-only tools with their exact input s
     mockAdapter((config) => successResponse(config, {})),
     async ({ client }) => {
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 28);
+      assert.equal(tools.length, 29);
       const selected = tools.filter((tool) => SHIPPING_TOOLS.includes(tool.name));
       assert.deepEqual(selected.map((tool) => tool.name).sort(), SHIPPING_TOOLS);
 
@@ -442,7 +442,7 @@ test("both public diagnostics remain callable under the read-only development lo
       : { count: 0, results: [] }), calls),
     async ({ client }) => {
       const discovered = await client.listTools();
-      assert.equal(discovered.tools.length, 28);
+      assert.equal(discovered.tools.length, 29);
       assert.equal(discovered.tools.some((tool) => SHIPPING_TOOLS.includes(tool.name)), true);
 
       const carriers = await client.callTool({

@@ -105,6 +105,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_listing_details",
         "get_listing_image",
         "get_listing_images",
+        "get_listing_offering",
         "get_listing_personalization",
         "get_listing_properties",
         "get_listing_reviews",

@@ -395,7 +395,7 @@ test("locked registry hides test-owned writes and denies direct calls before han
   });
 });
 
-test("production server keeps all twenty-eight read tools and successful GETs available while locked", async () => {
+test("production server keeps all twenty-nine read tools and successful GETs available while locked", async () => {
   await withDevelopmentMode("true", async () => {
     const adapterCalls = [];
     await withMcp(
@@ -411,6 +411,7 @@ test("production server keeps all twenty-eight read tools and successful GETs av
             "get_listing_details",
             "get_listing_image",
             "get_listing_images",
+            "get_listing_offering",
             "get_listing_personalization",
             "get_listing_properties",
             "get_listing_reviews",
@@ -456,7 +457,7 @@ test("production discovery does not register writes when the lock is disabled", 
       mockAdapter((config) => successResponse(config, {}), adapterCalls),
       async ({ client }) => {
         const { tools } = await client.listTools();
-        assert.equal(tools.length, 28);
+        assert.equal(tools.length, 29);
         assert.equal(tools.some((tool) => tool.name === "test_write"), false);
         assert.equal(tools.some((tool) => tool.name === "create_draft_listing"), false);
       },

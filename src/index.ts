@@ -58,6 +58,7 @@ import {
 import { createListingPropertiesRegistrations } from "./listing-properties.js";
 import { createShopReturnPolicyRegistrations } from "./shop-return-policies.js";
 import { createShippingDiagnosticsRegistrations } from "./shipping-diagnostics.js";
+import { createListingOfferingRegistrations } from "./listing-offering.js";
 import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
@@ -1851,6 +1852,7 @@ export function createEtsyMcpServer(
     ...createListingPropertiesRegistrations({ get, responseText }),
     ...createShopReturnPolicyRegistrations({ get, responseText }),
     ...createShippingDiagnosticsRegistrations(shippingDiagnosticsDependencies),
+    ...createListingOfferingRegistrations({ get, responseObject, textField, responseText }),
     ...createListingContentRegistrations(contentDependencies),
   ];
   const registry = new CapabilityRegistry({

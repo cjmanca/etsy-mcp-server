@@ -142,6 +142,14 @@ The result keeps the existing listing `price` (formatted original listing price)
 
 Each Money value retains Etsy's raw integer `amount`, positive `divisor`, and `currency_code`; no universal `/100` conversion or recomputation is performed. Partial association fields remain absent or explicitly null as returned. A null shipping cost with `is_free_shipping: false` remains unavailable, not free; a true flag is preserved without inventing a numeric zero. Malformed or unsafe Money fails as one sanitized upstream error. Country-specific display values are not a final checkout quote and do not include invented taxes or other checkout totals. Selected output, result ordering, source omissions, truncation, and untrusted-content notice follow the same batch rules above.
 
+## Read one listing offering
+
+`get_listing_offering` calls the public, API-key-only `GET /v3/application/listings/{listing_id}/products/{product_id}/offerings/{product_offering_id}` (`getListingOffering`) once. Supply positive safe-integer numeric `listing_id`, `product_id`, and `product_offering_id`. This route is distinct from the OAuth-protected inventory and product routes; it does not fetch a product, inventory record, SKU, or any follow-up resource. The optional documented `legacy` boolean is sent only when explicitly supplied and is omitted by default. No processing-profile rollout or production-eligibility status is inferred from it.
+
+The tool selects only Etsy's optional `offering_id`, `quantity`, `is_enabled`, `is_deleted`, `price`, and `readiness_state_id` fields. A returned `offering_id` must match the requested offering; if Etsy includes `listing_id` or `product_id` parent references, they must match the path IDs. Missing IDs/references are not filled in, and parent references are not copied into output. Quantity zero and false flags remain zero/false. The nullable readiness-state ID is a reference only, not a processing-time, fulfillment, rollout, stock, or sellability guarantee.
+
+Money is returned as raw `{ amount, divisor, currency_code }`, using the strict shared normalizer; amounts are not divided, rounded, reformatted, or combined. Missing `price` stays absent; explicit null or malformed Money is an error. Missing optional fields stay absent, explicit `readiness_state_id: null` stays null, and malformed/empty source records fail rather than appearing as empty success. Only selected fields are returned; currency-code display is bounded to three characters and sets `truncated` if shortened. The shared 128 KiB JSON output bound, sanitized errors, and untrusted-content notice apply.
+
 ## Suggested agent workflow
 
 1. Search with a focused phrase and a modest page size.

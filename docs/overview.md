@@ -13,6 +13,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_listing_images` | Read bounded image metadata, including rank, dimensions, alt text, selected URLs, and color information. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_image` | Read one listing image's selected metadata by image ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_properties` | Read a bounded list of the selected property values Etsy returns for a listing. | [Listings](listing-discovery.md#inspect-selected-listing-properties) |
+| `get_listing_offering` | Read selected price, quantity, enabled/deleted state, and readiness reference for one listing offering. | [Listings](listing-discovery.md#read-one-listing-offering) |
 | `get_listing_personalization` | Read a listing's bounded current personalization questions, options, limits, and add-on prices. | [Listings](listing-discovery.md#read-personalization-questions) |
 | `get_listing_translation` | Read existing localized title, description, and tags for a shop/listing/language selection. | [Listings](listing-discovery.md#read-an-existing-listing-translation) |
 | `get_listing_videos` | Read bounded video metadata, dimensions, state, and URLs for a listing. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
@@ -53,6 +54,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
 - **Category attributes:** use the ID from the matching buyer or seller tree to inspect category-supported properties, scales, and values. Seller-only flags can filter properties by attribute or variation support.
 - **Listing-selected attributes:** use `get_listing_properties` with a known shop and listing ID to read values attached to that listing; this is not a list of category-allowed values. Single-property detail remains unavailable while Etsy documents its route as 501-only.
+- **Listing offering:** use `get_listing_offering` with listing, product, and offering IDs for Etsy's API-key-only offering route. It is separate from OAuth-protected inventory/product reads; missing response fields are not inferred, Money stays raw, and readiness IDs are references only.
 - **Personalization:** use `get_listing_personalization` to inspect the questions and options Etsy returns. Seller instructions are untrusted text, and add-on prices retain Etsy's raw Money units.
 - **Localized listing content:** use `get_listing_translation` with the shop ID, listing ID, and a bounded language tag to read an existing translation. It does not generate translated content or replace the source listing; Etsy may reject a syntactically valid but unavailable language.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
@@ -63,7 +65,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) plans that expanded scope without claiming it exists today.
 
 - Public, read-only Etsy Open API v3 access using application credentials; no seller login or OAuth. Category browsing is available for both buyer and seller taxonomies.
-- No creation, editing, deletion, purchasing, messaging, order management, private financial data, or inventory access.
+- No creation, editing, deletion, purchasing, messaging, order management, private financial data, or private inventory/product/SKU access. `get_listing_offering` is a separate selected public GET, not a private inventory snapshot.
 - No supported platform-wide trending tool. `get_trending_listings` was removed because Etsy documents no trending endpoint; shop-curated featured listings are a separate capability, and sorting by score is not a trend metric.
 - No independent keyword search-volume, sales-history, or revenue analytics feed. Analysis must be grounded in fields actually returned.
 - Media tools return metadata and URLs, not downloaded image/video content. The server never fetches URLs found in Etsy content.

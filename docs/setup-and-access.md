@@ -91,6 +91,6 @@ Use `get_shipping_carriers` with the required `origin_country_iso` when you need
 | Credential format rejected | Supply the full keystring/shared-secret pair without spaces or line breaks. Never paste the actual value into an issue. |
 | Etsy rejects credentials | Verify the application credentials and access with Etsy; correct formatting does not prove authorization. |
 | Secure connection fails | Direct network access and TLS trust; proxy-only environments are not supported by current behavior. |
-| Some requested feature is unavailable | Only the twenty-eight tools in the [overview](overview.md) exist. API availability does not imply MCP availability. |
+| Some requested feature is unavailable | Only the twenty-nine tools in the [overview](overview.md) exist. API availability does not imply MCP availability. |
 
 `npm test` builds and runs local mocked behavioral tests using synthetic credentials, not live Etsy requests. Passing tests does not establish that a particular Etsy application has live access.

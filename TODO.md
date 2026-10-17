@@ -38,6 +38,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Public return-policy list/detail: `get_shop_return_policies`, `get_shop_return_policy` (M2.7a implementation pending review; selected public fields only, no legal/refund/impact conclusions).
 - [ ] OAuth `listings_r` policy-linked listing lookup: `get_return_policy_listings` (M2.7b follows M3; no paging query declared). The broader M2.7 item remains incomplete until this private child is implemented. See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
 - [x] Shipping carrier/mail-class discovery: `get_shipping_carriers` (M2.8; bounded public reference data by origin country).
+- [ ] Public offering drill-down: `get_listing_offering` (M2.9 implementation and mocked verification complete; independent review pending).
 
 ## Listings and inventory — [plan](docs/planned-listing-management.md)
 
@@ -46,7 +47,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Listing edits, publication/deactivation, supported renewal and profile/policy associations: `update_listing`.
 - [ ] Listing deletion with distinct delete scope: `delete_listing`.
 - [ ] Single/batch inventory reads with owner-only SKU rules: `get_listing_inventory`, `get_listings_inventory_batch`.
-- [ ] Product/offering drill-down: `get_listing_product`, `get_listing_offering`.
+- [ ] Private product drill-down: `get_listing_product` (requires OAuth `listings_r`; distinct from the public M2.9 offering read).
 - [ ] Complete inventory replacement: `update_listing_inventory`, including third variations, dependency arrays, scale checks, processing links, and truncated/stale-snapshot safeguards.
 - [ ] Attribute mutation/removal: `update_listing_property`, `delete_listing_property`.
 - [ ] Current personalization question/add-on configuration: `update_listing_personalization`, `delete_listing_personalization`.

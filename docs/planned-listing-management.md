@@ -1,6 +1,6 @@
 # Planned listing, inventory, and media management
 
-**Status: unimplemented proposals.** This slice covers seller catalog management, variants/SKUs, digital files, and content writes. Public-read extensions are in [public discovery](planned-public-discovery.md). Account operations require the [OAuth foundation](planned-oauth-and-accounts.md) and [write policy](access-policy.md).
+**Status: unimplemented proposals, with one current public read.** This slice covers seller catalog management, variants/SKUs, digital files, and content writes. The public `get_listing_offering` read is implemented under M2.9 and documented in [public discovery](planned-public-discovery.md); it does not enable private inventory/product access. Account operations require the [OAuth foundation](planned-oauth-and-accounts.md) and [write policy](access-policy.md).
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -37,10 +37,10 @@ Read access uses `listings_r`; creation/update use `listings_w`; listing deletio
 | `get_listing_inventory` | Listing ID; optional supported deleted-product controls. | Products, offering prices/quantities/enabled state, variation values, SKU visibility, and property-dependency arrays. |
 | `get_listings_inventory_batch` | 1–100 listing IDs. | Inventory summaries associated with each listing. |
 | `get_listing_product` | Listing ID and product ID. | One product and its offerings/properties. |
-| `get_listing_offering` | Listing ID, product ID, `product_offering_id`. | One offering's price, quantity, enabled/deleted state, and readiness reference. |
+| `get_listing_offering` | Listing ID, product ID, `product_offering_id`; optional `legacy`. | **Current M2.9 public read:** selected offering price, quantity, enabled/deleted state, and nullable readiness reference. |
 | `update_listing_inventory` | Listing ID, complete validated product set and dependency arrays; confirmation bound to the preview. | Whole-record replacement with verified resulting quantities, prices, variations, SKUs, and processing links. |
 
-Inspected inventory/product reads require `listings_r`, inventory writes require `listings_w`. The inspected offering GET requires an API key without an OAuth scope: do not infer its authorization from the related product route. Account/resource restrictions still apply wherever Etsy enforces them.
+Inspected inventory/product reads require `listings_r`, inventory writes require `listings_w`. `get_listing_offering` calls `GET /v3/application/listings/{listing_id}/products/{product_id}/offerings/{product_offering_id}` with API-key authentication only, unlike the `/inventory` product route. Its optional documented `legacy` boolean is omitted unless supplied. It selects optional `offering_id`, quantity, flags, raw Money, and nullable `readiness_state_id`; supplied offering/listing/product references are checked but not inferred. This separate response does not prove ownership or rollout eligibility and is not an inventory snapshot.
 
 Use dedicated inventory endpoints. Do **not** reintroduce `includes=Inventory` on listing detail/batch lookup; that association was removed. Inventory may be null/missing for listings not created/edited through Etsy inventory tooling, which is not proof of zero stock. SKUs are owner-only; batch inventory strips other sellers' SKUs. One missing ID causes the entire batch inventory request to return 404.
 

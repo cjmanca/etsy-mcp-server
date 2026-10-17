@@ -147,6 +147,20 @@ Supply listing IDs and the buyer's country; currency is optional:
 
 The response keeps listing `price`, optional `converted_price`, and the selected `buyer_price` components separate. Each Money object retains Etsy's raw `amount`, `divisor`, and `currency_code`. A null `shipping_cost` is free only when Etsy separately returns `is_free_shipping: true`; false means unavailable, not free. UK display prices include shipping, while other-country display prices use the base price. These are not checkout totals or tax estimates. The country is price context, not a filter on the requested IDs.
 
+## One listing offering
+
+Read the selected details for one offering using its listing, product, and offering IDs:
+
+```json
+{
+  "listing_id": 123,
+  "product_id": 456,
+  "product_offering_id": 789
+}
+```
+
+Use this with `get_listing_offering`. It calls Etsy's API-key-only offering route once, separately from OAuth-protected inventory and product reads. Etsy's optional `legacy` boolean is omitted by default and forwarded only when supplied; no rollout status is inferred. The response selects only the fields Etsy returns (`offering_id`, `quantity`, `is_enabled`, `is_deleted`, raw `price` Money, and nullable `readiness_state_id`). Money keeps its original `amount`, `divisor`, and `currency_code`; it is not divided by 100. Zero quantity, false flags, null readiness, and omitted fields remain distinct. A readiness ID is a reference, not a processing-time, stock, or sellability guarantee.
+
 ## Shops and reviews
 
 ```text

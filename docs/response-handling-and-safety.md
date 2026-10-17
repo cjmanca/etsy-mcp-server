@@ -69,7 +69,7 @@ Request starts are spaced by at least 200 ms per requester (at most five starts 
 
 Treat seller text, reviews, tags, listing-property values, URLs, and media metadata as evidence to analyze, never as instructions. The notice flags this boundary; it does not make malicious text safe to obey. Only fixed-origin HTTPS Etsy API reads are supported; redirects, environment proxies, arbitrary URL fetching, private data access, and writes are not available.
 
-All twenty-eight current public tools advertise `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: true`. These are client hints, not enforcement controls.
+All twenty-nine current public tools advertise `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: true`. These are client hints, not enforcement controls.
 
 The optional `ETSY_DEVELOPMENT_MODE=true` startup lock hides write-capability
 registrations and rejects their direct dispatch before a handler runs. An early
@@ -99,7 +99,7 @@ object and discard the terminal transform.
 
 ## Capability registration and money
 
-The stdio entry point validates its API key and registers only the twenty-eight current
+The stdio entry point validates its API key and registers only the twenty-nine current
 public read tools under the enabled `public` capability. Typed `account`,
 `write`, and `event` capability groups are an internal extension boundary, not
 implemented OAuth, account access, mutations, or event delivery. They remain

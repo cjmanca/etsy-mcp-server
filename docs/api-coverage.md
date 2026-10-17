@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-eight current tools reach twenty-eight distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **77 operations remain Planned** (including explicitly blocked/deferred routes).
+- Twenty-nine current tools reach twenty-nine distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **76 operations remain Planned** (including explicitly blocked/deferred routes).
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -63,13 +63,15 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 
 ## Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)
 
+`getListingOffering` is a current, API-key-only read; it does not inherit the `listings_r` requirement of adjacent inventory and product reads.
+
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
 | GET | `getListingInventory` | `get_listing_inventory` | Planned |
 | PUT | `updateListingInventory` | `update_listing_inventory` | Planned |
 | GET | `getListingsInventoryByListingIds` | `get_listings_inventory_batch` | Planned |
 | GET | `getListingProduct` | `get_listing_product` | Planned |
-| GET | `getListingOffering` | `get_listing_offering` | Planned |
+| GET | `getListingOffering` | `get_listing_offering` (M2.9; selected public offering fields) | Current |
 
 ## Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)
 
