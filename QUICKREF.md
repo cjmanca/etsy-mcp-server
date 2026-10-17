@@ -13,6 +13,8 @@ Requires Node.js 22 or later. Configure your MCP client to run `node /absolute/p
 ETSY_API_KEY=<keystring>:<shared_secret>
 ```
 
+OAuth remains disabled by default. After completing the operator-only protected-storage and callback setup in [setup and access](docs/setup-and-access.md#optional-browser-based-account-connection), exact `ETSY_OAUTH_ENABLED=true` conditionally adds `begin_etsy_connection`. The existing twenty-nine public tools remain available; no private data or seller-write tools are exposed by this connect flow.
+
 ## Tools
 
 - `search_listings` (category/location/safe-content/currency/shipping-country filters; score is always descending)
@@ -40,8 +42,9 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_listing_reviews` (one public listing review page; optional date filters)
 - `get_taxonomy_nodes` (`buyer` or `seller`; optional local subtree/name filters)
 - `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
+- `begin_etsy_connection` (conditional; operator-enabled browser consent entry point only, not private Etsy data access)
 
-All twenty-nine tools are read-only and use public Etsy API-key endpoints. Media URLs are bounded data only and are never fetched; media list tools have no paging parameters. Taxonomy node results are bounded local pages over a cached full tree; category-property lookup uses the selected category route directly. Listing-property lookup returns only the values selected on a listing. The public offering read is separate from private inventory/product access. Return-policy reads do not enumerate affected listings; that separate read requires OAuth `listings_r`. `ping_etsy` confirms application connectivity only, not OAuth scopes or private access. Platform-wide trending listings and private inventory remain unsupported; shop-curated featured products are available separately. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+The twenty-nine default tools are read-only and use public Etsy API-key endpoints. `begin_etsy_connection` appears only when OAuth is explicitly enabled and protected startup prerequisites succeed; it starts browser consent but does not expose private Etsy reads, refresh, status/disconnect, scope introspection, or writes. Media URLs are bounded data only and are never fetched; media list tools have no paging parameters. Taxonomy node results are bounded local pages over a cached full tree; category-property lookup uses the selected category route directly. Listing-property lookup returns only the values selected on a listing. The public offering read is separate from private inventory/product access. Return-policy reads do not enumerate affected listings; that separate read requires OAuth `listings_r`. `ping_etsy` confirms application connectivity only, not OAuth scopes or private access. Platform-wide trending listings and private inventory remain unsupported; shop-curated featured products are available separately. See the [setup guide](docs/setup-and-access.md) for configuration; `README.md` is unchanged.
 
 Listing summaries may include returned category, return-policy/readiness references, listing type, variation/personalization flags, and default language. Detail associations and dedicated personalization/translation reads are selected and bounded; seller instructions and localized content are untrusted. Language validation checks bounded BCP 47 syntax only, not registry membership or Etsy availability. Readiness IDs are references, not guarantees. Batch `currency` conversion preserves original `price` separately from `converted_price`. Buyer-price output keeps original, converted, display, discount, and shipping components separate, with raw money units preserved; it is not a checkout quote. `Inventory`/`Shipping` are not detail includes.
 

@@ -1,26 +1,29 @@
 # Planned OAuth and account access
 
-**Status: user-approved design, implementation outstanding.** This foundation enables private reads, inventory, and writes; those capabilities are permitted by [policy](access-policy.md), not yet available in the running server.
+**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a) and conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2) are complete. Independent source/docs review and final coordinator Windows/native-Linux verification passed, including the real SIGTERM subprocess gate; concrete evidence is recorded in [TASK.md](../TASK.md). Refresh orchestration (M3.3b), connection status/disconnect (M3.4), per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) are not implemented.
 
-## Approved M3.1 deployment and implementation contract (2026-10-17)
+## M3.1 deployment contract and current implementation status (2026-10-17)
 
 Read the [approved portable OAuth design](superpowers/specs/2026-10-17-portable-oauth-design.md)
 and [focused implementation plan](superpowers/plans/2026-10-17-portable-oauth.md).
 The user approved proceeding; M3.1 passed independent contract/ignore-prerequisite
-review. Runtime OAuth implementation remains planned. Native Windows local
-NTFS and Linux local POSIX storage use Node AES-256-GCM with a separate operator-
-provided protected key file, not a Windows-only vault. Future Docker targets a
-local named volume and separate read-only key mount; packaging is not implemented.
-Workspace data/secrets require recursive Git/build-context exclusions before use.
+review. M3.3a and the M3.2 conditional connect implementation now exist, but the
+overall M3 milestone is not complete. Native Windows local NTFS and Linux local
+POSIX storage use Node AES-256-GCM with a separate operator-provided protected key
+file, not a Windows-only vault. Native Windows and native Linux protected-store
+acceptance evidence is recorded in the M3.3a reports; Docker deployment is not
+tested. Workspace data/secrets require recursive Git/build-context exclusions
+before workspace-local storage is used.
 
 Current topology is home-server HTTPS proxy → dev computer port 3001; eventual
 dev container is on the home server. User confirmed exact registration of
 `https://www.methejuggler.com/oauth/etsy/callback`. Explicit numeric LAN bind and
-bounded exact trusted proxy IPs are required for nonloopback listening. Check
-normalized actual socket remoteAddress before query/state/exchange, never trust
-forwarded source/host headers; firewall restricts access to the protected proxy
-route. Future container allowlist must reflect actual nearest proxy/bridge peer.
-No listener, proxy reachability or browser consent has been verified here.
+bounded exact trusted proxy IPs are required for nonloopback listening. Runtime
+checks normalized actual socket `remoteAddress` before query/state/exchange and
+never trusts forwarded source/host headers. The operator must restrict the
+firewall to the protected proxy route; the future container allowlist must reflect
+the actual nearest proxy/bridge peer. Callback tests bind synthetic loopback only;
+no deployed listener, proxy reachability, or live browser consent has been verified.
 
 Dependency ruling: **M3.1 → M3.3a protected store/config/permissions → M3.2 secure
 connect → M3.3b refresh → M3.4 → M3.5**. M3.3's parent stays incomplete until both
@@ -53,34 +56,36 @@ deletion is blocked pending clarification:** the current endpoint declares
 `updateShop` needs both shops_r and shops_w, and policy-linked listing reads
 need listings_r. Scope bundles must reflect per-operation security, not verbs.
 
-## M0.3 capability boundary
+## Current capability boundary
 
 The runtime has typed `public`, `account`, `write`, and `event` registration
-groups, but currently registers and enables only the twenty-nine public tools. The other
-groups are disabled and undiscoverable; no OAuth flow, stored connection, scope
-inspection, ownership check, write authorization, or event receiver is thereby
-implemented. Registry enablement is trusted server configuration, never a model
-argument or metadata hint. Any later tool handler must still enforce actual
-granted scopes and account/resource boundaries. Test-owned registrations verify
-that disabled tools stay hidden and that direct calls fail with server-generated
-prerequisites before handler or request execution. The public M2.8 `ping_etsy`
-tool is only an application connectivity diagnostic; it does not establish
-OAuth consent, actual scopes, or account access.
+groups. By default it registers and enables only the twenty-nine public tools.
+When `ETSY_OAUTH_ENABLED=true` and the protected store, key, and callback listener
+start successfully, it conditionally adds `begin_etsy_connection` under `account`.
+This single entry point starts browser consent and completes a durable protected
+connection after callback identity/scope checks; it does not expose any private
+Etsy resource tools. The remaining account lifecycle, per-operation scope and
+resource authorization, writes, and event handling are still unimplemented.
+Registry enablement is trusted startup configuration, never a model argument or
+metadata hint. A blocked/unavailable begin tool is undiscoverable and direct
+dispatch receives a server-generated prerequisite. The public M2.8 `ping_etsy`
+tool remains only an application connectivity diagnostic; it does not establish
+OAuth consent, actual scopes, or private-resource access.
 
-## Account-connection experience
+## Current conditional connection entry point
 
-An operator selects the capability bundle they need, reviews the requested scopes, and authorizes the application at Etsy. A registered HTTPS callback completes authorization outside the model conversation. The server stores credentials securely and gives the MCP client an opaque connection identifier. The assistant never handles raw authorization codes, access tokens, refresh tokens, or PKCE verifiers.
+After an operator completes the [OAuth setup prerequisites](setup-and-access.md#optional-browser-based-account-connection), a client may call `begin_etsy_connection` with a read-capability bundle and optional nonsecret label. The tool returns a generated Etsy authorization URL and required human action; the operator completes consent in a browser. A fixed callback path validates the actual trusted socket peer and state, exchanges the code internally, validates the granted scope and Etsy identity, and commits the credentials to the encrypted store. The callback returns a static completion page. The MCP conversation never receives the raw authorization code, access/refresh token, or PKCE verifier. This flow does not add private account data tools; no connection-status tool exists yet.
 
-Planned local MCP controls:
+The tool is present only when OAuth is explicitly enabled and runtime prerequisites succeed. `ETSY_DEVELOPMENT_MODE=true` hides/disables it because the conservative method lock blocks the OAuth POST requests. The default remains the same twenty-nine public tools and does not open a callback listener or read OAuth key/store files.
 
 | Tool | Inputs | Result |
 | --- | --- | --- |
-| `begin_etsy_connection` | Requested capability bundle and nonsecret connection label. | Connection request identifier, approved authorization destination, required human action, and pending status; no token or verifier. |
-| `get_etsy_connection_status` | `connection_id`. | Connected/pending/expired state, authorized account/shop IDs, granted capability names, and reauthorization guidance. |
-| `disconnect_etsy_connection` | Connection ID and explicit user intent. | Local credential removal and disabled account tools. Do not claim Etsy-side token revocation unless an actual supported revocation mechanism is used. |
-| `get_etsy_token_scopes` | Connection ID. | Scope names returned by `tokenScopes`, with the stored token injected internally. Never accept a raw token as a model-facing argument. |
+| `begin_etsy_connection` | Read-capability bundle and optional nonsecret label. | **Conditional current implementation:** authorization URL, human action, pending request ID/status; no token or verifier. M3.2 independent source/docs review and coordinator final platform verification passed. |
+| `get_etsy_connection_status` | `connection_id`. | **Planned (M3.4):** connected/pending/expired state, authorized account/shop IDs, granted capability names, and reauthorization guidance. |
+| `disconnect_etsy_connection` | Connection ID and explicit user intent. | **Planned (M3.4):** local credential removal and disabled account tools. Do not claim Etsy-side token revocation unless an actual supported revocation mechanism is used. |
+| `get_etsy_token_scopes` | Connection ID. | **Planned (M3.5b):** scope names from a separately verified `tokenScopes` response, with the stored token injected internally. Never accept a raw token as a model-facing argument. |
 
-The first three are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access.
+These are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access. Keep the public-tool count at twenty-nine by default; the conditional connect tool is additive only when explicitly enabled and ready.
 
 ## Protocol and lifecycle requirements
 
@@ -91,7 +96,21 @@ The first three are local orchestration features, not extra REST operations in t
 - Store expiration and actual granted scopes; refresh internally, protect rotated refresh tokens, and require reconnection when consent expires or is removed. Guide lifetimes are one hour for access tokens and 90 days for refresh tokens; honor actual responses and current rules.
 - Requesting more scopes requires fresh authorization; refreshing does not expand consent. Do not request every scope preemptively just because the roadmap covers the whole API.
 - Keep connection/account data isolated across clients and operators; account switching must never reuse another account's confirmation or cached private data.
-- Credential storage is resolved by the approved portable AES-256-GCM design, separate read-only key provisioning, NTFS ACL/POSIX checks, single owner lock and atomic authenticated updates; no plaintext fallback or automatic corrupt-store reset. M3.3a implements it before M3.2 can establish a connection.
+- Credential storage uses the approved portable AES-256-GCM design, separate protected binary key, NTFS ACL/POSIX checks, single owner lock, and atomic authenticated updates; there is no plaintext fallback or automatic corrupt-store reset. M3.3a is implemented before the M3.2 flow can commit a connection. Native Windows and native Linux storage evidence exists; future Docker deployment is untested.
+
+### Uncertain rollback and offline recovery
+
+If shutdown cannot compensate a possibly committed OAuth write, the protected
+store persists the fixed owner-bound `oauth-recovery-required.json` marker and
+checks it before reading key bytes or credential snapshots on reopen. It contains
+only owner context and a fixed reason, never connection IDs or credential data.
+If the marker cannot be durably written and verified, the current process retains
+its ownership lock; ordinary reopen remains blocked. Neither a stale lock nor an
+uncertain callback/commit is permission to simply unlock and resume potentially
+cancelled credentials. Stop all possible owners and require verified offline
+recovery or fresh Etsy consent before reusing affected credentials. Normal runtime
+has no marker clear/reset or filesystem API. This is not a guarantee against every
+power-loss window or a malicious local operator.
 
 ### Actual scopes versus diagnostic response gate
 

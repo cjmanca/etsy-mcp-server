@@ -1,10 +1,10 @@
 # Feature roadmap and sequencing
 
-**Status: planned work remains.** Tool names outside the [current twenty-nine](overview.md) are proposals. Scope includes OAuth, inventory, private reads, and writes under the revised [policy](access-policy.md).
+**Status: planned work remains.** The twenty-nine public tools remain available by default, with one conditional OAuth browser-consent entry point after operator setup. Remaining OAuth lifecycle, private reads, inventory, and writes are still planned under the revised [policy](access-policy.md). Tool names outside the [current public set](overview.md) are proposals unless explicitly marked conditional/current.
 
 ## Research basis and coverage
 
-On 2026-10-16, the `etsy-api-dev-information` MCP catalog listed **105 operations**. The [matrix](api-coverage.md) accounts for every one. The twenty-nine current MCP tools reach twenty-nine distinct API operations; `getShop` is directly available as well as internally used by exact-name lookup, and owner-ID lookup uses `getShopByOwnerUserId`. **76 cataloged operations are not reached at all.**
+On 2026-10-16, the `etsy-api-dev-information` MCP catalog listed **105 operations**. The [matrix](api-coverage.md) accounts for every one. The twenty-nine current public MCP tools reach twenty-nine distinct API operations; `getShop` is directly available as well as internally used by exact-name lookup, and owner-ID lookup uses `getShopByOwnerUserId`. The conditional `begin_etsy_connection` tool is non-catalog OAuth orchestration, but its internal identity check reaches the cataloged `getMe` operation when OAuth is enabled and ready: **30 cataloged operations are reachable and 75 remain unreached**. The default public-only configuration reaches 29 operations and leaves 76 unreached. The direct `get_me` tool remains planned for M4, and `tokenScopes` remains planned/unreached.
 
 The initial research used the MCP catalog and selected guides. M0.1 subsequently revalidated all 105 IDs/methods against the current official OpenAPI document on 2026-10-17 and retained all exact schemas in the [contract audit](contracts/README.md), with per-operation indexes and separately inspected guide semantics. Read that audit before implementation; its 501-only, scope-conflict, ownership, financial-unit and rollout blockers override optimistic assumptions in the original feature grouping. Re-fetch affected contracts before coding; this dated snapshot is not a perpetual API guarantee.
 
@@ -17,7 +17,7 @@ The detailed [implementation tasks and milestones](../TASK.md) expand these phas
 | Phase | Deliverable | Dependencies | Completion evidence |
 | --- | --- | --- | --- |
 | 1 | [Public discovery expansion](planned-public-discovery.md) | Existing API-key access. | Each new public tool is discoverable, has bounded results, rejects invalid input, and works in mocked MCP tests. |
-| 2 | [OAuth and account foundation](planned-oauth-and-accounts.md) | Reviewed consent/callback and secret-storage design. | Connection, denied consent, refresh, disconnect, account isolation, and missing-scope paths are tested without leaking secrets. |
+| 2 | [OAuth and account foundation](planned-oauth-and-accounts.md) | Reviewed consent/callback and secret-storage design. | Conditional browser consent and durable callback completion are implemented; refresh, status/disconnect, scope authorization, and account isolation remain before this phase is complete. |
 | 3 | Private listing, inventory, shipping, processing, order, and payment reads. | Phase 2 plus the relevant read scopes. | Ownership/field restrictions and complete-versus-truncated data are represented accurately. |
 | 4 | [Listing and inventory writes](planned-listing-management.md). | Phases 2–3; confirmation and outcome-verification controls. | Draft, publish/update/delete, variation replacement, and media/file workflows have positive, denial, and uncertain-outcome tests. |
 | 5 | [Shop configuration](planned-shop-management.md) and [fulfillment writes](planned-orders-and-payments.md). | Phase 2 and the corresponding read-before-write paths. | Shared-resource impact, destructive changes, buyer notifications, and conflict handling are tested. |
@@ -25,7 +25,7 @@ The detailed [implementation tasks and milestones](../TASK.md) expand these phas
 
 ## MCP surface principles
 
-- Use explicit snake_case tool names, preserving the existing six names and behavior unless a separately documented breaking change is necessary.
+- Use explicit snake_case tool names, preserving all twenty-nine public tools and behavior by default unless a separately documented breaking change is necessary. Optional account-consent controls remain conditional on operator configuration.
 - Group discovery into public, account, catalog, shop configuration, order, and finance domains. Advertise only usable capability sets; provide a safe connection-status explanation for disabled/missing-scope features.
 - All account tools take an opaque `connection_id`, not raw tokens. Additional resource IDs, filters, and changes are defined in the subsystem plans.
 - Keep list/detail pairs where they support different tasks. Do not add unsupported CRUD verbs just for symmetry; some Etsy families are read-only or expose deletion but no creation.

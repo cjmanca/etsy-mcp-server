@@ -12,6 +12,7 @@ import {
 const FORMAT = 1;
 const ALGORITHM = "AES-256-GCM";
 const STORE_FILE = "connections.enc";
+const RECOVERY_MARKER_FILE = "oauth-recovery-required.json";
 const LOCK_DIRECTORY = "oauth-store.lock";
 const LOCK_METADATA_FILE = "owner.json";
 const TEMP_PREFIX = ".connections.enc.";
@@ -22,6 +23,7 @@ const MAX_RECORDS = 100;
 const MAX_TOMBSTONES = 4_096;
 const MAX_ENCRYPTED_BYTES = 4 * 1024 * 1024;
 const MAX_DECRYPTED_BYTES = 2 * 1024 * 1024;
+const MAX_RECOVERY_MARKER_BYTES = 4_096;
 const MAX_TOKEN_BYTES = 16 * 1024;
 const MAX_RECORD_CIPHERTEXT_BYTES = 64 * 1024;
 const MIN_EPOCH_MS = 946_684_800_000;
@@ -216,6 +218,27 @@ function validateOwner(value: unknown, expected: OAuthConfig["owner"]): value is
     value.operatorId === expected.operatorId &&
     value.appFingerprint === expected.appFingerprint
   );
+}
+
+function recoveryMarkerBytes(config: OAuthConfig): Buffer {
+  return serializeJson({
+    format: FORMAT,
+    owner: config.owner,
+    reason: "uncertain_connection_rollback",
+  });
+}
+
+function validateRecoveryMarker(bytes: Buffer, config: OAuthConfig): void {
+  const marker = decodeJson(bytes);
+  if (
+    !isPlainObject(marker) ||
+    !hasExactKeys(marker, ["format", "owner", "reason"]) ||
+    marker.format !== FORMAT ||
+    !validateOwner(marker.owner, config.owner) ||
+    marker.reason !== "uncertain_connection_rollback"
+  ) {
+    return fail("storage_recovery_required");
+  }
 }
 
 function validateScopeList(value: unknown): readonly Scope[] | undefined {
@@ -570,7 +593,7 @@ function validatePrivateFileStat(stat: Stats | BigIntStats, sizeLimit: number): 
 }
 
 function failObjectIdentity(
-  entry: "key" | "store",
+  entry: "key" | "store" | "marker",
   code: "object_identity_unavailable" | "object_identity_mismatch" | "reparse_point",
 ): never {
   const platform = process.platform === "win32" ? "windows" : "posix";
@@ -581,7 +604,7 @@ function failObjectIdentity(
   });
 }
 
-function identityFromStat(stat: BigIntStats, entry: "key" | "store"): StorageObjectIdentity {
+function identityFromStat(stat: BigIntStats, entry: "key" | "store" | "marker"): StorageObjectIdentity {
   if (typeof stat.dev !== "bigint" || typeof stat.ino !== "bigint" || stat.ino <= 0n) {
     return failObjectIdentity(entry, "object_identity_unavailable");
   }
@@ -591,7 +614,7 @@ function identityFromStat(stat: BigIntStats, entry: "key" | "store"): StorageObj
 function assertIdentityMatches(
   stat: BigIntStats,
   expected: StorageObjectIdentity,
-  entry: "key" | "store",
+  entry: "key" | "store" | "marker",
 ): void {
   const actual = identityFromStat(stat, entry);
   if (actual.device !== expected.device || actual.fileId !== expected.fileId) {
@@ -603,7 +626,7 @@ async function revalidateOpenedObject(
   file: string,
   stat: BigIntStats,
   expected: StorageObjectIdentity,
-  entry: "key" | "store",
+  entry: "key" | "store" | "marker",
   config: OAuthConfig,
 ): Promise<void> {
   assertIdentityMatches(stat, expected, entry);
@@ -620,7 +643,11 @@ async function revalidateOpenedObject(
   assertIdentityMatches(pathStat, expected, entry);
 
   const current: StoragePermissionReceipt = await verifyStoragePermissionsWithReceipt(config);
-  const currentIdentity = entry === "key" ? current.keyFile : current.storeFile;
+  const currentIdentity = entry === "key"
+    ? current.keyFile
+    : entry === "store"
+      ? current.storeFile
+      : current.recoveryMarkerFile;
   if (!currentIdentity) return failObjectIdentity(entry, "object_identity_mismatch");
   if (currentIdentity.device !== expected.device || currentIdentity.fileId !== expected.fileId) {
     return failObjectIdentity(entry, "object_identity_mismatch");
@@ -631,7 +658,7 @@ async function readProtectedFile(
   file: string,
   maxBytes: number,
   expected: StorageObjectIdentity,
-  entry: "key" | "store",
+  entry: "key" | "store" | "marker",
   config: OAuthConfig,
 ): Promise<Buffer> {
   let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
@@ -685,6 +712,57 @@ async function readKeyFile(
     return fail("key_invalid");
   } finally {
     await handle?.close().catch(() => {});
+  }
+}
+
+async function assertRecoveryMarkerAbsent(
+  config: OAuthConfig,
+  expectedMarker: StorageObjectIdentity | undefined,
+): Promise<void> {
+  if (!expectedMarker) return;
+  const file = path.join(config.dataDir, RECOVERY_MARKER_FILE);
+  try {
+    const bytes = await readProtectedFile(
+      file,
+      MAX_RECOVERY_MARKER_BYTES,
+      expectedMarker,
+      "marker",
+      config,
+    );
+    validateRecoveryMarker(bytes, config);
+  } catch {
+    return fail("storage_recovery_required");
+  }
+  return fail("storage_recovery_required");
+}
+
+async function persistRecoveryMarker(config: OAuthConfig): Promise<void> {
+  const file = path.join(config.dataDir, RECOVERY_MARKER_FILE);
+  const bytes = recoveryMarkerBytes(config);
+  if (bytes.length > MAX_RECOVERY_MARKER_BYTES) return fail("storage_recovery_required");
+  let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
+  try {
+    handle = await fs.open(file, "wx", PRIVATE_FILE_MODE);
+    validatePrivateFileStat(await handle.stat(), MAX_RECOVERY_MARKER_BYTES);
+    await handle.writeFile(bytes);
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await flushDirectory(config.dataDir);
+
+    const receipt = await verifyStoragePermissionsWithReceipt(config);
+    if (!receipt.recoveryMarkerFile) return fail("storage_recovery_required");
+    const persisted = await readProtectedFile(
+      file,
+      MAX_RECOVERY_MARKER_BYTES,
+      receipt.recoveryMarkerFile,
+      "marker",
+      config,
+    );
+    validateRecoveryMarker(persisted, config);
+  } catch {
+    await handle?.close().catch(() => {});
+    return fail("storage_recovery_required");
   }
 }
 
@@ -953,6 +1031,7 @@ class EncryptedConnectionStore implements ConnectionStore {
   private state: LoadedState;
   private closed = false;
   private poisoned = false;
+  private retainOwnershipLock = false;
 
   constructor(
     private readonly config: OAuthConfig,
@@ -1014,11 +1093,22 @@ class EncryptedConnectionStore implements ConnectionStore {
     });
   }
 
+  async markRecoveryRequired(): Promise<void> {
+    return this.mutex.run(async () => {
+      if (this.closed) return fail("store_closed");
+      this.poisoned = true;
+      this.retainOwnershipLock = true;
+      await persistRecoveryMarker(this.config).catch(() => fail("storage_recovery_required"));
+      this.retainOwnershipLock = false;
+    });
+  }
+
   async close(): Promise<void> {
     return this.mutex.run(async () => {
       if (this.closed) return;
       this.closed = true;
       this.key.fill(0);
+      if (this.retainOwnershipLock) return;
       await releaseOwnedLock(this.lock);
     });
   }
@@ -1091,11 +1181,14 @@ export async function openConnectionStore(config: OAuthConfig): Promise<Connecti
     return fail("invalid_configuration");
   }
 
-  const permissionReceipt = await verifyStoragePermissionsWithReceipt(config);
-  if (!permissionReceipt.keyFile) return failObjectIdentity("key", "object_identity_unavailable");
+  const initialPermissionReceipt = await verifyStoragePermissionsWithReceipt(config);
+  if (!initialPermissionReceipt.keyFile) return failObjectIdentity("key", "object_identity_unavailable");
   const lock = await createOwnedLock(config.dataDir);
   let key: Buffer | undefined;
   try {
+    const permissionReceipt = await verifyStoragePermissionsWithReceipt(config);
+    if (!permissionReceipt.keyFile) return failObjectIdentity("key", "object_identity_unavailable");
+    await assertRecoveryMarkerAbsent(config, permissionReceipt.recoveryMarkerFile);
     key = await readKeyFile(config.keyFile, permissionReceipt.keyFile, config);
     const state = await readExistingSnapshot(config, key, config.dataDir, permissionReceipt.storeFile);
     return new EncryptedConnectionStore(config, key, lock, state);

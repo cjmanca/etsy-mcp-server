@@ -28,9 +28,16 @@ import {
   CapabilityConfigurationError,
   CapabilityRegistry,
   CapabilityUnavailableError,
+  ToolPrerequisiteError,
   UnknownCapabilityToolError,
   type CapabilityRegistration,
 } from "./capabilities.js";
+import { createRequestLimiter, type RequestLimiter } from "./request-limiter.js";
+import { installProcessShutdownHandlers } from "./process-shutdown.js";
+import { parseOAuthConfig } from "./oauth/config.js";
+import { createOAuthRegistrations } from "./oauth/tools.js";
+import { startOAuthRuntime, type OAuthRuntime } from "./oauth/runtime.js";
+import { OAuthError } from "./oauth/types.js";
 import { normalizeMoney } from "./money.js";
 import {
   createListingContentRegistrations,
@@ -105,6 +112,7 @@ export {
   CapabilityConfigurationError,
   CapabilityRegistry,
   CapabilityUnavailableError,
+  ToolPrerequisiteError,
   UnknownCapabilityToolError,
 } from "./capabilities.js";
 export {
@@ -1723,6 +1731,8 @@ function safeToolError(error: unknown): string {
     error instanceof EtsyApiError ||
     error instanceof CapabilityConfigurationError ||
     error instanceof CapabilityUnavailableError ||
+    error instanceof ToolPrerequisiteError ||
+    error instanceof OAuthError ||
     error instanceof DevelopmentModeConfigurationError ||
     error instanceof DevelopmentModeMutationError ||
     error instanceof UnknownCapabilityToolError
@@ -1735,11 +1745,20 @@ function safeToolError(error: unknown): string {
 
 export function createEtsyMcpServer(
   client: AxiosInstance,
-  options: DevelopmentModeFactoryOptions & { readonly now?: () => number } = {},
+  options: DevelopmentModeFactoryOptions & {
+    readonly now?: () => number;
+    readonly oauth?: OAuthRuntime;
+    readonly limiter?: RequestLimiter;
+  } = {},
 ): Server {
   const developmentMode = snapshotDevelopmentMode(options);
   enforceDevelopmentMode(client, developmentMode);
-  const { get } = createEtsyRequester(client);
+  if (options.oauth && options.oauth.developmentMode !== developmentMode) {
+    throw new CapabilityConfigurationError(
+      "OAuth runtime and MCP server development-mode snapshots must match.",
+    );
+  }
+  const { get } = createEtsyRequester(client, { limiter: options.limiter });
   const taxonomyCache = new TaxonomyTreeCache(options.now);
   const mediaDependencies = { get, responseObject, textField, responseText };
   const shippingDiagnosticsDependencies = { get, textField, responseText };
@@ -1854,9 +1873,10 @@ export function createEtsyMcpServer(
     ...createShippingDiagnosticsRegistrations(shippingDiagnosticsDependencies),
     ...createListingOfferingRegistrations({ get, responseObject, textField, responseText }),
     ...createListingContentRegistrations(contentDependencies),
+    ...(options.oauth ? createOAuthRegistrations(options.oauth.service, "connect") : []),
   ];
   const registry = new CapabilityRegistry({
-    enabledCapabilities: ["public"],
+    enabledCapabilities: options.oauth ? ["public", "account"] : ["public"],
     developmentMode,
     registrations,
   });
@@ -1883,10 +1903,72 @@ export function createEtsyMcpServer(
 export async function main(): Promise<void> {
   const developmentMode = snapshotDevelopmentMode();
   const apiKey = validateApiKey(process.env.ETSY_API_KEY);
+  const oauthSettings = parseOAuthConfig(process.env, developmentMode);
+  const limiter = createRequestLimiter();
   const client = createEtsyClient(apiKey, { developmentMode });
-  const server = createEtsyMcpServer(client, { developmentMode });
-  await server.connect(new StdioServerTransport());
-  console.error("Etsy MCP Server running on stdio");
+  let oauth: OAuthRuntime | undefined;
+  let server: Server | undefined;
+  let transport: StdioServerTransport | undefined;
+  let markStartupReady!: () => void;
+  const startupReady = new Promise<void>((resolveStartup) => {
+    markStartupReady = resolveStartup;
+  });
+  const shutdown = installProcessShutdownHandlers(process, async () => {
+    // Signals may arrive while OAuth prerequisites are still initializing. Wait
+    // until startup hands off (or unwinds) all resources before closing them.
+    await startupReady;
+    let failed = false;
+    let runtimeCleanup: Promise<void>;
+    try {
+      // Runtime.close synchronously invalidates service state and starts callback
+      // draining before stdio transport closure.
+      runtimeCleanup = oauth?.close() ?? Promise.resolve();
+    } catch {
+      runtimeCleanup = Promise.reject(new Error("OAuth runtime cleanup failed."));
+    }
+    let serverCleanup: Promise<void>;
+    try {
+      serverCleanup = server?.close() ?? Promise.resolve();
+    } catch {
+      serverCleanup = Promise.reject(new Error("MCP server cleanup failed."));
+    }
+    // Attach rejection observers before awaiting either shutdown path. Runtime
+    // cleanup may reject while the SDK is still draining its stdio transport.
+    const [serverResult, runtimeResult] = await Promise.allSettled([
+      serverCleanup,
+      runtimeCleanup,
+    ]);
+    failed ||= serverResult.status === "rejected" || runtimeResult.status === "rejected";
+    if (failed) throw new Error("Runtime shutdown did not complete cleanly.");
+  }, () => {
+    console.error("Runtime shutdown cleanup failed.");
+  });
+  try {
+    if (oauthSettings.enabled) {
+      oauth = await startOAuthRuntime(oauthSettings.config, apiKey, limiter);
+    }
+    if (shutdown.isShuttingDown) return;
+    server = createEtsyMcpServer(client, { developmentMode, oauth, limiter });
+    transport = new StdioServerTransport();
+    shutdown.attachTransport(transport);
+    try {
+      await server.connect(transport);
+      if (process.stdin.readableEnded || process.stdin.destroyed) {
+        void shutdown.shutdown().catch(() => {});
+      }
+    } catch (error) {
+      markStartupReady();
+      await shutdown.shutdown().catch(() => {});
+      throw error;
+    }
+    if (!shutdown.isShuttingDown) console.error("Etsy MCP Server running on stdio");
+  } catch (error) {
+    markStartupReady();
+    await shutdown.shutdown().catch(() => {});
+    throw error;
+  } finally {
+    markStartupReady();
+  }
 }
 
 if (
@@ -1899,6 +1981,6 @@ if (
       ? error.message
       : "The Etsy MCP Server could not start.";
     console.error(`Fatal error: ${message}`);
-    process.exitCode = 1;
+    if (process.exitCode !== 130 && process.exitCode !== 143) process.exitCode = 1;
   });
 }

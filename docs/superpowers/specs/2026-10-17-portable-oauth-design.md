@@ -1,12 +1,14 @@
 # Portable OAuth and account connections — M3 design
 
 **2026-10-17 — USER-APPROVED design; implementation refinements incorporated.**
-This is a design for M3.1–M3.5, not shipped functionality, authorization to
-connect an account, or evidence of a working callback. The user confirmed the
-exact Etsy redirect registration; listener/reverse-proxy reachability, key
-provisioning and live consent have not been independently verified. M3.1 remains
-pending independent documentation/implementation-prerequisite review; future
-implementation task checkboxes remain unchanged.
+This document defines the M3.1–M3.5 design contract, not evidence of a deployed
+callback or live account connection. M3.1, M3.3a, and the conditional M3.2 connect
+flow are complete after independent source/docs review and final coordinator
+Windows/native-Linux verification (including real child SIGTERM); concrete
+evidence is recorded in `TASK.md`. M3.3b, M3.4,
+M3.5, and private M4+ tools remain planned. The user confirmed exact Etsy redirect
+registration; listener/reverse-proxy reachability, key provisioning, and live
+consent have not been verified.
 
 ## 1. Authority, scope, and decisions
 
@@ -95,11 +97,13 @@ Separate responsibilities introduced only with their owning M3 tasks:
 
 ## 3. Trusted configuration and deployment
 
-All names below are **approved planned startup configuration**, not existing settings.
-None can be changed by tool arguments, client metadata, callback parameters, or
+All names below are approved startup configuration; the M3.2 runtime implements
+these controls. See the [operator setup guide](../../setup-and-access.md#optional-browser-based-account-connection)
+for the current activation instructions. Values are snapshotted at startup and
+cannot be changed by tool arguments, client metadata, callback parameters, or
 later environment changes. Paths are configuration, never model file handles.
 
-| Setting | Proposed contract |
+| Setting | Contract |
 | --- | --- |
 | `ETSY_OAUTH_ENABLED` | Default false; strict true/false startup parsing. Account tools require this and successful prerequisites. |
 | `ETSY_OAUTH_OPERATOR_ID` | Required when enabled, nonsecret stable namespace, 1–64 ASCII alphanumeric/underscore/hyphen characters; operator-provisioned per trusted MCP instance. |
@@ -169,17 +173,17 @@ path conventions below are future layout guidance, not initial support claims.
 - Store filenames are fixed or derived from server-generated IDs only; no label,
   account ID, `connection_id` input, or callback field becomes a file path.
 
-**Ignore changes are implementation prerequisites, not edits in this design task.**
-Before any workspace data/key use, add recursive directory exclusions for
-`.etsy-mcp/` and `.etsy-mcp-secrets/` to `.gitignore` and `.dockerignore`
-(including nested workspace roots if permitted). Exclude all contained encrypted
-records, pending-state artifacts if ever added, locks, temporaries, backups and
-key files. The current `.gitignore` does not contain these exclusions and there
-is currently no `.dockerignore`. Verify representative absent/synthetic paths
-with `git check-ignore -v` and `git ls-files`; ignores do not untrack existing
-files or remove history. Never create real secrets for this verification. Verify
-Docker build-context exclusion before any future image build. No actual Docker
-packaging is authorized by documenting these paths.
+**Ignore prerequisites implemented and tested in M3.1.** Both `.gitignore` and
+`.dockerignore` contain recursive `**/.etsy-mcp/` and `**/.etsy-mcp-secrets/`
+rules covering root/nested encrypted records, locks, temporaries, backups, key
+files, and any future contained pending-state artifacts. The synthetic ignore
+test verifies representative absent paths with `git check-ignore --no-index`,
+both files' rule contracts, and no tracked runtime/key descendants; M3.1 review
+and coordinator evidence are recorded in `TASK.md`. Ignores do not untrack
+existing files or remove history. No real secrets were created for verification.
+The `.dockerignore` rule test is not a Docker build/context execution test;
+verify the actual build context before any separately authorized future image
+build. No Docker packaging is authorized by documenting these paths.
 
 ### Listener deployment
 
@@ -267,11 +271,14 @@ Only one process may own a configured store and callback. Acquire an exclusive
 fixed-name lock directory before reading/decrypting the store; no shared network
 volume or multiwriter mode. Bound nonsecret lock metadata contains process ID,
 random boot ID and creation time. Any existing lock fails closed; no timeout/PID
-guessing or automatic stale-lock stealing. Operator recovery requires stopping
-all possible owners, verifying no owner remains, and removing only the lock by
-documented offline procedure. Other stdio processes may run public-only with
-separate configuration, but cannot attach to this account service. No unreviewed
-broker, port takeover, or reading another instance's unlocked credentials.
+guessing or automatic stale-lock stealing. A stale or uncertain lock is not
+permission to remove it and resume credentials: if an OAuth callback or durable
+commit may have been in flight, require verified offline recovery or fresh Etsy
+consent before reusing any affected connection. Stop all possible owners and
+verify that no owner remains before any documented offline lock handling. Other
+stdio processes may run public-only with separate configuration, but cannot
+attach to this account service. No unreviewed broker, port takeover, or reading
+another instance's unlocked credentials.
 
 Serialize full-store commits plus per-connection lifecycle operations (including
 refresh, scope inspection, reconnect and disconnect). Check record generation
@@ -292,6 +299,20 @@ store data remains untouched for operator recovery. A successful token response
 is not an established connection until identity/scopes and durable persistence
 succeed. If persistence fails after a rotation, block further use and report
 reconnect/recovery required; never use stale credentials from disk silently.
+
+If a late OAuth commit cannot be safely compensated during shutdown, the owning
+store writes the fixed `oauth-recovery-required.json` marker under its exclusive
+lock. It contains only the format, exact operator/app owner context, and a fixed
+reason; it contains no connection ID or record/token payload. Reopen checks this
+marker after acquiring ownership but before reading key bytes or the encrypted
+snapshot. A present, malformed, or differently owned marker fails closed. The
+store releases its lock after a verified durable marker; if marker persistence or
+verification fails, it deliberately retains the existing lock so ordinary reopen
+continues to fail closed. Normal startup never clears the marker or resets the
+store. Recovery is an offline operator action requiring verified recovery/fresh
+consent; no model-facing filesystem operation is provided. This fence addresses
+the handled uncertain-rollback path, not every power-loss window or a malicious
+same-user/local administrator.
 
 ### Backup, disconnect, key loss and rotation
 
@@ -647,10 +668,10 @@ requires the actual protected durable store. No plaintext or memory-only usable
 production connection is an interim deliverable. Detailed numeric tasks and
 interfaces: [implementation plan](../plans/2026-10-17-portable-oauth.md).
 
-1. **M3.1 review:** user approval, registration and home-server → dev-computer
-   topology are recorded. Independent review of finalized contracts/plan and the
-   separately implemented ignore prerequisites remains; no extra human approval
-   handoff is required. Future work remains unchecked until verified.
+1. **M3.1 review complete:** user approval, registration and home-server →
+   dev-computer topology are recorded. Independent review of finalized
+   contracts/plan and the separately implemented/tested ignore prerequisites
+   passed; see `TASK.md`. Future work remains unchecked until verified.
 2. **Before implementation:** refresh exact official auth/getMe/tokenScopes
    contracts; use documented token-response `scope` for connect/refresh and keep
    only the unresolved tokenScopes diagnostic behind its separate M3.5 gate;

@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-nine current tools reach twenty-nine distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **76 operations remain Planned** (including explicitly blocked/deferred routes).
+- The twenty-nine default public tools reach twenty-nine distinct Etsy API operations; `getShop` is directly available as well as internally used by exact-name lookup. The conditional non-catalog orchestration tool `begin_etsy_connection` internally calls the cataloged `getMe` operation for identity verification when OAuth is enabled and ready, bringing reachable catalog operations to **30**, with **75 remaining Planned/unreached** (including explicitly blocked/deferred routes). The default public-only configuration reaches 29 operations and leaves 76 unreached. The direct `get_me` tool remains planned for M4; `tokenScopes` remains unreached and is not counted as implemented coverage.
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -178,7 +178,7 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
 | GET | `getUser` | `get_user` | Planned |
-| GET | `getMe` | `get_me` | Planned |
+| GET | `getMe` | Internal identity verification in the conditional OAuth connection flow; direct `get_me` tool remains planned (M4) | Indirect (OAuth-enabled only) |
 | GET | `getUserAddress` | `get_user_address` | Planned |
 | DELETE | `deleteUserAddress` | `delete_user_address` — blocked pending `address_r`/`address_w` conflict clarification | Planned |
 | GET | `getUserAddresses` | `get_user_addresses` | Planned |
@@ -192,11 +192,13 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 
 ## Non-catalog supporting capabilities
 
-| Capability | Proposed MCP access | Plan |
-| --- | --- | --- |
-| OAuth consent, callback completion, refresh, secure storage, local disconnection | `begin_etsy_connection`, `get_etsy_connection_status`, `disconnect_etsy_connection`; internal callback/refresh handling | [OAuth](planned-oauth-and-accounts.md) |
-| Signed event receipt, queueing, delivery health | `get_etsy_event_status`, `get_etsy_events`; separate receiver configured through Etsy's portal | [Events](planned-orders-and-payments.md#events-and-change-notifications) |
-| Richer fields/options on currently used listing operations | Extend existing listing tools; preserve compatibility | [Public discovery](planned-public-discovery.md) |
-| User confirmation, ownership checks, safe uploads, uncertain-outcome handling | Shared enforcement behind relevant tools; not a raw credential or generic HTTP tool | [Policy](access-policy.md) |
+| Capability | MCP access | Status | Plan |
+| --- | --- | --- | --- |
+| Browser OAuth consent initiation, fixed callback completion, durable protected connection | `begin_etsy_connection` (only with explicit OAuth startup enablement and successful prerequisites) | Conditional current implementation; M3.2 independent security re-review approved, coordinator platform verification/commit pending | [OAuth](planned-oauth-and-accounts.md) |
+| Protected encrypted connection store/configuration/permissions | Internal runtime support; not a model-facing filesystem tool | Current M3.3a foundation; native Windows and native Linux evidence recorded, Docker untested | [OAuth](planned-oauth-and-accounts.md) |
+| Token refresh/rotation, connection status/disconnect, per-operation scope authorization and scope diagnostic | Planned lifecycle/authorization handlers | Planned (M3.3b–M3.5); no private Etsy tool is enabled | [OAuth](planned-oauth-and-accounts.md) |
+| Signed event receipt, queueing, delivery health | `get_etsy_event_status`, `get_etsy_events`; separate receiver configured through Etsy's portal | Planned | [Events](planned-orders-and-payments.md#events-and-change-notifications) |
+| Richer fields/options on currently used listing operations | Extend existing listing tools; preserve compatibility | Planned | [Public discovery](planned-public-discovery.md) |
+| User confirmation, ownership checks, safe uploads, uncertain-outcome handling | Shared enforcement behind relevant tools; not a raw credential or generic HTTP tool | Planned with owning tools | [Policy](access-policy.md) |
 
-These are also unimplemented and tracked in [TODO](../TODO.md). No endpoint-backed feature has been omitted merely because it requires OAuth, inventory access, or a write method.
+Planned non-catalog capabilities are tracked in [TODO](../TODO.md); rows marked conditional/current describe the limited implemented connection and storage support. No endpoint-backed feature has been omitted merely because it requires OAuth, inventory access, or a write method.

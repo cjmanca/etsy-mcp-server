@@ -1,6 +1,6 @@
 # Documentation index
 
-Start here and load only the slices relevant to your task. **Current** documents describe the twenty-nine public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
+Start here and load only the slices relevant to your task. **Current** documents describe the twenty-nine public tools available by default and the separately documented conditional OAuth connection entry point. **Policy** defines permitted development scope. **Planned** documents distinguish unimplemented tools from conditional runtime behavior. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
 
 | Document | Status | Read when your task is to… |
 | --- | --- | --- |
@@ -14,9 +14,9 @@ Start here and load only the slices relevant to your task. **Current** documents
 | [Feature roadmap and sequencing](roadmap.md) | Planned | Choose a subsystem to build, understand dependencies, or check the definition of done. |
 | [Implementation tasks and milestones](../TASK.md) | Planned | Choose the next implementable task, check prerequisites, and record milestone completion evidence across the complete backlog. |
 | [Public discovery expansion](planned-public-discovery.md) | Current + planned | Browse taxonomy nodes; add richer searches, batch lookups, buyer prices, listing reviews, public sections, or richer media metadata. |
-| [OAuth and account access](planned-oauth-and-accounts.md) | Planned | Plan account connection, consent, token lifecycle, identity, scope inspection, or address access. |
-| [Portable OAuth deployment design](superpowers/specs/2026-10-17-portable-oauth-design.md) | User-approved design; unimplemented | Implement protected Windows/Linux-compatible storage, home-server proxy callback ingress, operator ownership and consent contracts. |
-| [Portable OAuth implementation plan](superpowers/plans/2026-10-17-portable-oauth.md) | Planned; final M3.1 review pending | Execute focused TDD tasks, including M3.3a store before M3.2 connect, refresh, status, authorization and separately gated diagnostic. |
+| [OAuth and account access](planned-oauth-and-accounts.md) | Partially implemented + planned | Configure the conditional browser connection or review remaining refresh, status/disconnect, scope inspection, and private-account work. |
+| [Portable OAuth deployment design](superpowers/specs/2026-10-17-portable-oauth-design.md) | User-approved design; implementation status tracked separately | Review protected Windows/Linux storage, callback ingress, operator ownership, and consent boundaries. |
+| [Portable OAuth implementation plan](superpowers/plans/2026-10-17-portable-oauth.md) | M3.1/M3.3a/M3.2 complete; remaining lifecycle work planned | Review the focused connect, refresh, status, authorization, and separately gated diagnostic tasks. |
 | [Listing, inventory, and media management](planned-listing-management.md) | Planned | Add non-public catalogs, SKU/variation inventory, listing lifecycle writes, personalization, translations, or media/file management. |
 | [Shop, shipping, and policy management](planned-shop-management.md) | Planned | Add shop settings, sections, production partners, shipping destinations/upgrades, processing profiles, holidays, or return-policy management. |
 | [Orders, payments, and events](planned-orders-and-payments.md) | Planned | Add receipts, transactions, fulfillment updates, financial reconciliation, or webhook-backed event access. |

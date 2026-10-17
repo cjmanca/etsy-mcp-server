@@ -1,6 +1,6 @@
 # Unimplemented features
 
-This is the feature backlog, not a list of tools currently available. Entries below are **unimplemented** unless checked off; `get_taxonomy_nodes` is now implemented as recorded under M1.1 in [TASK.md](TASK.md). The revised [policy](docs/access-policy.md) permits OAuth, inventory, private reads, and writes. Changing that policy did not implement them.
+This is the feature backlog, not a list of tools currently available. Entries below are **unimplemented** unless checked off or explicitly annotated as conditional/current; `get_taxonomy_nodes` is implemented as recorded under M1.1 in [TASK.md](TASK.md). The revised [policy](docs/access-policy.md) permits OAuth, inventory, private reads, and writes, but does not implement them by itself.
 
 Use the [documentation index](docs/index.md) to load only the relevant slice, the [roadmap](docs/roadmap.md) for sequencing/acceptance criteria, and the [105-operation matrix](docs/api-coverage.md) for exact upstream mappings. The checklist groups related tools; the matrix is the exhaustive operation-level inventory. Check off a group only when all named capabilities in it are implemented, tested, and documented as current.
 
@@ -9,12 +9,13 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 ## Foundation and authorization — [plan](docs/planned-oauth-and-accounts.md)
 
 - [x] Optional startup-only read-only testing lock (`ETSY_DEVELOPMENT_MODE=true`) for write-capability dispatch and mutating HTTP methods (M0.4; does not authorize or add mutations).
-- [ ] OAuth Authorization Code + PKCE S256, single-use state validation, and a registered HTTPS callback.
-- [ ] Protected per-connection credential storage, expiry/refresh lifecycle, granted-scope tracking, and reconnect handling.
-- [ ] Account/connection isolation, least-privilege scope bundles, resource authorization, and capability-aware tool discovery.
-- [ ] Connection controls: `begin_etsy_connection`, `get_etsy_connection_status`, `disconnect_etsy_connection`.
+- [x] Protected encrypted connection store/configuration/permissions foundation (M3.3a; native Windows NTFS and native Linux POSIX evidence; Docker untested; see [TASK.md](TASK.md)).
+- [ ] OAuth Authorization Code + PKCE S256, single-use state validation, and registered HTTPS callback: `begin_etsy_connection` is conditionally implemented after operator setup and its independent security re-review is approved; leave M3.2 open pending coordinator's fresh Windows/native-Linux runs (including real SIGTERM) and commit. See the [M3.2 report](.superpowers/sdd/2026-10-17-portable-oauth/task-3-report.md).
+- [ ] Token refresh/rotation, expiry/reconnect lifecycle, and stale-generation handling (M3.3b; not implemented).
+- [ ] Account/connection isolation, per-operation scope/resource authorization, and broader capability-aware private-tool discovery (M3.5/M4+; not implemented).
+- [ ] Connection controls: `get_etsy_connection_status` and `disconnect_etsy_connection` (M3.4; not implemented).
+- [ ] Internal-token scope inspection: `get_etsy_token_scopes` (M3.5b; not implemented pending an exact supported response contract).
 - [x] Application connectivity diagnostic: `ping_etsy` (M2.8; confirms application API connectivity only, not OAuth scopes or private access).
-- [ ] Internal-token scope inspection: `get_etsy_token_scopes`.
 - [ ] Shared mutation authorization, payload-bound confirmations, read-back verification, and uncertain-outcome handling.
 - [ ] Accurate new-tool safety annotations, sensitive-field minimization, and validated attachment handles for uploads.
 
@@ -35,10 +36,10 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Structured attribute reads (partial: supported selected-value list `get_listing_properties` is implemented in M2.5a; single-property detail `get_listing_property` remains blocked by the official 501-only contract in M2.5b).
 - [x] Personalization question/option/add-on reads: `get_listing_personalization` (M2.6; bounded selected fields, raw Money, untrusted seller text).
 - [x] Existing localized listing content: `get_listing_translation` (M2.6; selected existing fields, bounded syntax-only language validation).
-- [ ] Public return-policy list/detail: `get_shop_return_policies`, `get_shop_return_policy` (M2.7a implementation pending review; selected public fields only, no legal/refund/impact conclusions).
+- [ ] Return-policy discovery (partial): public list/detail `get_shop_return_policies`, `get_shop_return_policy` are implemented and independently reviewed in M2.7a; private `get_return_policy_listings` remains unavailable until M3 authorization and `listings_r` (M2.7b).
 - [ ] OAuth `listings_r` policy-linked listing lookup: `get_return_policy_listings` (M2.7b follows M3; no paging query declared). The broader M2.7 item remains incomplete until this private child is implemented. See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
 - [x] Shipping carrier/mail-class discovery: `get_shipping_carriers` (M2.8; bounded public reference data by origin country).
-- [ ] Public offering drill-down: `get_listing_offering` (M2.9 implementation and mocked verification complete; independent review pending).
+- [x] Public offering drill-down: `get_listing_offering` (M2.9 implementation and mocked verification complete; independent review approved; see [TASK.md](TASK.md)).
 
 ## Listings and inventory — [plan](docs/planned-listing-management.md)
 

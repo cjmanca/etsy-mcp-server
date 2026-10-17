@@ -29,6 +29,15 @@ export interface CapabilityRegistration {
   readonly capability: Capability;
   readonly tool: Tool;
   readonly handler: (args: unknown) => CallToolResult | Promise<CallToolResult>;
+  /** Trusted startup readiness snapshot; defaults to available. */
+  readonly available?: boolean;
+  /** Fixed server-authored explanation for a known unavailable tool. */
+  readonly prerequisite?: string;
+}
+
+interface RegisteredCapability extends CapabilityRegistration {
+  readonly available: boolean;
+  readonly prerequisite: string;
 }
 
 export interface CapabilityRegistryOptions {
@@ -57,6 +66,13 @@ export class CapabilityUnavailableError extends Error {
   }
 }
 
+export class ToolPrerequisiteError extends Error {
+  constructor(prerequisite: string) {
+    super(`Tool is unavailable. Prerequisite: ${prerequisite}`);
+    this.name = "ToolPrerequisiteError";
+  }
+}
+
 export class UnknownCapabilityToolError extends Error {
   constructor() {
     super("Unknown or unsupported Etsy tool.");
@@ -71,7 +87,7 @@ function isCapability(value: unknown): value is Capability {
 export class CapabilityRegistry {
   private readonly enabledCapabilities: Set<Capability>;
   private readonly developmentMode: boolean;
-  private readonly registrations = new Map<string, CapabilityRegistration>();
+  private readonly registrations = new Map<string, RegisteredCapability>();
 
   constructor(options: CapabilityRegistryOptions) {
     this.developmentMode = snapshotDevelopmentMode(options);
@@ -95,20 +111,33 @@ export class CapabilityRegistry {
       !registration.tool ||
       typeof registration.tool.name !== "string" ||
       registration.tool.name.length === 0 ||
-      typeof registration.handler !== "function"
+      typeof registration.handler !== "function" ||
+      (registration.available !== undefined && typeof registration.available !== "boolean") ||
+      (registration.prerequisite !== undefined &&
+        (typeof registration.prerequisite !== "string" ||
+          registration.prerequisite.length === 0 ||
+          registration.prerequisite.length > 250 ||
+          /[\u0000-\u001f\u007f]/.test(registration.prerequisite)))
     ) {
       throw new CapabilityConfigurationError("Invalid capability tool registration.");
     }
     if (this.registrations.has(registration.tool.name)) {
       throw new CapabilityConfigurationError("Duplicate capability tool registration.");
     }
-    this.registrations.set(registration.tool.name, registration);
+    this.registrations.set(registration.tool.name, Object.freeze({
+      capability: registration.capability,
+      tool: registration.tool,
+      handler: registration.handler,
+      available: registration.available ?? true,
+      prerequisite: registration.prerequisite ?? "The server prerequisite for this tool is not satisfied.",
+    }));
   }
 
   listTools(): Tool[] {
     return [...this.registrations.values()]
       .filter((registration) => this.enabledCapabilities.has(registration.capability))
       .filter((registration) => !(this.developmentMode && registration.capability === "write"))
+      .filter((registration) => registration.available)
       .map((registration) => registration.tool);
   }
 
@@ -121,6 +150,7 @@ export class CapabilityRegistry {
     if (!this.enabledCapabilities.has(registration.capability)) {
       throw new CapabilityUnavailableError(registration.capability);
     }
+    if (!registration.available) throw new ToolPrerequisiteError(registration.prerequisite);
     return registration.handler(args);
   }
 

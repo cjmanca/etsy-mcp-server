@@ -76,6 +76,14 @@ export function snapshotDevelopmentMode(options?: unknown): boolean {
 
 const guardedClients = new WeakSet<AxiosInstance>();
 
+/** Recheck the captured client lock at the final, post-queue adapter boundary. */
+export function assertDevelopmentModeDispatch(
+  client: AxiosInstance,
+  config: InternalAxiosRequestConfig,
+): void {
+  if (guardedClients.has(client)) assertSafeHttpMethod(config.method);
+}
+
 function assertCompatibleRequestInterceptors(client: AxiosInstance): void {
   const interceptors = client.interceptors;
   if (!interceptors || typeof interceptors !== "object") {

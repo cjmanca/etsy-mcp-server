@@ -111,7 +111,7 @@ The list selects only `return_policy_id`, `shop_id` when supplied, `accepts_retu
 { "shop_id": 12345678, "return_policy_id": 42 }
 ```
 
-These tools report structured Etsy fields only. They do not provide legal advice, guarantee legal compliance or refund eligibility, or enumerate affected listings. `get_return_policy_listings` is a separate private read requiring OAuth `listings_r` and is deferred until M3; public policy reads do not imply seller ownership.
+These tools report structured Etsy fields only. They do not provide legal advice, guarantee legal compliance or refund eligibility, or enumerate affected listings. `get_return_policy_listings` is a separate planned private read requiring completed OAuth scope authorization and `listings_r`; it is not currently exposed. Public policy reads do not imply seller ownership.
 
 ## Suggested agent workflow
 

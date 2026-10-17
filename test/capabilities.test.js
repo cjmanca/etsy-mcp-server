@@ -12,7 +12,11 @@ import {
   withMcp,
 } from "./helpers/mcp.js";
 
-const { CapabilityRegistry, CapabilityUnavailableError } = await import(
+const {
+  CapabilityRegistry,
+  CapabilityUnavailableError,
+  ToolPrerequisiteError,
+} = await import(
   "../build/index.js"
 );
 
@@ -155,4 +159,67 @@ test("capability dependencies reject trusted configurations that skip prerequisi
     () => new CapabilityRegistry({ enabledCapabilities: ["event"] }),
     /event.*account/i,
   );
+});
+
+test("registration readiness is snapshotted and blocks discovery and direct dispatch", async () => {
+  assert.equal(typeof ToolPrerequisiteError, "function");
+  let calls = 0;
+  const registration = {
+    capability: "public",
+    available: false,
+    prerequisite: "OAuth callback startup is not ready.",
+    tool: {
+      name: "test_oauth_begin_unready",
+      description: "Test-owned unready OAuth control",
+      inputSchema: { type: "object", properties: {} },
+    },
+    handler: async () => {
+      calls += 1;
+      return { content: [{ type: "text", text: "unexpected dispatch" }] };
+    },
+  };
+  const registry = new CapabilityRegistry({
+    enabledCapabilities: ["public"],
+    registrations: [registration],
+  });
+  registration.available = true;
+  registration.prerequisite = "Changed after register.";
+
+  assert.deepEqual(registry.listTools(), []);
+  await assert.rejects(registry.dispatch("test_oauth_begin_unready", {}), (error) => {
+    assert.ok(error instanceof ToolPrerequisiteError);
+    assert.equal(
+      error.message,
+      "Tool is unavailable. Prerequisite: OAuth callback startup is not ready.",
+    );
+    return true;
+  });
+  assert.equal(calls, 0);
+});
+
+test("readiness cannot bypass capability groups or the development write lock", async () => {
+  const blockedAccount = new CapabilityRegistry({
+    enabledCapabilities: ["public"],
+    registrations: [{
+      capability: "account",
+      available: false,
+      prerequisite: "OAuth runtime unavailable.",
+      tool: { name: "test_unready_account", description: "Test", inputSchema: { type: "object", properties: {} } },
+      handler: async () => ({ content: [{ type: "text", text: "unexpected" }] }),
+    }],
+  });
+  await assert.rejects(blockedAccount.dispatch("test_unready_account", {}), /account capability is unavailable/i);
+
+  const lockedWrite = new CapabilityRegistry({
+    enabledCapabilities: ["public", "account", "write"],
+    developmentMode: true,
+    registrations: [{
+      capability: "write",
+      available: false,
+      prerequisite: "OAuth runtime unavailable.",
+      tool: { name: "test_unready_write", description: "Test", inputSchema: { type: "object", properties: {} } },
+      handler: async () => ({ content: [{ type: "text", text: "unexpected" }] }),
+    }],
+  });
+  await assert.rejects(lockedWrite.dispatch("test_unready_write", {}), /ETSY_DEVELOPMENT_MODE=true/);
 });

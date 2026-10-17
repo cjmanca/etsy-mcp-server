@@ -1,19 +1,26 @@
 import axios, {
   AxiosError,
   AxiosInstance,
+  type AxiosRequestTransformer,
+  type InternalAxiosRequestConfig,
 } from "axios";
 import {
+  assertDevelopmentModeDispatch,
   DevelopmentModeMutationError,
   enforceDevelopmentMode,
   snapshotDevelopmentMode,
   type DevelopmentModeFactoryOptions,
 } from "./development-mode.js";
+import {
+  createRequestLimiter,
+  RequestQueueFullError,
+  runAtLimitedDispatch,
+  type RequestLimiter,
+} from "./request-limiter.js";
 
 export const ETSY_API_BASE = "https://openapi.etsy.com/v3";
 export const REQUEST_TIMEOUT_MS = 10_000;
 export const MAX_UPSTREAM_RESPONSE_BYTES = 1024 * 1024;
-const MIN_REQUEST_INTERVAL_MS = 200;
-const MAX_PENDING_REQUESTS = 25;
 const MAX_SHORT_RETRY_MS = 1000;
 
 export class ConfigurationError extends Error {
@@ -98,30 +105,6 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createRequestLimiter(): () => Promise<void> {
-  let nextStartAt = 0;
-  let pending = 0;
-
-  return async () => {
-    if (pending >= MAX_PENDING_REQUESTS) {
-      throw new EtsyApiError(
-        "busy",
-        "The Etsy request queue is full. Try again shortly.",
-      );
-    }
-
-    pending += 1;
-    try {
-      const now = Date.now();
-      const startAt = Math.max(now, nextStartAt);
-      nextStartAt = startAt + MIN_REQUEST_INTERVAL_MS;
-      if (startAt > now) await delay(startAt - now);
-    } finally {
-      pending -= 1;
-    }
-  };
-}
-
 function retryAfterMs(error: AxiosError): number | undefined {
   const headers = error.response?.headers as
     | { get?: (name: string) => unknown; "retry-after"?: unknown }
@@ -165,6 +148,9 @@ function safeApiError(error: unknown): EtsyApiError {
   if (error instanceof EtsyApiError) return error;
   if (error instanceof DevelopmentModeMutationError) {
     return new EtsyApiError("forbidden", error.message);
+  }
+  if (error instanceof RequestQueueFullError) {
+    return new EtsyApiError("busy", error.message);
   }
   if (!axios.isAxiosError(error)) {
     return new EtsyApiError("upstream", "Unable to process the Etsy response.");
@@ -223,17 +209,48 @@ function safeApiError(error: unknown): EtsyApiError {
 
 export type EtsyQuery = Record<string, string | number | boolean | undefined>;
 
-export function createEtsyRequester(client: AxiosInstance): {
+function limitedAdapterTransform(
+  client: AxiosInstance,
+  limiter: RequestLimiter,
+): AxiosRequestTransformer {
+  return function (this: InternalAxiosRequestConfig, data: unknown): unknown {
+    const adapter = axios.getAdapter(this.adapter ?? client.defaults.adapter);
+    this.adapter = (config) => {
+      return runAtLimitedDispatch(
+        limiter,
+        () => assertDevelopmentModeDispatch(client, config),
+        () => Promise.resolve(adapter(config)),
+      );
+    };
+    return data;
+  };
+}
+
+function requestTransforms(client: AxiosInstance): AxiosRequestTransformer[] {
+  const transforms = client.defaults.transformRequest;
+  if (Array.isArray(transforms)) return [...transforms];
+  return transforms ? [transforms] : [];
+}
+
+export function createEtsyRequester(
+  client: AxiosInstance,
+  options?: { limiter?: RequestLimiter },
+): {
   get(path: string, params?: EtsyQuery): Promise<unknown>;
 } {
-  const waitForRequestSlot = createRequestLimiter();
+  const limiter = options?.limiter ?? createRequestLimiter();
 
   return {
     async get(path, params) {
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        await waitForRequestSlot();
         try {
-          const response = await client.get<unknown>(path, { params });
+          const response = await client.get<unknown>(path, {
+            params,
+            transformRequest: [
+              ...requestTransforms(client),
+              limitedAdapterTransform(client, limiter),
+            ],
+          });
           return response.data;
         } catch (error) {
           const waitMs = attempt === 0 ? retryDelay(error) : undefined;

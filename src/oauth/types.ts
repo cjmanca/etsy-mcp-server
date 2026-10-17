@@ -39,6 +39,7 @@ export interface ConnectionStore {
   read(id: string): Promise<ConnectionRecord | undefined>;
   put(record: ConnectionRecord, expectedGeneration: number | null): Promise<void>;
   remove(id: string, expectedGeneration: number): Promise<void>;
+  markRecoveryRequired(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -68,7 +69,17 @@ export type OAuthErrorReason =
   | "record_invalid"
   | "key_invalid"
   | "store_closed"
-  | "store_write_failed";
+  | "store_write_failed"
+  | "development_mode_locked"
+  | "request_queue_full"
+  | "oauth_request_failed"
+  | "oauth_response_invalid"
+  | "oauth_scope_invalid"
+  | "oauth_identity_invalid"
+  | "oauth_flow_invalid"
+  | "oauth_flow_unavailable"
+  | "oauth_store_failed"
+  | "callback_bind_failed";
 
 export type OAuthStorageDiagnosticCode =
   | "untrusted_ancestor_owner"
@@ -79,6 +90,7 @@ export type OAuthStorageDiagnosticCode =
   | "required_key_read_missing"
   | "required_data_modify_missing"
   | "required_store_modify_missing"
+  | "required_marker_modify_missing"
   | "reparse_point"
   | "filesystem_unsupported"
   | "acl_inspection_unavailable"
@@ -87,7 +99,7 @@ export type OAuthStorageDiagnosticCode =
 
 export type OAuthStorageDiagnostic = Readonly<{
   platform: "windows" | "posix";
-  entry: "ancestor" | "data" | "key" | "store";
+  entry: "ancestor" | "data" | "key" | "store" | "marker";
   code: OAuthStorageDiagnosticCode;
 }>;
 
@@ -103,6 +115,16 @@ const SAFE_ERROR_MESSAGES: Readonly<Record<OAuthErrorReason, string>> = {
   key_invalid: "The separately provisioned OAuth key is unavailable or invalid.",
   store_closed: "OAuth storage is closed.",
   store_write_failed: "OAuth storage could not durably save the update.",
+  development_mode_locked: "OAuth POST requests are blocked by the local development lock.",
+  request_queue_full: "The Etsy request queue is full. Try again shortly.",
+  oauth_request_failed: "The OAuth request could not be completed safely.",
+  oauth_response_invalid: "Etsy returned an invalid OAuth response.",
+  oauth_scope_invalid: "Etsy returned invalid granted-scope evidence.",
+  oauth_identity_invalid: "The authorized Etsy account could not be verified.",
+  oauth_flow_invalid: "The OAuth authorization flow is invalid or expired.",
+  oauth_flow_unavailable: "OAuth authorization is not available until startup prerequisites are ready.",
+  oauth_store_failed: "The OAuth connection could not be durably saved.",
+  callback_bind_failed: "The OAuth callback listener could not bind the configured address and port.",
 };
 
 export class OAuthError extends Error {

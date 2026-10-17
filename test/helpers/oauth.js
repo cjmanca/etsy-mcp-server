@@ -317,6 +317,103 @@ export function syntheticConnection(overrides = {}) {
   };
 }
 
+export function createSyntheticOAuthStore(initialRecords = []) {
+  const records = new Map(initialRecords.map((record) => [record.connectionId, structuredClone(record)]));
+  const calls = { reads: [], puts: [], removals: [], recoveryMarkers: 0, closes: 0 };
+  let putBehavior = async () => {};
+  const store = {
+    async read(connectionId) {
+      calls.reads.push(connectionId);
+      const record = records.get(connectionId);
+      return record === undefined ? undefined : structuredClone(record);
+    },
+    async put(record, expectedGeneration) {
+      calls.puts.push({ record: structuredClone(record), expectedGeneration });
+      await putBehavior(record, expectedGeneration);
+      const current = records.get(record.connectionId);
+      if (expectedGeneration === null && current !== undefined) {
+        throw new Error("Synthetic generation conflict.");
+      }
+      if (expectedGeneration !== null && current?.generation !== expectedGeneration) {
+        throw new Error("Synthetic generation conflict.");
+      }
+      records.set(record.connectionId, structuredClone(record));
+    },
+    async remove(connectionId, expectedGeneration) {
+      calls.removals.push({ connectionId, expectedGeneration });
+      const current = records.get(connectionId);
+      if (current?.generation !== expectedGeneration) throw new Error("Synthetic generation conflict.");
+      records.delete(connectionId);
+    },
+    async markRecoveryRequired() {
+      calls.recoveryMarkers += 1;
+    },
+    async close() {
+      calls.closes += 1;
+    },
+  };
+  return {
+    store,
+    records,
+    calls,
+    setPutBehavior(behavior) {
+      putBehavior = behavior;
+    },
+  };
+}
+
+export function createSyntheticOAuthTransport(overrides = {}) {
+  const calls = { exchanges: [], refreshes: [], identities: [] };
+  let exchangeBehavior = overrides.exchange ?? (async () => ({
+    accessToken: "12345.synthetic-access-token",
+    refreshToken: "12345.synthetic-refresh-token",
+    expiresIn: 3600,
+    grants: {
+      scopes: ["shops_r"],
+      source: "authorization_code_response",
+      checkedAt: 1_800_000_000_000,
+    },
+  }));
+  let refreshBehavior = overrides.refresh ?? (async () => ({
+    accessToken: "12345.synthetic-access-token",
+    refreshToken: "12345.synthetic-refresh-token",
+    expiresIn: 3600,
+    grants: {
+      scopes: ["shops_r"],
+      source: "refresh_response",
+      checkedAt: 1_800_000_000_000,
+    },
+  }));
+  let identityBehavior = overrides.getMe ?? (async () => ({ accountId: 12345, shopId: 67890 }));
+  const transport = {
+    async exchange(input) {
+      calls.exchanges.push({ ...input });
+      return exchangeBehavior(input);
+    },
+    async refresh(refreshToken) {
+      calls.refreshes.push(refreshToken);
+      return refreshBehavior(refreshToken);
+    },
+    async getMe(accessToken) {
+      calls.identities.push(accessToken);
+      return identityBehavior(accessToken);
+    },
+  };
+  return {
+    transport,
+    calls,
+    setExchange(behavior) {
+      exchangeBehavior = behavior;
+    },
+    setRefresh(behavior) {
+      refreshBehavior = behavior;
+    },
+    setGetMe(behavior) {
+      identityBehavior = behavior;
+    },
+  };
+}
+
 export function syntheticConnectionIdFor(value) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 0xffff_ffff) {
     throw new Error("Invalid synthetic connection index.");
@@ -397,7 +494,7 @@ export function stubWindowsAclForStoreTests(t) {
         const entries = String(options?.env?.ETSY_OAUTH_ACL_PATHS ?? "")
           .split("\n")
           .map((line) => line.split("\t", 2))
-          .filter(([kind]) => kind === "key" || kind === "store");
+          .filter(([kind]) => kind === "key" || kind === "store" || kind === "marker");
         const receipts = [];
         for (const [kind, target] of entries) {
           const stat = await fs.stat(target, { bigint: true });

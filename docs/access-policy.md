@@ -33,8 +33,8 @@ New tools must accurately identify their read-only, destructive, and idempotent 
 
 ## Local transport and callbacks
 
-The MCP interface remains local stdio. OAuth may require a registered HTTPS callback and webhooks require an authenticated/verified public HTTPS receiver. Those are separately reviewed support components, not authorization to expose a public MCP service. Their deployment, secret storage, and retention controls must be documented before release.
+The MCP interface remains local stdio. The optional OAuth consent entry point and fixed callback handler are implemented behind explicit operator startup configuration and protected storage prerequisites; the callback binds only to the configured numeric address and checks the actual socket peer against exact trusted IPs. It is a callback ingress, not a public MCP service. The registered HTTPS reverse-proxy route, firewall, live consent, and deployment have not been verified here. Webhooks still require a separately reviewed authenticated/verified public HTTPS receiver.
 
 ## What this policy does not do
 
-It does not implement OAuth, add tools, grant Etsy approval, connect a seller, or authorize a live mutation. Unsupported endpoints remain unsupported until implemented, tested, and documented as current. See [TODO](../TODO.md).
+It does not grant Etsy approval, perform browser consent, configure or expose a callback network path, authorize a live mutation, or implement private Etsy resource tools. OAuth connection lifecycle refresh, status/disconnect, scope diagnostics, and per-operation authorization remain planned. Unsupported endpoints remain unsupported until implemented, tested, and documented as current. See [TODO](../TODO.md).

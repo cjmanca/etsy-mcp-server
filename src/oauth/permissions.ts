@@ -12,12 +12,13 @@ const PRIVATE_DIRECTORY_MODE = 0o700;
 const PRIVATE_FILE_MODE = 0o600;
 const KEY_ALLOWED_MODES = new Set([0o400, 0o600]);
 
-type PathEntry = { path: string; kind: "ancestor" | "data" | "key" | "store" };
+type PathEntry = { path: string; kind: "ancestor" | "data" | "key" | "store" | "marker" };
 
 export type StorageObjectIdentity = Readonly<{ device: bigint; fileId: bigint }>;
 export type StoragePermissionReceipt = Readonly<{
   keyFile?: StorageObjectIdentity;
   storeFile?: StorageObjectIdentity;
+  recoveryMarkerFile?: StorageObjectIdentity;
 }>;
 
 const WINDOWS_ACL_SCRIPT = String.raw`
@@ -82,7 +83,7 @@ public static class EtsyOAuthStorageIdentity {
     if ($parts.Count -ne 2) { throw 'entry' }
     $kind = [string]$parts[0]
     $target = [string]$parts[1]
-    if (@('ancestor', 'data', 'key', 'store') -notcontains $kind) { throw 'kind' }
+    if (@('ancestor', 'data', 'key', 'store', 'marker') -notcontains $kind) { throw 'kind' }
     $item = Get-Item -LiteralPath $target -Force
     if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
       throw "DENY|$kind|reparse_point"
@@ -100,12 +101,12 @@ public static class EtsyOAuthStorageIdentity {
     $volumeRootComparison = $volumeRootPath.ToString().TrimEnd([char[]]@([char]92, [char]47))
     $isVolumeRoot = $isDirectory -and [string]::Equals($targetRootComparison, $volumeRootComparison, [System.StringComparison]::OrdinalIgnoreCase)
     $identityBefore = $null
-    if ($kind -eq 'key' -or $kind -eq 'store') {
+    if ($kind -eq 'key' -or $kind -eq 'store' -or $kind -eq 'marker') {
       $identityBefore = Get-StorageObjectIdentity $target $isDirectory $kind
     }
     $acl = Get-Acl -LiteralPath $target
     $ownerSid = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
-    $isLeaf = ($kind -eq 'data' -or $kind -eq 'key' -or $kind -eq 'store')
+    $isLeaf = ($kind -eq 'data' -or $kind -eq 'key' -or $kind -eq 'store' -or $kind -eq 'marker')
     if ($allowedSids -notcontains $ownerSid) {
       $ownerCode = if ($isLeaf) { 'untrusted_leaf_owner' } else { 'untrusted_ancestor_owner' }
       throw "DENY|$kind|$ownerCode"
@@ -145,9 +146,10 @@ public static class EtsyOAuthStorageIdentity {
       $required = [int][System.Security.AccessControl.FileSystemRights]::Read
       if (($userRights -band $required) -ne $required) { throw "DENY|$kind|required_key_read_missing" }
     }
-    if ($kind -eq 'store') {
+    if ($kind -eq 'store' -or $kind -eq 'marker') {
       $required = [int][System.Security.AccessControl.FileSystemRights]::Modify
-      if (($userRights -band $required) -ne $required) { throw "DENY|$kind|required_store_modify_missing" }
+      $modifyCode = if ($kind -eq 'marker') { 'required_marker_modify_missing' } else { 'required_store_modify_missing' }
+      if (($userRights -band $required) -ne $required) { throw "DENY|$kind|$modifyCode" }
     }
     if ($identityBefore) {
       $identityAfter = Get-StorageObjectIdentity $target $isDirectory $kind
@@ -162,7 +164,7 @@ public static class EtsyOAuthStorageIdentity {
   exit 0
 } catch {
   $message = $_.Exception.Message
-  if ($message -match '^DENY\|(ancestor|data|key|store)\|[a-z_]+$') {
+  if ($message -match '^DENY\|(ancestor|data|key|store|marker)\|[a-z_]+$') {
     [Console]::Out.Write($message)
   } else {
     [Console]::Out.Write("DENY|$kind|acl_inspection_unavailable")
@@ -179,6 +181,7 @@ const WINDOWS_DIAGNOSTIC_CODES = new Set<OAuthStorageDiagnosticCode>([
   "required_key_read_missing",
   "required_data_modify_missing",
   "required_store_modify_missing",
+  "required_marker_modify_missing",
   "reparse_point",
   "filesystem_unsupported",
   "acl_inspection_unavailable",
@@ -323,7 +326,7 @@ function validatePosixStoreFile(stat: Awaited<ReturnType<typeof fs.lstat>>): voi
 
 async function pathEntries(
   value: string,
-  leafKind: "data" | "key" | "store",
+  leafKind: "data" | "key" | "store" | "marker",
   allowMissingLeaf: boolean,
 ): Promise<PathEntry[]> {
   const fullPath = validateAbsolutePath(value);
@@ -473,7 +476,7 @@ export async function verifyWindowsAclEntries(
     });
     const normalized = stdout.replace(/\r\n/g, "\n");
     const lines = normalized.split("\n");
-    const match = /^DENY\|(ancestor|data|key|store)\|([a-z_]+)$/.exec(lines[0] ?? "");
+    const match = /^DENY\|(ancestor|data|key|store|marker)\|([a-z_]+)$/.exec(lines[0] ?? "");
     if (match && WINDOWS_DIAGNOSTIC_CODES.has(match[2] as OAuthStorageDiagnosticCode)) {
       if (match[2] === "object_identity_unavailable") {
         return identityUnavailable(match[1] as PathEntry["kind"], "windows");
@@ -488,10 +491,14 @@ export async function verifyWindowsAclEntries(
       return permissionFailure(fallbackEntry, "acl_inspection_unavailable", "windows");
     }
 
-    const receipt: { keyFile?: StorageObjectIdentity; storeFile?: StorageObjectIdentity } = {};
+    const receipt: {
+      keyFile?: StorageObjectIdentity;
+      storeFile?: StorageObjectIdentity;
+      recoveryMarkerFile?: StorageObjectIdentity;
+    } = {};
     for (const line of lines.slice(1)) {
       if (line.length === 0) continue;
-      const identity = /^(key|store)\|([0-9a-f]{8})\|([0-9a-f]{16})$/.exec(line);
+      const identity = /^(key|store|marker)\|([0-9a-f]{8})\|([0-9a-f]{16})$/.exec(line);
       if (!identity) return identityUnavailable(fallbackEntry, "windows");
       const value = {
         device: BigInt(`0x${identity[2]}`),
@@ -502,8 +509,10 @@ export async function verifyWindowsAclEntries(
         if (receipt.keyFile) return identityUnavailable("key", "windows");
         receipt.keyFile = value;
       } else {
-        if (receipt.storeFile) return identityUnavailable("store", "windows");
-        receipt.storeFile = value;
+        const identityKind = identity[1] as "store" | "marker";
+        const receiptKey = identityKind === "store" ? "storeFile" : "recoveryMarkerFile";
+        if (receipt[receiptKey]) return identityUnavailable(identityKind, "windows");
+        receipt[receiptKey] = value;
       }
     }
     if (entries.some((entry) => entry.kind === "key") && !receipt.keyFile) {
@@ -511,6 +520,9 @@ export async function verifyWindowsAclEntries(
     }
     if (entries.some((entry) => entry.kind === "store") && !receipt.storeFile) {
       return identityUnavailable("store", "windows");
+    }
+    if (entries.some((entry) => entry.kind === "marker") && !receipt.recoveryMarkerFile) {
+      return identityUnavailable("marker", "windows");
     }
     return receipt;
   } catch (error) {
@@ -521,7 +533,7 @@ export async function verifyWindowsAclEntries(
 
 async function capturePathIdentity(
   value: string,
-  entry: "key" | "store",
+  entry: "key" | "store" | "marker",
 ): Promise<StorageObjectIdentity> {
   let stat;
   try {
@@ -571,31 +583,57 @@ export async function verifyStoragePermissionsWithReceipt(
       }
     }
 
+    const recoveryMarkerFile = path.join(dataRealPath, "oauth-recovery-required.json");
+    const recoveryMarkerStat = await lstatOrMissing(recoveryMarkerFile);
+    if (recoveryMarkerStat) {
+      rejectLinkOrWrongType(recoveryMarkerStat, "file", "marker");
+      if (Number(recoveryMarkerStat.nlink) !== 1 || Number(recoveryMarkerStat.size) > 4_096) {
+        return safeFailure();
+      }
+    }
+
     if (process.platform === "win32") {
       const dataEntries = await pathEntries(dataDir, "data", false);
       const storeEntries = storeStat ? await pathEntries(storeFile, "store", false) : [];
-      return await verifyWindowsAclEntries(mergePathEntries([...dataEntries, ...keyEntries, ...storeEntries]));
+      const markerEntries = recoveryMarkerStat
+        ? await pathEntries(recoveryMarkerFile, "marker", false)
+        : [];
+      return await verifyWindowsAclEntries(
+        mergePathEntries([...dataEntries, ...keyEntries, ...storeEntries, ...markerEntries]),
+      );
     }
     if (process.platform !== "linux") return safeFailure("storage_unavailable");
 
     validatePosixKeyFile(keyStat);
     const dataEntries = await pathEntries(dataDir, "data", false);
-    for (const entry of [...dataEntries, ...keyEntries]) {
+    const markerEntries = recoveryMarkerStat
+      ? await pathEntries(recoveryMarkerFile, "marker", false)
+      : [];
+    for (const entry of [...dataEntries, ...keyEntries, ...markerEntries]) {
       const stat = await lstatOrMissing(entry.path);
       if (!stat) return safeFailure();
       if (stat.isSymbolicLink()) return permissionFailure(entry.kind, "reparse_point", "posix");
       if (entry.kind === "data") validatePosixDataDirectory(stat);
       else if (entry.kind === "key") validatePosixKeyFile(stat);
       else if (entry.kind === "store") validatePosixStoreFile(stat);
+      else if (entry.kind === "marker") validatePosixStoreFile(stat);
       else validatePosixAncestor(stat);
     }
     if (storeStat) validatePosixStoreFile(storeStat);
+    if (recoveryMarkerStat) validatePosixStoreFile(recoveryMarkerStat);
     await assertLocalLinuxFilesystem(dataDir);
     await assertLocalLinuxFilesystem(path.dirname(keyFile));
-    const receipt: { keyFile?: StorageObjectIdentity; storeFile?: StorageObjectIdentity } = {
+    const receipt: {
+      keyFile?: StorageObjectIdentity;
+      storeFile?: StorageObjectIdentity;
+      recoveryMarkerFile?: StorageObjectIdentity;
+    } = {
       keyFile: await capturePathIdentity(keyRealPath, "key"),
     };
     if (storeStat) receipt.storeFile = await capturePathIdentity(storeFile, "store");
+    if (recoveryMarkerStat) {
+      receipt.recoveryMarkerFile = await capturePathIdentity(recoveryMarkerFile, "marker");
+    }
     return receipt;
   } catch (error) {
     if (error instanceof OAuthError) throw error;

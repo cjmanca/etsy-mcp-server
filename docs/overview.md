@@ -2,7 +2,7 @@
 
 **Status: current runtime capabilities.** See the [index](index.md) for task-specific documentation.
 
-Etsy MCP Server lets an AI assistant query public Etsy information through a local Model Context Protocol connection. It helps with product discovery, shop research, catalog comparisons, and review sampling without giving the assistant permission to change an Etsy account.
+Etsy MCP Server lets an AI assistant query public Etsy information through a local Model Context Protocol connection. It helps with product discovery, shop research, catalog comparisons, and review sampling. Operators can optionally enable a browser-based Etsy account-consent flow; private-data tools and seller mutations are not yet available.
 
 ## Available capabilities
 
@@ -27,7 +27,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
 | `get_shop_return_policies` | List a shop's selected public return-policy fields. | [Shops](shops.md#read-public-return-policies) |
 | `get_shop_return_policy` | Read one selected public return policy by shop and policy IDs. | [Shops](shops.md#read-public-return-policies) |
-| `get_shipping_carriers` | Read available carrier and mail-class choices for an origin country. | [Public discovery](planned-public-discovery.md#current-m28-carrier-and-connectivity-diagnostics) |
+| `get_shipping_carriers` | Read available carrier and mail-class choices for an origin country. | [Public discovery](planned-public-discovery.md#current-m28-carrier-lookup-and-application-connectivity) |
 | `ping_etsy` | Check connectivity for the configured Etsy application. | [Setup and access](setup-and-access.md#application-diagnostics) |
 | `get_shop_sections` | List a shop's public sections and active-listing counts. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
 | `get_shop_section` | Read one public section by shop and section ID. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
@@ -38,6 +38,8 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
 | `get_taxonomy_properties` | Inspect allowed attributes, scales, values, and variation support for a buyer or seller category ID. | [Public discovery](planned-public-discovery.md#current-m12-category-properties) |
 
+The default server exposes these twenty-nine public read tools. With `ETSY_OAUTH_ENABLED=true` and all protected storage/callback startup prerequisites satisfied, the server additionally registers `begin_etsy_connection` for browser consent and durable callback completion. This conditional connection entry point does not change the public tools or provide private Etsy data access; see [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
+
 ## Typical workflows
 
 - **Product research:** search active listings, select listing IDs, then inspect details and media metadata for a small shortlist.
@@ -46,7 +48,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Buyer-facing price comparison:** provide a required buyer country to retrieve Etsy's separate base/display/discount/shipping components for selected IDs. This is not a checkout quote.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
 - **Shop organization:** list a shop's sections, inspect one section, browse its active products, or separately retrieve the shop-curated featured selection. Featured does not mean trending.
-- **Return-policy discovery:** list or inspect the selected public acceptance/deadline fields for a shop's return policies. These reads do not enumerate associated listings or establish legal compliance or refund eligibility; affected-listing lookup requires OAuth and `listings_r`.
+- **Return-policy discovery:** list or inspect the selected public acceptance/deadline fields for a shop's return policies. These reads do not enumerate associated listings or establish legal compliance or refund eligibility; the separate affected-listing `listings_r` read remains planned and unavailable.
 - **Shipping reference data:** use `get_shipping_carriers` with an origin country to inspect selected carrier IDs and domestic/international mail classes. It does not configure a profile or purchase postage.
 - **Application connectivity:** use `ping_etsy` to check the configured application's access to the Etsy Open API. A successful response does not verify OAuth scopes, ownership, or private-resource permissions.
 - **Known shop or owner ID:** use `get_shop` or `get_shop_by_owner` to read a public profile without repeating name search. Owner-ID lookup does not prove caller ownership.
@@ -59,12 +61,13 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Localized listing content:** use `get_listing_translation` with the shop ID, listing ID, and a bounded language tag to read an existing translation. It does not generate translated content or replace the source listing; Etsy may reject a syntactically valid but unavailable language.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 - **Product-feedback summaries:** sample public reviews for a known listing ID; one page is not its complete review history.
+- **Optional account consent:** after operator setup, use `begin_etsy_connection` to start a browser-based Etsy consent flow. It does not expose private account tools; see [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
 
 ## Scope and boundaries
 
-These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) plans that expanded scope without claiming it exists today.
+These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) distinguishes the conditional consent entry point from the remaining unimplemented lifecycle and account capabilities.
 
-- Public, read-only Etsy Open API v3 access using application credentials; no seller login or OAuth. Category browsing is available for both buyer and seller taxonomies.
+- The twenty-nine default tools provide public, read-only Etsy Open API v3 access using application credentials. The optional consent flow can establish a protected OAuth connection after operator setup, but no private Etsy API read or write tools are available yet. Category browsing is available for both buyer and seller taxonomies.
 - No creation, editing, deletion, purchasing, messaging, order management, private financial data, or private inventory/product/SKU access. `get_listing_offering` is a separate selected public GET, not a private inventory snapshot.
 - No supported platform-wide trending tool. `get_trending_listings` was removed because Etsy documents no trending endpoint; shop-curated featured listings are a separate capability, and sorting by score is not a trend metric.
 - No independent keyword search-volume, sales-history, or revenue analytics feed. Analysis must be grounded in fields actually returned.
@@ -73,6 +76,6 @@ These are **current runtime limitations**, not a prohibition on future features.
 
 ## Deployment model
 
-A local MCP client launches the server over stdio. There is no hosted HTTP service or browser dashboard supplied by this project. Node.js 22 or later and Etsy developer credentials are required; see [setup and access](setup-and-access.md).
+A local MCP client launches the server over stdio. There is no hosted MCP service or browser dashboard supplied by this project. If OAuth is enabled, a separate narrowly scoped callback listener binds the operator-configured numeric address and validates the actual proxy socket peer; it is not an MCP HTTP endpoint. Proxy/firewall deployment and live browser consent are operator tasks and have not been verified here. Node.js 22 or later and Etsy developer credentials are required; see [setup and access](setup-and-access.md).
 
 The project is MIT-licensed. The authoritative implementation is TypeScript source; generated build files are not the feature specification.

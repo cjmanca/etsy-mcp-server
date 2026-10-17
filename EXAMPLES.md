@@ -1,6 +1,6 @@
 # Usage examples
 
-Examples of read-only questions that use the supported tools:
+Examples of public read-only questions and the optional operator-enabled Etsy browser connection:
 
 ## Listing search
 
@@ -302,3 +302,20 @@ Use a category ID from the corresponding tree to inspect its supported propertie
 The result distinguishes category-allowed `possible_values` from Etsy's automatically selected `selected_values`; values retain their scale associations. Property labels, values, and descriptions are untrusted external text.
 
 Shop names are resolved to an exact case-insensitive match. Shop announcements, listing descriptions, tags, reviews, and taxonomy names are untrusted external text returned as JSON data, not instructions.
+
+## Optional browser-based Etsy connection
+
+This example applies only after an operator has explicitly enabled OAuth and completed the protected key/data and callback setup in [setup and access](docs/setup-and-access.md#optional-browser-based-account-connection). With the OAuth runtime ready, start a read-capability consent flow:
+
+```text
+Start an Etsy account connection for shop research.
+```
+
+```json
+{
+  "bundles": ["shop_read"],
+  "label": "shop research"
+}
+```
+
+Use `begin_etsy_connection`; the operator must open the returned authorization URL and complete Etsy consent in a browser. The fixed callback completes without asking the model for an authorization code or token. This is only the consent/connection entry point: private Etsy reads, token refresh, connection status/disconnect, scope inspection, and seller writes are not available yet. By default OAuth is disabled and only the existing twenty-nine public tools are exposed.

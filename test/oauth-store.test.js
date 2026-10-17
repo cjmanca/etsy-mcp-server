@@ -585,6 +585,65 @@ test("owner lock collision fails closed and never guesses stale ownership", asyn
   assert.deepEqual(await fs.readFile(path.join(lockDirectory, "owner.json")), staleMetadata);
 });
 
+test("failed recovery-marker persistence retains the protected ownership lock", async (t) => {
+  const fixture = await createOAuthFixture(t);
+  prepareStoreTest(t);
+  const config = syntheticOAuthConfig(fixture);
+  const store = await openConnectionStore(config);
+  const markerPath = path.join(fixture.dataDir, "oauth-recovery-required.json");
+  const originalOpen = fs.open.bind(fs);
+  t.mock.method(fs, "open", async (file, ...args) => {
+    if (path.resolve(String(file)) === path.resolve(markerPath)) {
+      throw Object.assign(new Error("Synthetic marker disk-full failure."), { code: "ENOSPC" });
+    }
+    return originalOpen(file, ...args);
+  });
+
+  try {
+    assert.equal(typeof store.markRecoveryRequired, "function");
+    await assert.rejects(
+      store.markRecoveryRequired(),
+      { name: "OAuthError", reason: "storage_recovery_required" },
+    );
+  } finally {
+    await store.close();
+  }
+
+  await assert.rejects(
+    openConnectionStore(config),
+    { name: "OAuthError", reason: "storage_conflict" },
+    "ordinary reopen must remain blocked by the retained owner lock",
+  );
+});
+
+test("owner-mismatched recovery marker blocks startup before key reads", async (t) => {
+  const fixture = await createOAuthFixture(t);
+  prepareStoreTest(t);
+  const config = syntheticOAuthConfig(fixture);
+  const markerPath = path.join(fixture.dataDir, "oauth-recovery-required.json");
+  await fs.writeFile(markerPath, JSON.stringify({
+    format: 1,
+    owner: {
+      operatorId: "different_operator",
+      appFingerprint: config.owner.appFingerprint,
+    },
+    reason: "uncertain_connection_rollback",
+  }), { flag: "wx", mode: 0o600 });
+  let keyOpens = 0;
+  const originalOpen = fs.open.bind(fs);
+  t.mock.method(fs, "open", async (file, ...args) => {
+    if (path.resolve(String(file)) === path.resolve(config.keyFile)) keyOpens += 1;
+    return originalOpen(file, ...args);
+  });
+
+  await assert.rejects(
+    openConnectionStore(config),
+    { name: "OAuthError", reason: "storage_recovery_required" },
+  );
+  assert.equal(keyOpens, 0);
+  assert.equal((await fs.readFile(markerPath)).includes(Buffer.from("different_operator")), true);
+});
+
 test("orphan temporary is never promoted or treated as an empty store", async (t) => {
   const fixture = await createOAuthFixture(t);
   prepareStoreTest(t);

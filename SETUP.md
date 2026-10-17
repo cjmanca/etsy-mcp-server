@@ -19,13 +19,13 @@ The server runs from `build/index.js`; `build/` is generated output and is not c
 
 ## MCP client configuration
 
-Configure the client to run Node.js with the absolute path to `build/index.js`. Pass the credential as the `ETSY_API_KEY` environment variable. See the complete [Claude Desktop example in README.md](README.md#configure-an-mcp-client).
+Configure the client to run Node.js with the absolute path to `build/index.js`. Pass the credential as the `ETSY_API_KEY` environment variable. See the [configuration section in README.md](README.md#configuration).
 
 The server validates the credential at startup and never logs its value. A `.env` file is Git-ignored for local safety, but is not automatically loaded by the server.
 
 ## Security behavior
 
-The server makes read-only API-key requests to `https://openapi.etsy.com` over HTTPS. It rejects redirects, ignores proxy environment variables, uses a ten-second timeout, limits upstream responses to 1 MiB, and caps tool output at 128 KiB. It does not use OAuth or fetch URLs returned by Etsy.
+The default server makes read-only API-key requests to `https://openapi.etsy.com` over HTTPS. It rejects redirects, ignores proxy environment variables, uses a ten-second timeout, limits upstream responses to 1 MiB, and caps tool output at 128 KiB. OAuth is an optional, operator-configured browser connection; it is disabled by default and does not add private-data or write tools. See [OAuth setup and access](docs/setup-and-access.md#optional-browser-based-account-connection) for the required protected key/data paths, exact registered redirect, numeric callback bind, and actual trusted proxy peer configuration.
 
 For local testing, set `ETSY_DEVELOPMENT_MODE=true` in the server process
 environment to block all methods except `GET`, `HEAD`, and `OPTIONS`. Unset,
