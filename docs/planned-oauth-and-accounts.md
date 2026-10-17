@@ -15,6 +15,18 @@ deletion is blocked pending clarification:** the current endpoint declares
 `updateShop` needs both shops_r and shops_w, and policy-linked listing reads
 need listings_r. Scope bundles must reflect per-operation security, not verbs.
 
+## M0.3 capability boundary
+
+The runtime has typed `public`, `account`, `write`, and `event` registration
+groups, but currently registers and enables only the six public tools. The other
+groups are disabled and undiscoverable; no OAuth flow, stored connection, scope
+inspection, ownership check, write authorization, or event receiver is thereby
+implemented. Registry enablement is trusted server configuration, never a model
+argument or metadata hint. Any later tool handler must still enforce actual
+granted scopes and account/resource boundaries. Test-owned registrations verify
+that disabled tools stay hidden and that direct calls fail with server-generated
+prerequisites before handler or request execution.
+
 ## Account-connection experience
 
 An operator selects the capability bundle they need, reviews the requested scopes, and authorizes the application at Etsy. A registered HTTPS callback completes authorization outside the model conversation. The server stores credentials securely and gives the MCP client an opaque connection identifier. The assistant never handles raw authorization codes, access tokens, refresh tokens, or PKCE verifiers.

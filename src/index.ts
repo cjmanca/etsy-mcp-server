@@ -18,6 +18,14 @@ import {
   validateApiKey,
 } from "./etsy-client.js";
 import {
+  CapabilityConfigurationError,
+  CapabilityRegistry,
+  CapabilityUnavailableError,
+  UnknownCapabilityToolError,
+  type CapabilityRegistration,
+} from "./capabilities.js";
+import { normalizeMoney } from "./money.js";
+import {
   asArguments,
   LISTING_INCLUDES,
   listingIncludes,
@@ -48,6 +56,22 @@ const PUBLIC_READ_ANNOTATIONS: NonNullable<Tool["annotations"]> = {
   idempotentHint: true,
   openWorldHint: true,
 };
+
+export {
+  CAPABILITIES,
+  CAPABILITY_PREREQUISITES,
+  CapabilityConfigurationError,
+  CapabilityRegistry,
+  CapabilityUnavailableError,
+  UnknownCapabilityToolError,
+} from "./capabilities.js";
+export type {
+  Capability,
+  CapabilityRegistration,
+  CapabilityRegistryOptions,
+} from "./capabilities.js";
+export { normalizeMoney } from "./money.js";
+export type { NormalizedMoney } from "./money.js";
 
 const listingProperties = {
   limit: {
@@ -302,18 +326,16 @@ function formatPrice(value: unknown, truncation: TruncationState): string {
     return "N/A";
   }
   const price = value as Record<string, unknown>;
-  const amount = Number(price.amount);
-  const divisor = Number(price.divisor);
-  const currency = textField(price.currency_code, 3, truncation) ?? "";
-  if (
-    !Number.isFinite(amount) ||
-    !Number.isFinite(divisor) ||
-    divisor <= 0 ||
-    !currency
-  ) {
-    return "N/A";
-  }
-  return `${amount / divisor} ${currency}`;
+  const legacyNumericString = (field: unknown): unknown =>
+    typeof field === "string" && field.trim() !== "" ? Number(field) : field;
+  const money = normalizeMoney({
+    amount: legacyNumericString(price.amount),
+    divisor: legacyNumericString(price.divisor),
+    currency_code: price.currency_code,
+  });
+  if (money.kind !== "money") return "N/A";
+  const currency = textField(money.currency_code, 3, truncation) ?? "";
+  return currency ? `${money.amount / money.divisor} ${currency}` : "N/A";
 }
 
 function safeUpstreamId(value: unknown, key: string): number {
@@ -683,7 +705,13 @@ async function getShopReviews(argsValue: unknown, get: ReturnType<typeof createE
 }
 
 function safeToolError(error: unknown): string {
-  if (error instanceof ValidationError || error instanceof EtsyApiError) {
+  if (
+    error instanceof ValidationError ||
+    error instanceof EtsyApiError ||
+    error instanceof CapabilityConfigurationError ||
+    error instanceof CapabilityUnavailableError ||
+    error instanceof UnknownCapabilityToolError
+  ) {
     return error.message;
   }
   if (error instanceof ConfigurationError) return "Server configuration is invalid.";
@@ -697,33 +725,52 @@ export function createEtsyMcpServer(client: AxiosInstance): Server {
     { capabilities: { tools: {} } },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  const registrations: CapabilityRegistration[] = [
+    {
+      capability: "public",
+      tool: TOOLS[0],
+      handler: (args) => searchListings(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[1],
+      handler: (args) => getListingDetails(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[2],
+      handler: (args) => getShopByName(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[3],
+      handler: (args) => getShopListings(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[4],
+      handler: (args) => searchShops(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[5],
+      handler: (args) => getShopReviews(args, get),
+    },
+  ];
+  const registry = new CapabilityRegistry({
+    enabledCapabilities: ["public"],
+    registrations,
+  });
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: registry.listTools(),
+  }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
-      let result;
-      switch (request.params.name) {
-        case "search_listings":
-          result = await searchListings(request.params.arguments, get);
-          break;
-        case "get_listing_details":
-          result = await getListingDetails(request.params.arguments, get);
-          break;
-        case "get_shop_by_name":
-          result = await getShopByName(request.params.arguments, get);
-          break;
-        case "get_shop_listings":
-          result = await getShopListings(request.params.arguments, get);
-          break;
-        case "search_shops":
-          result = await searchShops(request.params.arguments, get);
-          break;
-        case "get_shop_reviews":
-          result = await getShopReviews(request.params.arguments, get);
-          break;
-        default:
-          throw new ValidationError("Unknown or unsupported Etsy tool.");
-      }
-      return result;
+      return await registry.dispatch(
+        request.params.name,
+        request.params.arguments,
+      );
     } catch (error) {
       return {
         content: [{ type: "text", text: `Error: ${safeToolError(error)}` }],
