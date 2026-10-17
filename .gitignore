@@ -3,3 +3,5 @@ build/
 .env
 *.log
 .DS_Store
+**/.etsy-mcp/
+**/.etsy-mcp-secrets/
