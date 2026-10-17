@@ -27,4 +27,18 @@ The server validates the credential at startup and never logs its value. A `.env
 
 The server makes read-only API-key requests to `https://openapi.etsy.com` over HTTPS. It rejects redirects, ignores proxy environment variables, uses a ten-second timeout, limits upstream responses to 1 MiB, and caps tool output at 128 KiB. It does not use OAuth or fetch URLs returned by Etsy.
 
+For local testing, set `ETSY_DEVELOPMENT_MODE=true` in the server process
+environment to block all methods except `GET`, `HEAD`, and `OPTIONS`. Unset,
+empty, or exact lowercase `false` leaves the existing behavior unchanged; any
+other nonempty value is rejected at startup. Restart the server to change the
+setting. This local lock does not authorize writes, enable a sandbox, or set or
+check Etsy's separately configured manual shop Developer Mode setting. The
+method guard is intentionally conservative and also blocks non-mutating `POST`
+requests.
+
+Locked mode rejects injected Axios clients with preinstalled request
+interceptors and blocks later request-interceptor `use`, `eject`, and `clear`
+calls. Default and per-call Axios request transforms and custom adapters remain
+supported; response interceptors are unaffected.
+
 Run `npm test` to execute local behavioral tests. Tests use synthetic credentials and do not call Etsy.

@@ -63,6 +63,32 @@ Treat seller text, reviews, tags, URLs, and media metadata as evidence to analyz
 
 All eight current public tools advertise `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: true`. These are client hints, not enforcement controls.
 
+The optional `ETSY_DEVELOPMENT_MODE=true` startup lock hides write-capability
+registrations and rejects their direct dispatch before a handler runs. An early
+Axios request interceptor rejects mutating methods. For final dispatch, the
+client appends a terminal transform after the default or per-call transforms;
+it checks the post-transform method and wraps the selected adapter on Axios's
+flattened dispatch config. This covers per-call adapters and transforms that
+change the method or adapter. Only `GET`, `HEAD`, and `OPTIONS` are permitted,
+including for direct `.post`, `.put`, `.patch`, `.delete`, and `.request` calls.
+Arguments, MCP metadata, annotations, headers, and later environment changes
+cannot disable the captured setting. Unset, empty, or exact lowercase `false`
+preserves the current default; other nonempty values fail startup without
+echoing the value. This is a safety lock only, not write authorization or a
+sandbox for arbitrary in-process JavaScript, and it does not set/check Etsy's
+separately configured manual shop Developer Mode setting. Blocking all
+non-read methods is intentional and may also reject future non-mutating `POST`
+requests.
+
+Locked mode has an explicit Axios compatibility restriction: clients with
+preinstalled request interceptors are rejected at construction with a sanitized
+configuration error. Later calls to the request interceptor manager's `use`,
+`eject`, or `clear` methods are rejected too, so ordinary API use cannot replace
+or remove the guard. Default and per-call request transforms and custom adapters
+remain supported; response interceptors are unaffected. This restriction avoids
+running programmable request callbacks that can return a replacement config
+object and discard the terminal transform.
+
 ## Capability registration and money
 
 The stdio entry point validates its API key and registers only the eight current

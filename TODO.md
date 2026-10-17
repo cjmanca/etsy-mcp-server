@@ -8,6 +8,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 
 ## Foundation and authorization — [plan](docs/planned-oauth-and-accounts.md)
 
+- [x] Optional startup-only read-only testing lock (`ETSY_DEVELOPMENT_MODE=true`) for write-capability dispatch and mutating HTTP methods (M0.4; does not authorize or add mutations).
 - [ ] OAuth Authorization Code + PKCE S256, single-use state validation, and a registered HTTPS callback.
 - [ ] Protected per-connection credential storage, expiry/refresh lifecycle, granted-scope tracking, and reconnect handling.
 - [ ] Account/connection isolation, least-privilege scope bundles, resource authorization, and capability-aware tool discovery.

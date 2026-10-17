@@ -2,6 +2,12 @@ import axios, {
   AxiosError,
   AxiosInstance,
 } from "axios";
+import {
+  DevelopmentModeMutationError,
+  enforceDevelopmentMode,
+  snapshotDevelopmentMode,
+  type DevelopmentModeFactoryOptions,
+} from "./development-mode.js";
 
 export const ETSY_API_BASE = "https://openapi.etsy.com/v3";
 export const REQUEST_TIMEOUT_MS = 10_000;
@@ -63,9 +69,13 @@ export function validateApiKey(value: unknown): string {
   return value;
 }
 
-export function createEtsyClient(apiKey: string): AxiosInstance {
+export function createEtsyClient(
+  apiKey: string,
+  options?: DevelopmentModeFactoryOptions,
+): AxiosInstance {
+  const developmentMode = snapshotDevelopmentMode(options);
   const validatedKey = validateApiKey(apiKey);
-  return axios.create({
+  const client = axios.create({
     baseURL: ETSY_API_BASE,
     headers: {
       "x-api-key": validatedKey,
@@ -80,6 +90,8 @@ export function createEtsyClient(apiKey: string): AxiosInstance {
     // The default Node.js HTTPS agent verifies certificates. Do not replace it
     // with an agent that disables TLS verification.
   });
+  enforceDevelopmentMode(client, developmentMode);
+  return client;
 }
 
 function delay(ms: number): Promise<void> {
@@ -151,6 +163,9 @@ function retryHint(error: AxiosError): string {
 
 function safeApiError(error: unknown): EtsyApiError {
   if (error instanceof EtsyApiError) return error;
+  if (error instanceof DevelopmentModeMutationError) {
+    return new EtsyApiError("forbidden", error.message);
+  }
   if (!axios.isAxiosError(error)) {
     return new EtsyApiError("upstream", "Unable to process the Etsy response.");
   }

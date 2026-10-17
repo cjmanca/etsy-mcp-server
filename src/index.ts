@@ -18,6 +18,13 @@ import {
   validateApiKey,
 } from "./etsy-client.js";
 import {
+  DevelopmentModeConfigurationError,
+  DevelopmentModeMutationError,
+  enforceDevelopmentMode,
+  snapshotDevelopmentMode,
+  type DevelopmentModeFactoryOptions,
+} from "./development-mode.js";
+import {
   CapabilityConfigurationError,
   CapabilityRegistry,
   CapabilityUnavailableError,
@@ -77,6 +84,11 @@ export {
   CapabilityUnavailableError,
   UnknownCapabilityToolError,
 } from "./capabilities.js";
+export {
+  DevelopmentModeConfigurationError,
+  DevelopmentModeMutationError,
+} from "./development-mode.js";
+export type { DevelopmentModeFactoryOptions } from "./development-mode.js";
 export type {
   Capability,
   CapabilityRegistration,
@@ -940,6 +952,8 @@ function safeToolError(error: unknown): string {
     error instanceof EtsyApiError ||
     error instanceof CapabilityConfigurationError ||
     error instanceof CapabilityUnavailableError ||
+    error instanceof DevelopmentModeConfigurationError ||
+    error instanceof DevelopmentModeMutationError ||
     error instanceof UnknownCapabilityToolError
   ) {
     return error.message;
@@ -950,8 +964,10 @@ function safeToolError(error: unknown): string {
 
 export function createEtsyMcpServer(
   client: AxiosInstance,
-  options: { readonly now?: () => number } = {},
+  options: DevelopmentModeFactoryOptions & { readonly now?: () => number } = {},
 ): Server {
+  const developmentMode = snapshotDevelopmentMode(options);
+  enforceDevelopmentMode(client, developmentMode);
   const { get } = createEtsyRequester(client);
   const taxonomyCache = new TaxonomyTreeCache(options.now);
   const server = new Server(
@@ -1003,6 +1019,7 @@ export function createEtsyMcpServer(
   ];
   const registry = new CapabilityRegistry({
     enabledCapabilities: ["public"],
+    developmentMode,
     registrations,
   });
 
@@ -1026,8 +1043,10 @@ export function createEtsyMcpServer(
 }
 
 export async function main(): Promise<void> {
+  const developmentMode = snapshotDevelopmentMode();
   const apiKey = validateApiKey(process.env.ETSY_API_KEY);
-  const server = createEtsyMcpServer(createEtsyClient(apiKey));
+  const client = createEtsyClient(apiKey, { developmentMode });
+  const server = createEtsyMcpServer(client, { developmentMode });
   await server.connect(new StdioServerTransport());
   console.error("Etsy MCP Server running on stdio");
 }
@@ -1037,7 +1056,8 @@ if (
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
   main().catch((error: unknown) => {
-    const message = error instanceof ConfigurationError
+    const message = error instanceof ConfigurationError ||
+      error instanceof DevelopmentModeConfigurationError
       ? error.message
       : "The Etsy MCP Server could not start.";
     console.error(`Fatal error: ${message}`);

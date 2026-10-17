@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Added
 
+- Added an optional read-only testing lock for Etsy mutation requests.
 - Added buyer and seller category browsing with optional local subtree and name filters.
 - Added buyer and seller category-property lookup with supported scales, values, and variation constraints.
 

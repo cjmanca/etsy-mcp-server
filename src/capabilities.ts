@@ -1,4 +1,8 @@
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
+import {
+  DevelopmentModeMutationError,
+  snapshotDevelopmentMode,
+} from "./development-mode.js";
 
 export const CAPABILITIES = ["public", "account", "write", "event"] as const;
 
@@ -31,6 +35,7 @@ export interface CapabilityRegistryOptions {
   /** Trusted server configuration; never derive this from a model request. */
   readonly enabledCapabilities: readonly Capability[];
   readonly registrations?: readonly CapabilityRegistration[];
+  readonly developmentMode?: boolean;
 }
 
 export class CapabilityConfigurationError extends Error {
@@ -65,9 +70,11 @@ function isCapability(value: unknown): value is Capability {
 
 export class CapabilityRegistry {
   private readonly enabledCapabilities: Set<Capability>;
+  private readonly developmentMode: boolean;
   private readonly registrations = new Map<string, CapabilityRegistration>();
 
   constructor(options: CapabilityRegistryOptions) {
+    this.developmentMode = snapshotDevelopmentMode(options);
     this.enabledCapabilities = new Set();
     for (const capability of options.enabledCapabilities) {
       if (!isCapability(capability)) {
@@ -101,12 +108,16 @@ export class CapabilityRegistry {
   listTools(): Tool[] {
     return [...this.registrations.values()]
       .filter((registration) => this.enabledCapabilities.has(registration.capability))
+      .filter((registration) => !(this.developmentMode && registration.capability === "write"))
       .map((registration) => registration.tool);
   }
 
   async dispatch(name: string, args: unknown): Promise<CallToolResult> {
     const registration = this.registrations.get(name);
     if (!registration) throw new UnknownCapabilityToolError();
+    if (this.developmentMode && registration.capability === "write") {
+      throw new DevelopmentModeMutationError();
+    }
     if (!this.enabledCapabilities.has(registration.capability)) {
       throw new CapabilityUnavailableError(registration.capability);
     }

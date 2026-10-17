@@ -41,6 +41,35 @@ Use your client's equivalent configuration if its format differs. On Windows, JS
 
 Pass `ETSY_API_KEY` through the client or process environment. The server does **not** automatically load `.env` files. Keep real credentials out of prompts, tool arguments, screenshots, and committed configuration. Startup validation requires exactly one colon, two nonempty parts, no whitespace/control characters, and a total length no greater than 1,024 characters.
 
+## Optional read-only testing lock
+
+To block all Etsy mutations locally, set `ETSY_DEVELOPMENT_MODE=true` in the MCP
+server process environment. Unset, empty, or exact lowercase `false` leaves the
+existing behavior unchanged. Values are case-sensitive; any other nonempty
+value stops startup with a sanitized configuration error. The setting is
+snapshotted when the server starts, so restart the MCP server after changing it.
+
+This is a local safety lock, not authorization to mutate an account. It does
+not add write tools, grant scopes, or change/query Etsy's separately configured
+manual shop Developer Mode setting; it does not make requests to a sandbox.
+When enabled, only `GET`, `HEAD`, and `OPTIONS` HTTP methods are allowed. This
+conservative rule also blocks non-mutating `POST` operations.
+
+For safety, locked mode rejects injected Axios clients that already have
+request interceptors, and rejects later request-interceptor `use`, `eject`, or
+`clear` calls with a sanitized configuration error. Default and per-call Axios
+request transforms and custom mock/request adapters remain usable; response
+interceptors are unaffected.
+
+For an MCP client configuration, add the switch alongside the API key:
+
+```json
+"env": {
+  "ETSY_API_KEY": "<keystring>:<shared_secret>",
+  "ETSY_DEVELOPMENT_MODE": "true"
+}
+```
+
 ## Connection expectations
 
 - The client communicates locally over stdio; the server contacts only the fixed Etsy API origin over HTTPS.
