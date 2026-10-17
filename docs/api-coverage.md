@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twelve current tools reach twelve distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **93 operations are Planned**.
+- Sixteen current tools reach sixteen distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **89 operations are Planned**.
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -31,7 +31,7 @@ M1.4 extends the existing `getListing` surface without changing its public API-k
 | GET | `findAllListingsActive` | `search_listings` with required keywords and bounded page/price/sort controls plus taxonomy, location, safe-content, currency, and buyer-country filters | Current |
 | GET | `findAllActiveListingsByShop` | `get_shop_listings` | Current |
 | GET | `getListingsByListingIds` | `get_listings_batch` (M1.5 Current); `get_listing_buyer_prices` with required `buyer_country` and `BuyerPrice` (M1.6 Current) | Current |
-| GET | `getFeaturedListingsByShop` | `get_featured_shop_listings` | Planned |
+| GET | `getFeaturedListingsByShop` | `get_featured_shop_listings` | Current |
 | PUT | `updateListingProperty` | `update_listing_property` | Planned |
 | DELETE | `deleteListingProperty` | `delete_listing_property` | Planned |
 | GET | `getListingProperty` | `get_listing_property` — blocked: reference says 501-only | Planned |
@@ -40,7 +40,7 @@ M1.4 extends the existing `getListing` surface without changing its public API-k
 | PATCH | `updateListing` | `update_listing` | Planned |
 | GET | `getListingsByShopReceipt` | `get_receipt_listings` | Planned |
 | GET | `getListingsByShopReturnPolicy` | `get_return_policy_listings` — OAuth `listings_r`, no paging declared | Planned |
-| GET | `getListingsByShopSectionId` | `get_shop_section_listings` | Planned |
+| GET | `getListingsByShopSectionId` | `get_shop_section_listings` | Current |
 
 ## Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)
 
@@ -142,9 +142,9 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | GET | `getShopByOwnerUserId` | `get_shop_by_owner` | Current |
 | GET | `findShops` | `search_shops`, `get_shop_by_name` | Current |
 | GET | `getShopProductionPartners` | `get_shop_production_partners` | Planned |
-| GET | `getShopSections` | `get_shop_sections` | Planned |
+| GET | `getShopSections` | `get_shop_sections` | Current |
 | POST | `createShopSection` | `create_shop_section` | Planned |
-| GET | `getShopSection` | `get_shop_section` | Planned |
+| GET | `getShopSection` | `get_shop_section` | Current |
 | PUT | `updateShopSection` | `update_shop_section` | Planned |
 | DELETE | `deleteShopSection` | `delete_shop_section` | Planned |
 

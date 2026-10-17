@@ -75,14 +75,22 @@ Per Etsy's current schema, `base_price` includes VAT and excludes shipping; `shi
 
 `get_shop` calls public API-key-only `GET /v3/application/shops/{shop_id}` (`getShop`) directly. `get_shop_by_owner` calls public API-key-only `GET /v3/application/users/{user_id}/shops` (`getShopByOwnerUserId`). Both require positive safe-integer numeric IDs and send no query parameters; neither calls `findShops`. Etsy documents each 200 response as one `Shop` object, not a result page. Both tools reuse the selected bounded shop-profile mapping from `get_shop_by_name`; only shop ID/name/title, announcement, currency, vacation state/messages, sale messages, creation timestamps, active-listing count, and URL can be returned. Missing shop resources retain Etsy's sanitized 404 error. A public owner-ID lookup does not prove caller ownership or authorize account access. Text remains untrusted and bounded, with shortening reported through `truncated`.
 
+## Current M2.2: shop sections and featured catalog
+
+The four public, API-key-only reads are:
+
+- `get_shop_sections`: `GET /v3/application/shops/{shop_id}/sections` (`getShopSections`), returning a `ShopSections` page with selected `shop_section_id`, `title`, `rank`, `user_id`, and `active_listing_count` fields.
+- `get_shop_section`: `GET /v3/application/shops/{shop_id}/sections/{shop_section_id}` (`getShopSection`), returning the same selected section fields. Etsy marks every `ShopSection` property optional. When returned, the section ID (and any supplied shop parent reference) must match the request; no shop-profile lookup is made to infer section ownership.
+- `get_shop_section_listings`: `GET /v3/application/shops/{shop_id}/shop-sections/listings` (`getListingsByShopSectionId`). One positive `shop_section_id` is passed as the required query array `shop_section_ids=<id>`; this is **not** a `/sections/{id}/listings` route. The MCP tool accepts the endpoint-declared `limit`, `offset`, `sort_on`, `sort_order`, and optional boolean `legacy` fields. `score` is forced to descending; Etsy notes sorting only works with search options, but this endpoint declares no keyword filter. The `legacy` value is omitted by default and merely forwarded when explicitly supplied; processing-profile rollout semantics are not inferred.
+- `get_featured_shop_listings`: `GET /v3/application/shops/{shop_id}/listings/featured` (`getFeaturedListingsByShop`), accepting only `limit`, `offset`, and its declared optional boolean `legacy`; no sort/search/date/trend filter is invented. It represents products selected as featured by the shop, not an Etsy-wide trending or popularity ranking. A returned `featured_rank` is mapped only from Etsy's field; neither rank nor order is inferred.
+
+All four validate positive safe-integer IDs before requests and apply the existing 25-row default, 1–100 page bound, offset bound, 10-second request timeout, 1 MiB upstream cap, 128 KiB output cap, selected listing mapper, sanitized error handling, and untrusted-content notice. List responses report Etsy's `count`, displayed `returned`, and `truncated`; no tool claims a complete snapshot after a bound. An empty section/list and a zero active-listing count are valid. Supplied shop/section parent IDs in returned section/listing objects are checked against the request; absent references are not invented and public owner IDs do not establish caller authorization. Only selected section and M1.4 listing-summary fields are exposed.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_featured_shop_listings` | `shop_id`; only endpoint-supported result controls. | Products curated as featured by the shop, not a platform-wide trend ranking. |
-| `get_shop_sections`, `get_shop_section` | Shop ID; section ID for detail. | Public section titles, order, and active-listing counts. |
-| `get_shop_section_listings` | Shop ID and section ID selection, with endpoint-supported paging/sort controls. | Catalog browsing by actual shop section instead of keyword inference. |
 | `get_listing_reviews` | Listing ID; supported page/date controls. | Product-specific review samples using the existing bounded review output conventions. |
 | `get_listing_images`, `get_listing_image` | Listing ID; image ID for detail. | Image references with rank, dimensions, alt text, and selected metadata. |
 | `get_listing_videos`, `get_listing_video` | Listing ID; video ID for detail. | Dedicated video metadata without requiring a full listing response. |
@@ -113,7 +121,8 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 - [x] Category discovery can produce an ID that a filtered listing search accepts; buyer and seller taxonomy results cannot be confused (mocked end-to-end M1.6 sequence plus buyer/seller route coverage; no live availability claim).
 - [x] Batch lookup and buyer pricing preserve currency, IDs, null/unavailable fields, and bounded output (M1.5/M1.6 mocked verification; no live availability claim).
 - [x] Direct shop-ID and public owner-ID lookup use their documented routes and selected profile output without changing exact-name search (M2.1 mocked verification; no caller-ownership claim).
-- [ ] Shop organization, featured-product, and listing-review tools reach their documented routes and describe sample/completeness limits.
+- [x] Shop organization and featured-product tools reach their documented public routes and distinguish a shop's curated featured selection from trending (M2.2; mocked verification only).
+- [ ] Listing-review tools reach their documented routes and describe sample/completeness limits.
 - [ ] Dedicated media/attribute/translation/personalization/policy tools expose selected useful fields, not unrestricted upstream objects.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.
 

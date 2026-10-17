@@ -41,6 +41,10 @@ import {
   type TaxonomyTree,
 } from "./taxonomy.js";
 import {
+  createShopCatalogHandlers,
+  SHOP_CATALOG_TOOLS,
+} from "./shop-catalog.js";
+import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
   LISTING_INCLUDES,
@@ -499,6 +503,7 @@ export const TOOLS: Tool[] = [
       required: ["user_id"],
     },
   },
+  ...SHOP_CATALOG_TOOLS,
 ];
 
 interface TruncationState {
@@ -1788,6 +1793,15 @@ export function createEtsyMcpServer(
   enforceDevelopmentMode(client, developmentMode);
   const { get } = createEtsyRequester(client);
   const taxonomyCache = new TaxonomyTreeCache(options.now);
+  const shopCatalogHandlers = createShopCatalogHandlers({
+    get,
+    responseObject,
+    pageData,
+    outputId,
+    textField,
+    mapListing,
+    responseText,
+  });
   const server = new Server(
     { name: "etsy-mcp-server", version: SERVER_VERSION },
     { capabilities: { tools: {} } },
@@ -1853,6 +1867,26 @@ export function createEtsyMcpServer(
       capability: "public",
       tool: TOOLS[11],
       handler: (args) => getShopByOwner(args, get),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[12],
+      handler: (args) => shopCatalogHandlers.getShopSections(args),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[13],
+      handler: (args) => shopCatalogHandlers.getShopSection(args),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[14],
+      handler: (args) => shopCatalogHandlers.getShopSectionListings(args),
+    },
+    {
+      capability: "public",
+      tool: TOOLS[15],
+      handler: (args) => shopCatalogHandlers.getFeaturedShopListings(args),
     },
   ];
   const registry = new CapabilityRegistry({

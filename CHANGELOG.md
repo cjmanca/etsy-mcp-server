@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added batch retrieval for up to 100 listings with requested-order results and explicit missing/truncation status.
 - Added buyer-country-aware listing price components for base, display, promotion, and shipping values.
 - Added direct public shop lookup by shop ID or owner user ID.
+- Added public shop section browsing and shop-curated featured listings.
 
 ### Documentation
 

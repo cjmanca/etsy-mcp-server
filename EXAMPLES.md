@@ -115,6 +115,39 @@ To filter and sort a shop's active listings, supply `keywords` along with the so
 }
 ```
 
+List the public sections for a shop and browse a single section. The section ID is sent as Etsy's required `shop_section_ids` query array; no keyword filter is declared for this endpoint:
+
+```json
+{
+  "shop_id": 12345678
+}
+```
+
+```json
+{
+  "shop_id": 12345678,
+  "shop_section_id": 42,
+  "limit": 25,
+  "offset": 0,
+  "sort_on": "price",
+  "sort_order": "asc"
+}
+```
+
+The section endpoint declares sort fields but Etsy notes sorting only works with search options, so sorting may be ineffective without one. Inspect `count`, `returned`, and `truncated`; empty sections are valid.
+
+To inspect one section's details, provide both `shop_id` and `shop_section_id`. For products the shop has selected as featured, use the separate tool:
+
+```json
+{
+  "shop_id": 12345678,
+  "limit": 25,
+  "offset": 0
+}
+```
+
+`get_featured_shop_listings` is a shop-curated selection, not an Etsy trending or popularity ranking. `featured_rank` is shown only when Etsy returns it; the tool does not infer rank or reorder results.
+
 ```text
 Get recent reviews for shop 12345678.
 ```

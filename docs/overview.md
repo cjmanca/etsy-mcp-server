@@ -17,6 +17,10 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_shop` | Read a public shop profile directly by numeric shop ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
 | `get_shop_by_owner` | Read the public shop associated with a numeric owner user ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
+| `get_shop_sections` | List a shop's public sections and active-listing counts. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
+| `get_shop_section` | Read one public section by shop and section ID. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
+| `get_shop_section_listings` | Browse active listings in one selected section. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
+| `get_featured_shop_listings` | Browse products a shop has curated as featured. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
 | `get_shop_reviews` | Read public shop reviews, optionally within a date range. | [Reviews](reviews.md) |
 | `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
 | `get_taxonomy_properties` | Inspect allowed attributes, scales, values, and variation support for a buyer or seller category ID. | [Public discovery](planned-public-discovery.md#current-m12-category-properties) |
@@ -27,6 +31,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Batch listing lookup:** retrieve a selected set of listing IDs in one call; inspect `not_returned_ids` and `truncated` before treating the response as complete.
 - **Buyer-facing price comparison:** provide a required buyer country to retrieve Etsy's separate base/display/discount/shipping components for selected IDs. This is not a checkout quote.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
+- **Shop organization:** list a shop's sections, inspect one section, browse its active products, or separately retrieve the shop-curated featured selection. Featured does not mean trending.
 - **Known shop or owner ID:** use `get_shop` or `get_shop_by_owner` to read a public profile without repeating name search. Owner-ID lookup does not prove caller ownership.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
@@ -39,7 +44,7 @@ These are **current runtime limitations**, not a prohibition on future features.
 
 - Public, read-only Etsy Open API v3 access using application credentials; no seller login or OAuth. Category browsing is available for both buyer and seller taxonomies.
 - No creation, editing, deletion, purchasing, messaging, order management, private financial data, or inventory access.
-- No supported trending tool. `get_trending_listings` was removed because there is no documented supported trending endpoint; sorting by score is not a trend metric.
+- No supported platform-wide trending tool. `get_trending_listings` was removed because Etsy documents no trending endpoint; shop-curated featured listings are a separate capability, and sorting by score is not a trend metric.
 - No independent keyword search-volume, sales-history, or revenue analytics feed. Analysis must be grounded in fields actually returned.
 - Media tools return metadata and URLs, not downloaded image/video content. The server never fetches URLs found in Etsy content.
 - Tools return selected, bounded fields rather than complete raw Etsy API responses.

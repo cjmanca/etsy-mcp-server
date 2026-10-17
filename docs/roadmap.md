@@ -1,10 +1,10 @@
 # Feature roadmap and sequencing
 
-**Status: planned work remains.** Tool names outside the [current ten](overview.md) are proposals. Scope includes OAuth, inventory, private reads, and writes under the revised [policy](access-policy.md).
+**Status: planned work remains.** Tool names outside the [current sixteen](overview.md) are proposals. Scope includes OAuth, inventory, private reads, and writes under the revised [policy](access-policy.md).
 
 ## Research basis and coverage
 
-On 2026-10-16, the `etsy-api-dev-information` MCP catalog listed **105 operations**. The [matrix](api-coverage.md) accounts for every one. The twelve current MCP tools reach twelve distinct API operations; `getShop` is now directly available as well as internally used by exact-name lookup, and owner-ID lookup uses `getShopByOwnerUserId`. **93 cataloged operations are not reached at all.**
+On 2026-10-16, the `etsy-api-dev-information` MCP catalog listed **105 operations**. The [matrix](api-coverage.md) accounts for every one. The sixteen current MCP tools reach sixteen distinct API operations; `getShop` is directly available as well as internally used by exact-name lookup, and owner-ID lookup uses `getShopByOwnerUserId`. **89 cataloged operations are not reached at all.**
 
 The initial research used the MCP catalog and selected guides. M0.1 subsequently revalidated all 105 IDs/methods against the current official OpenAPI document on 2026-10-17 and retained all exact schemas in the [contract audit](contracts/README.md), with per-operation indexes and separately inspected guide semantics. Read that audit before implementation; its 501-only, scope-conflict, ownership, financial-unit and rollout blockers override optimistic assumptions in the original feature grouping. Re-fetch affected contracts before coding; this dated snapshot is not a perpetual API guarantee.
 

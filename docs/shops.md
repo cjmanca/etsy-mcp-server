@@ -58,8 +58,38 @@ Both tools use public API-key access and return the same selected, bounded profi
 
 **Sorting caveat:** Etsy applies shop-listing sorting with search options such as keywords. Passing only a sort field does not guarantee the requested ordering. Returned product summaries are described in [listing discovery](listing-discovery.md).
 
-Only public active listings are exposed. Draft, inactive, expired, and sold-out catalog management, shop sections, shipping configuration, and shop editing are not implemented.
+## Browse shop sections and featured products
+
+The public section tools expose a shop's selected section metadata without fetching a private user profile:
+
+| Tool | Required arguments | Purpose |
+| --- | --- | --- |
+| `get_shop_sections` | `shop_id` | List section IDs, titles, display ranks, owner user IDs, and active-listing counts. |
+| `get_shop_section` | `shop_id`, `shop_section_id` | Read one section using both IDs. |
+| `get_shop_section_listings` | `shop_id`, `shop_section_id` | Browse one section's active listings with page and endpoint-declared sort controls. |
+| `get_featured_shop_listings` | `shop_id` | Browse the listings the shop has curated as featured. |
+
+`ShopSection` fields are optional in Etsy's response. Missing or null fields may be omitted; an `active_listing_count` of zero and an empty section are valid. Responses include `count`, `returned`, and `truncated` for list tools. They represent one bounded Etsy response, not a guaranteed complete snapshot; inspect those fields before drawing completeness conclusions. Listing summaries reuse the selected bounded fields described in [listing discovery](listing-discovery.md).
+
+For a section's listings, the server sends the selected `shop_section_id` in Etsy's required `shop_section_ids` query array at the shop-section listings route; it does not construct a section-specific `/sections/{id}/listings` URL. The tool accepts one section ID per call. Etsy declares `sort_on` and `sort_order`, but its reference says sorting only takes effect with search options such as keywords or region; this section endpoint declares no keyword filter, so sorting may be ineffective. `score` remains descending regardless of `sort_order`. The optional `legacy` flag is forwarded only when explicitly supplied and is not a processing-profile rollout control.
+
+The featured endpoint accepts only paging controls and its declared optional `legacy` flag: no search, date, or sort control is added. Featured results are **shop-curated selections**, not Etsy-wide trending or popularity rankings. `featured_rank` is included only when Etsy returns it; result order and rank are not inferred or reordered locally. There is no supported platform-wide trending endpoint.
+
+Returned section `user_id` is a public ownership reference, not proof that a section or shop belongs to the caller. Where Etsy returns parent IDs in section/listing data, mismatches against the requested shop or section are rejected. The server does not make a follow-up profile request to guess an absent relationship. Section titles, listing text, tags, and URLs remain untrusted Etsy data.
+
+```json
+{
+  "shop_id": 12345678,
+  "shop_section_id": 42,
+  "limit": 25,
+  "offset": 0,
+  "sort_on": "price",
+  "sort_order": "asc"
+}
+```
+
+Only public active listings are exposed. Draft, inactive, expired, and sold-out catalog management, shipping configuration, and shop editing are not implemented.
 
 ## Suggested agent workflow
 
-For a known shop ID, use `get_shop` directly; for a known owner ID, use `get_shop_by_owner`. Otherwise resolve an exact name, preserve the returned shop ID, then fetch catalog pages or reviews. If the name is uncertain, search for candidates first and clarify the intended shop. Do not treat an incomplete lookup as proof that a shop does not exist.
+For a known shop ID, use `get_shop` directly; for a known owner ID, use `get_shop_by_owner`. Otherwise resolve an exact name, preserve the returned shop ID, then fetch active or section catalog pages, shop-curated featured listings, or reviews as needed. If the name is uncertain, search for candidates first and clarify the intended shop. Do not treat an incomplete lookup as proof that a shop does not exist.

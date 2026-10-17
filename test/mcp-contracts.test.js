@@ -14,6 +14,7 @@ import {
 } from "./helpers/mcp.js";
 
 const PUBLIC_TOOL_NAMES = [
+  "get_featured_shop_listings",
   "get_listing_buyer_prices",
   "get_listing_details",
   "get_listings_batch",
@@ -22,6 +23,9 @@ const PUBLIC_TOOL_NAMES = [
   "get_shop_by_owner",
   "get_shop_listings",
   "get_shop_reviews",
+  "get_shop_section",
+  "get_shop_section_listings",
+  "get_shop_sections",
   "get_taxonomy_nodes",
   "get_taxonomy_properties",
   "search_listings",
@@ -57,7 +61,7 @@ function createRequestFixtureServer(etsyClient, onDispatch = () => {}) {
   return server;
 }
 
-test("tool discovery lists exactly twelve public tools with accurate safety annotations", async () => {
+test("tool discovery lists exactly sixteen public tools with accurate safety annotations", async () => {
   await withMcp(
     mockAdapter((config) => successResponse(config, { count: 0, results: [] })),
     async ({ client }) => {

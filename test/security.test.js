@@ -100,6 +100,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
       const listed = await client.listTools();
       const names = listed.tools.map((tool) => tool.name).sort();
       assert.deepEqual(names, [
+        "get_featured_shop_listings",
         "get_listing_buyer_prices",
         "get_listing_details",
         "get_listings_batch",
@@ -108,6 +109,9 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_shop_by_owner",
         "get_shop_listings",
         "get_shop_reviews",
+        "get_shop_section",
+        "get_shop_section_listings",
+        "get_shop_sections",
         "get_taxonomy_nodes",
         "get_taxonomy_properties",
         "search_listings",

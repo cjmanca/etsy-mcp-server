@@ -27,8 +27,8 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [x] Batch listing lookup: `get_listings_batch` (M1.5; evidence in [TASK.md](TASK.md)).
 - [x] Buyer-country-aware price components: `get_listing_buyer_prices` (M1.6; evidence in [TASK.md](TASK.md)).
 - [x] Direct shop/owner lookup: `get_shop`, `get_shop_by_owner` (M2.1; verification in [TASK.md](TASK.md)).
-- [ ] Featured products: `get_featured_shop_listings`.
-- [ ] Section browsing: `get_shop_sections`, `get_shop_section`, `get_shop_section_listings`.
+- [x] Featured products: `get_featured_shop_listings` (M2.2).
+- [x] Section browsing: `get_shop_sections`, `get_shop_section`, `get_shop_section_listings` (M2.2).
 - [ ] Listing-specific feedback: `get_listing_reviews`.
 - [ ] Dedicated image metadata, including rank/dimensions/alt text: `get_listing_images`, `get_listing_image`.
 - [ ] Dedicated video metadata: `get_listing_videos`, `get_listing_video`.
