@@ -10,6 +10,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | --- | --- | --- |
 | `search_listings` | Discover active products by keywords, price range, and sort order. | [Listings](listing-discovery.md) |
 | `get_listing_details` | Inspect a product and optionally its shop, images, public user summary, or videos. | [Listings](listing-discovery.md) |
+| `get_listings_batch` | Retrieve up to 100 selected public listings in one request, preserving requested ID order. | [Listings](listing-discovery.md#fetch-a-batch-of-listings) |
 | `search_shops` | Find candidate shops by name. | [Shops](shops.md) |
 | `get_shop_by_name` | Resolve an exact, case-insensitive shop name and read its public profile. | [Shops](shops.md) |
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
@@ -20,6 +21,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 ## Typical workflows
 
 - **Product research:** search active listings, select listing IDs, then inspect details and media metadata for a small shortlist.
+- **Batch listing lookup:** retrieve a selected set of listing IDs in one call; inspect `not_returned_ids` and `truncated` before treating the response as complete.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.

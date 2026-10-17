@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, and M1.4 listing detail/summary enrichment are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, and M1.5 batch listing lookup are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -57,12 +57,17 @@ Translations are mapped to a bounded language-keyed object containing only langu
 
 `BuyerPrice` remains blocked on single-listing detail despite its enum entry; Etsy documents its field as batch-only. `Inventory` and `Shipping` are not accepted includes. `allow_suggested_title` remains disabled until Etsy clarifies the exact owner OAuth scope. No currency, buyer-country, or legacy query is sent, and no extra request is made to fill missing fields. See [listing discovery](listing-discovery.md) for caller examples and output bounds.
 
+## Current M1.5: batch listing lookup
+
+`get_listings_batch` uses the public, API-key-only `GET /v3/application/listings/batch` route once with 1–100 positive safe-integer IDs. Duplicate input IDs are removed in first-seen order, and rows are matched and ordered by ID rather than Etsy's response position. Etsy's `count`, source-row count, locally returned-row count, `requested_ids`, `not_returned_ids`, and `truncated` distinguish source omissions from rows dropped only to fit the 128 KiB JSON output cap. A whole-request error is one sanitized error; it is never converted into per-ID success claims.
+
+The accepted association allowlist reuses M1.4's bounded `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization` mapping. Private/unselected fields, `BuyerPrice`, `Inventory`, and `Shipping` are not exposed. Optional uppercase `currency` requests the documented conversion; original `price` remains unchanged and a returned `converted_price` is separate structured money. `buyer_country`/BuyerPrice components remain with M1.6, and no `legacy` migration flag is sent because M1.5 does not require processing-profile fields or establish rollout readiness. The upstream response remains capped at 1 MiB and MCP JSON output at 128 KiB.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
-| Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields; batch lookup and buyer-price context remain separate proposals. |
-| `get_listings_batch` | 1–100 `listing_ids`; bounded allowed includes; optional `currency` and `buyer_country`. | Several listing summaries in one upstream call, keyed by listing ID. |
+| Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
 | `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
 | `get_shop` | `shop_id`. | Direct public profile lookup without repeating name search. |
 | `get_shop_by_owner` | `user_id`. | Public shop discovery using a known owner ID. |

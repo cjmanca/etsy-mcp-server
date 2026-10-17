@@ -212,6 +212,28 @@ export const LISTING_INCLUDES = [
   "Personalization",
 ] as const;
 
+export const MAX_BATCH_LISTING_IDS = 100;
+
+export function listingBatchIds(args: ToolArguments): number[] {
+  const value = args.listing_ids;
+  if (
+    !Array.isArray(value) ||
+    value.length < 1 ||
+    value.length > MAX_BATCH_LISTING_IDS
+  ) {
+    throw new ValidationError(
+      `listing_ids must be an array containing 1-${MAX_BATCH_LISTING_IDS} positive safe integer IDs.`,
+    );
+  }
+
+  const ids: number[] = [];
+  for (const item of value) {
+    const id = positiveSafeInteger(item, "listing_ids items");
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
 export function listingIncludes(args: ToolArguments): string[] {
   const value = args.includes;
   if (value === undefined) return [];

@@ -101,6 +101,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
       const names = listed.tools.map((tool) => tool.name).sort();
       assert.deepEqual(names, [
         "get_listing_details",
+        "get_listings_batch",
         "get_shop_by_name",
         "get_shop_listings",
         "get_shop_reviews",
@@ -122,6 +123,8 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         ["get_listing_details", { listing_id: "1/../shops" }],
         ["get_listing_details", { listing_id: Number.MAX_SAFE_INTEGER + 1 }],
         ["get_listing_details", { listing_id: 1, includes: ["Inventory"] }],
+        ["get_listings_batch", { listing_ids: [0] }],
+        ["get_listings_batch", { listing_ids: Array.from({ length: 101 }, (_, index) => index + 1) }],
         ["get_shop_by_name", { shop_name: "  " }],
         ["get_shop_listings", { shop_id: 73, keywords: "  " }],
         ["search_listings", { keywords: "  " }],
