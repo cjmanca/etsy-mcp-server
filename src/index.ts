@@ -56,6 +56,7 @@ import {
   mapListingVideosAssociation,
 } from "./listing-media.js";
 import { createListingPropertiesRegistrations } from "./listing-properties.js";
+import { createShopReturnPolicyRegistrations } from "./shop-return-policies.js";
 import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
@@ -1846,6 +1847,7 @@ export function createEtsyMcpServer(
     },
     ...createListingMediaRegistrations(mediaDependencies),
     ...createListingPropertiesRegistrations({ get, responseText }),
+    ...createShopReturnPolicyRegistrations({ get, responseText }),
     ...createListingContentRegistrations(contentDependencies),
   ];
   const registry = new CapabilityRegistry({

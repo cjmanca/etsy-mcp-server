@@ -90,6 +90,29 @@ Returned section `user_id` is a public ownership reference, not proof that a sec
 
 Only public active listings are exposed. Draft, inactive, expired, and sold-out catalog management, shipping configuration, and shop editing are not implemented.
 
+## Read public return policies
+
+The public policy list and detail tools use API-key access and make one request each:
+
+| Tool | Required arguments | Purpose |
+| --- | --- | --- |
+| `get_shop_return_policies` | `shop_id` | List selected public return-policy fields for one shop. |
+| `get_shop_return_policy` | `shop_id`, `return_policy_id` | Read one selected public policy. |
+
+They call `GET /v3/application/shops/{shop_id}/policies/return` and `GET /v3/application/shops/{shop_id}/policies/return/{return_policy_id}` respectively. Both IDs must be positive safe integers. Etsy declares no query parameters for either operation, so these tools do not accept paging or other filters.
+
+The list selects only `return_policy_id`, `shop_id` when supplied, `accepts_returns`, `accepts_exchanges`, and `return_deadline`. The nullable deadline, when non-null, is one of Etsy's documented values: 7, 14, 21, 30, 45, 60, or 90 days. `count` is retained only when Etsy supplies it and, when supplied, must match the complete unpaged `results` length before local trimming; a mismatch is treated as malformed source data. `returned` counts displayed rows and `truncated` reports local shortening. A valid empty list has `results: []`; a missing or malformed `results` field is an error, not an empty result. The unpaged response is capped at 100 policies and the shared 128 KiB JSON bound. Detail selects the same policy fields without inventing omitted IDs or making a follow-up ownership lookup. Explicit `false`, `null` deadlines, zero source counts, and absent fields remain distinct.
+
+```json
+{ "shop_id": 12345678 }
+```
+
+```json
+{ "shop_id": 12345678, "return_policy_id": 42 }
+```
+
+These tools report structured Etsy fields only. They do not provide legal advice, guarantee legal compliance or refund eligibility, or enumerate affected listings. `get_return_policy_listings` is a separate private read requiring OAuth `listings_r` and is deferred until M3; public policy reads do not imply seller ownership.
+
 ## Suggested agent workflow
 
 For a known shop ID, use `get_shop` directly; for a known owner ID, use `get_shop_by_owner`. Otherwise resolve an exact name, preserve the returned shop ID, then fetch active or section catalog pages, shop-curated featured listings, or reviews as needed. If the name is uncertain, search for candidates first and clarify the intended shop. Do not treat an incomplete lookup as proof that a shop does not exist.

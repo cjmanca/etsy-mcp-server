@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added dedicated image and video metadata lookup for listings, including image rank, dimensions, and alt text.
 - Added a bounded public read of the selected property values returned for a listing.
 - Added public reads for current listing personalization questions and existing listing translations.
+- Added public shop return-policy list and detail lookups with bounded selected fields.
 
 ### Documentation
 

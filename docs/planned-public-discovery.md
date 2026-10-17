@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, M2.4 dedicated media metadata, M2.5a listing-properties list, and M2.6 personalization/translation reads are implemented; M2.5b single-property detail remains blocked by Etsy's 501-only reference. All other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, M2.4 dedicated media metadata, M2.5a listing-properties list, M2.6 personalization/translation reads, and M2.7a public return-policy list/detail reads are implemented; M2.5b single-property detail remains blocked by Etsy's 501-only reference, and M2.7b policy-linked listing lookup remains behind M3 OAuth. All other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -16,6 +16,17 @@ infer inventory scopes for them. BuyerPrice appears in detail includes but its
 field contract supports batch only. Owner-only suggested titles need an OAuth
 token with an unspecified exact scope and remain disabled pending clarification.
 These are analysis findings, not implemented tools.
+
+## Current M2.7a: public return-policy reads
+
+The public, API-key-only pair is:
+
+- `get_shop_return_policies`: `GET /v3/application/shops/{shop_id}/policies/return` (`getShopReturnPolicies`). Requires one positive safe-integer `shop_id`; Etsy declares no query parameters.
+- `get_shop_return_policy`: `GET /v3/application/shops/{shop_id}/policies/return/{return_policy_id}` (`getShopReturnPolicy`). Requires positive safe-integer `shop_id` and `return_policy_id`; Etsy declares no query parameters.
+
+Both select only `return_policy_id`, `shop_id` when returned, `accepts_returns`, `accepts_exchanges`, and `return_deadline`. Optional fields remain absent when Etsy omits them; booleans and nullable deadlines preserve their source values, with non-null deadlines limited to Etsy's documented values 7, 14, 21, 30, 45, 60, or 90 days. Returned IDs and any supplied shop reference are validated against the request, duplicate list policy IDs are rejected, and private or unselected fields are omitted. The unpaged list requires a valid `results` array; when Etsy supplies `count`, it must match the complete source array length before the 100-row display cap or shared 128 KiB output trimming. It reports `returned`/`truncated` for displayed rows, and empty lists are valid; missing or malformed arrays are not inferred to be empty.
+
+These reads do not enumerate policy-linked listings or prove shop ownership. `getListingsByShopReturnPolicy` is a separate OAuth operation requiring `listings_r`; it declares no paging controls and remains M2.7b behind M3. Policy fields do not establish legal compliance, a refund outcome, or the full effect of a policy change.
 
 ## Current M1.1: taxonomy node browsing
 
@@ -132,7 +143,7 @@ Etsy describes `language` as an IETF language tag. The tool enforces a 35-charac
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
 | `get_listing_properties` | Shop ID and listing ID. | **Current M2.5a:** bounded actual listing-selected values. |
 | `get_listing_property` | Listing ID and property ID. | **Blocked M2.5b:** current Etsy reference promises only HTTP 501. |
-| `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; return-policy ID for detail. | Return/exchange acceptance and deadlines. |
+| `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; return-policy ID for detail. | **Current M2.7a:** selected public return-policy fields; no associated-listing or legal-compliance claims. |
 | `get_return_policy_listings` | Connection ID, shop ID, return-policy ID; no paging query declared. | Authorized products associated with a policy (`listings_r`); follows M3, not a public-only tool. |
 | `get_shipping_carriers` | Country/filter fields supported by the endpoint. | Carrier IDs and mail classes for discovery and later fulfillment/shipping configuration. |
 | `ping_etsy` | No caller-supplied URL or credentials. | Bounded connectivity/application-access diagnostic; not proof that private scopes are granted. |

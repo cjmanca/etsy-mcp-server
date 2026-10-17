@@ -1,6 +1,6 @@
 # Planned shop, shipping, and policy management
 
-**Status: unimplemented proposals.** These features extend shop research into account-authorized administration. Use the [OAuth plan](planned-oauth-and-accounts.md), [access policy](access-policy.md), and [operation matrix](api-coverage.md). Public profile, section, and return-policy reads are also described in [public discovery](planned-public-discovery.md).
+**Status: mostly unimplemented proposals.** Shop settings, private configuration, and policy mutations remain planned; M2.7a public return-policy list/detail reads are implemented in [public discovery](planned-public-discovery.md). Use the [OAuth plan](planned-oauth-and-accounts.md), [access policy](access-policy.md), and [operation matrix](api-coverage.md). Public profile and section reads are also described in [shop discovery](shops.md).
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -61,12 +61,12 @@ Processing profiles link through `readiness_state_id` on physical listings/offer
 
 | Tools | Main inputs | Capability |
 | --- | --- | --- |
-| `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; policy ID for detail. | Public structured return/exchange rules. |
+| `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; policy ID for detail. | **Current M2.7a:** selected public policy fields only; does not enumerate linked listings or establish legal compliance/refund eligibility. |
 | `create_shop_return_policy`, `update_shop_return_policy`, `delete_shop_return_policy` | Acceptance/deadline settings; policy ID where needed; confirmation. | Manage a policy without asserting that it guarantees legal compliance. |
 | `consolidate_shop_return_policies` | Source/destination policy IDs and explicit confirmation of the move. | Reassign listings from one policy to another through Etsy's supported consolidation operation. |
 | `get_return_policy_listings` | Connection ID, shop ID, policy ID; no paging declared. | Authorized affected listings (`listings_r`) before policy changes. |
 
-Return-policy reads inspected in this research use API-key access; do not force OAuth onto public tools solely because the related mutations need authorization. Deletion is only permitted for policies not attached to listings according to the catalog description. Consolidation has multi-listing impact: show source/destination differences, linked-listing evidence, and any incomplete impact enumeration before confirmation. Recheck allowed deadlines and required combinations when returns or exchanges are enabled.
+The public list/detail reads use API-key access; the separate `get_return_policy_listings` operation requires OAuth `listings_r` and is deferred until M3. Do not force OAuth onto public tools solely because related operations need authorization, or infer complete policy impact without the private listing read. Deletion is only permitted for policies not attached to listings according to the catalog description. Consolidation has multi-listing impact: show source/destination differences, linked-listing evidence, and any incomplete impact enumeration before confirmation. Recheck allowed deadlines and required combinations when returns or exchanges are enabled.
 
 ## Acceptance criteria
 

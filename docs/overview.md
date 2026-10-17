@@ -24,6 +24,8 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_shop` | Read a public shop profile directly by numeric shop ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
 | `get_shop_by_owner` | Read the public shop associated with a numeric owner user ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
+| `get_shop_return_policies` | List a shop's selected public return-policy fields. | [Shops](shops.md#read-public-return-policies) |
+| `get_shop_return_policy` | Read one selected public return policy by shop and policy IDs. | [Shops](shops.md#read-public-return-policies) |
 | `get_shop_sections` | List a shop's public sections and active-listing counts. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
 | `get_shop_section` | Read one public section by shop and section ID. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
 | `get_shop_section_listings` | Browse active listings in one selected section. | [Shops](shops.md#browse-shop-sections-and-featured-products) |
@@ -41,6 +43,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Buyer-facing price comparison:** provide a required buyer country to retrieve Etsy's separate base/display/discount/shipping components for selected IDs. This is not a checkout quote.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
 - **Shop organization:** list a shop's sections, inspect one section, browse its active products, or separately retrieve the shop-curated featured selection. Featured does not mean trending.
+- **Return-policy discovery:** list or inspect the selected public acceptance/deadline fields for a shop's return policies. These reads do not enumerate associated listings or establish legal compliance or refund eligibility; affected-listing lookup requires OAuth and `listings_r`.
 - **Known shop or owner ID:** use `get_shop` or `get_shop_by_owner` to read a public profile without repeating name search. Owner-ID lookup does not prove caller ownership.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.

@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-four current tools reach twenty-four distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **81 operations remain Planned** (including the explicitly blocked detail route).
+- Twenty-six current tools reach twenty-six distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **79 operations remain Planned** (including explicitly blocked/deferred routes).
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -39,7 +39,7 @@ M1.4 extends the existing `getListing` surface without changing its public API-k
 | GET | `getListingsShippingByListingIds` | `get_listings_shipping_batch` | Planned |
 | PATCH | `updateListing` | `update_listing` | Planned |
 | GET | `getListingsByShopReceipt` | `get_receipt_listings` | Planned |
-| GET | `getListingsByShopReturnPolicy` | `get_return_policy_listings` — OAuth `listings_r`, no paging declared | Planned |
+| GET | `getListingsByShopReturnPolicy` | `get_return_policy_listings` — M2.7b; OAuth `listings_r`, no paging declared; follows M3 | Planned |
 | GET | `getListingsByShopSectionId` | `get_shop_section_listings` | Current |
 
 ## Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)
@@ -165,9 +165,9 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
 | POST | `consolidateShopReturnPolicies` | `consolidate_shop_return_policies` | Planned |
-| GET | `getShopReturnPolicies` | `get_shop_return_policies` | Planned |
+| GET | `getShopReturnPolicies` | `get_shop_return_policies` (M2.7a; selected public fields) | Current |
 | POST | `createShopReturnPolicy` | `create_shop_return_policy` | Planned |
-| GET | `getShopReturnPolicy` | `get_shop_return_policy` | Planned |
+| GET | `getShopReturnPolicy` | `get_shop_return_policy` (M2.7a; selected public fields) | Current |
 | PUT | `updateShopReturnPolicy` | `update_shop_return_policy` | Planned |
 | DELETE | `deleteShopReturnPolicy` | `delete_shop_return_policy` | Planned |
 

@@ -205,6 +205,18 @@ To inspect one section's details, provide both `shop_id` and `shop_section_id`. 
 
 `get_featured_shop_listings` is a shop-curated selection, not an Etsy trending or popularity ranking. `featured_rank` is shown only when Etsy returns it; the tool does not infer rank or reorder results.
 
+Read the public policies for a shop, then use the returned policy ID for a detail lookup:
+
+```json
+{ "shop_id": 12345678 }
+```
+
+```json
+{ "shop_id": 12345678, "return_policy_id": 42 }
+```
+
+Use these with `get_shop_return_policies` and `get_shop_return_policy`. They accept no page controls and return only the selected policy IDs, return/exchange acceptance flags, and deadline. The list reports Etsy's `count` when supplied, displayed `returned` rows, and `truncated` status; empty results are valid. These fields are not legal advice or a refund guarantee and do not enumerate affected listings. `get_return_policy_listings` is a separate OAuth `listings_r` read and is not part of these public tools.
+
 ```text
 Get recent reviews for shop 12345678.
 ```

@@ -35,7 +35,8 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Structured attribute reads (partial: supported selected-value list `get_listing_properties` is implemented in M2.5a; single-property detail `get_listing_property` remains blocked by the official 501-only contract in M2.5b).
 - [x] Personalization question/option/add-on reads: `get_listing_personalization` (M2.6; bounded selected fields, raw Money, untrusted seller text).
 - [x] Existing localized listing content: `get_listing_translation` (M2.6; selected existing fields, bounded syntax-only language validation).
-- [ ] Public return-policy reads: `get_shop_return_policies`, `get_shop_return_policy`; OAuth `listings_r` linked listings: `get_return_policy_listings` (no paging query declared). See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
+- [ ] Public return-policy list/detail: `get_shop_return_policies`, `get_shop_return_policy` (M2.7a implementation pending review; selected public fields only, no legal/refund/impact conclusions).
+- [ ] OAuth `listings_r` policy-linked listing lookup: `get_return_policy_listings` (M2.7b follows M3; no paging query declared). The broader M2.7 item remains incomplete until this private child is implemented. See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
 - [ ] Shipping carrier/mail-class discovery: `get_shipping_carriers`.
 
 ## Listings and inventory — [plan](docs/planned-listing-management.md)

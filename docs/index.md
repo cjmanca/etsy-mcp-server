@@ -1,13 +1,13 @@
 # Documentation index
 
-Start here and load only the slices relevant to your task. **Current** documents describe the twenty-four public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
+Start here and load only the slices relevant to your task. **Current** documents describe the twenty-six public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
 
 | Document | Status | Read when your task is to… |
 | --- | --- | --- |
 | [Project overview](overview.md) | Current | Understand the product, supported workflows, and boundaries before choosing a tool. |
 | [Setup and access](setup-and-access.md) | Current | Connect an MCP client, configure credentials, or diagnose startup and connectivity problems. |
 | [Listing discovery and details](listing-discovery.md) | Current | Search products, compare prices, inspect a listing, or retrieve its image/video metadata. |
-| [Shop discovery and catalogs](shops.md) | Current | Resolve a shop name, distinguish search from exact lookup, or browse a shop's active products. |
+| [Shop discovery and catalogs](shops.md) | Current | Resolve a shop name, browse a shop's active products and public return policies, or distinguish public policies from private affected-listing access. |
 | [Shop reviews](reviews.md) | Current | Retrieve dated review samples and explain the limits of reputation analysis. |
 | [Response handling and safety](response-handling-and-safety.md) | Current | Interpret JSON, pagination, incomplete results, truncation, errors, or untrusted Etsy content. |
 | [Access and operation policy](access-policy.md) | Policy | Add OAuth, inventory, private-data, or write capabilities without weakening authorization and safety boundaries. |

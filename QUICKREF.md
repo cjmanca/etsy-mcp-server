@@ -28,6 +28,7 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_shop` (direct public profile lookup by shop ID)
 - `get_shop_by_owner` (public profile lookup by owner user ID; does not prove caller ownership)
 - `get_shop_listings` (active listings; pass `keywords` for effective sorting)
+- `get_shop_return_policies`, `get_shop_return_policy` (selected public policy fields; no linked-listing or legal/refund conclusions)
 - `get_shop_sections`, `get_shop_section` (public section details and active-listing counts)
 - `get_shop_section_listings` (active listings from one section; sorting may be ineffective without search options)
 - `get_featured_shop_listings` (products curated by the shop, not a platform trend ranking)
@@ -37,7 +38,7 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_taxonomy_nodes` (`buyer` or `seller`; optional local subtree/name filters)
 - `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
 
-All twenty-four tools are read-only and use public Etsy API-key endpoints. Media URLs are bounded data only and are never fetched; media list tools have no paging parameters. Taxonomy node results are bounded local pages over a cached full tree; category-property lookup uses the selected category route directly. Listing-property lookup returns only the values selected on a listing. Platform-wide trending listings and inventory are unsupported; shop-curated featured products are available separately. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+All twenty-six tools are read-only and use public Etsy API-key endpoints. Media URLs are bounded data only and are never fetched; media list tools have no paging parameters. Taxonomy node results are bounded local pages over a cached full tree; category-property lookup uses the selected category route directly. Listing-property lookup returns only the values selected on a listing. Return-policy reads do not enumerate affected listings; that separate read requires OAuth `listings_r`. Platform-wide trending listings and inventory are unsupported; shop-curated featured products are available separately. See [README.md](README.md) for MCP client configuration, limits, and development checks.
 
 Listing summaries may include returned category, return-policy/readiness references, listing type, variation/personalization flags, and default language. Detail associations and dedicated personalization/translation reads are selected and bounded; seller instructions and localized content are untrusted. Language validation checks bounded BCP 47 syntax only, not registry membership or Etsy availability. Readiness IDs are references, not guarantees. Batch `currency` conversion preserves original `price` separately from `converted_price`. Buyer-price output keeps original, converted, display, discount, and shipping components separate, with raw money units preserved; it is not a checkout quote. `Inventory`/`Shipping` are not detail includes.
 

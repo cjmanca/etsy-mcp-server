@@ -20,7 +20,7 @@ test("personalization and translation reads are discoverable with exact required
     mockAdapter((config) => successResponse(config, {})),
     async ({ client }) => {
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 24);
+      assert.equal(tools.length, 26);
 
       const personalization = tools.find((tool) => tool.name === "get_listing_personalization");
       const translation = tools.find((tool) => tool.name === "get_listing_translation");
