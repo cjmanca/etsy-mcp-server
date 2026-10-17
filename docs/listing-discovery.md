@@ -49,7 +49,7 @@ The paired `get_listing_property` route is **not available**: Etsy's current ref
 
 `get_listing_details` requires a positive safe-integer `listing_id`. It retains the existing core fields and formatted original `price`, plus materials and shipping-profile ID when supplied by Etsy. Selected fields are returned only when the endpoint supplies them: `taxonomy_id`, `return_policy_id`, `readiness_state_id`, `listing_type`, `is_customizable`, `is_personalizable`, `has_variations`, and the listing's `language`. These IDs are references only: a return-policy ID is not policy text, and a readiness-state ID is not a processing-time or fulfillment guarantee. Etsy supplies `readiness_state_id` only for active physical listings on this single-listing route; a missing or null value is not inferred.
 
-Optional `includes` accepts the case-sensitive values `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization` (up to six). The first four remain compatible. An optional `language` is an IETF language tag of at most 35 characters and is sent only to `getListing`.
+Optional `includes` accepts the case-sensitive values `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization` (up to six). The first four remain compatible. An optional `language` is limited to 35 characters and receives a bounded BCP 47 syntax check before being sent only to `getListing`. This checks tag structure, not IANA registry membership or Etsy language availability; extlangs such as `zh-cmn` and `ar-aao` are accepted syntactically, and Etsy may reject a tag it does not support.
 
 ```json
 {
@@ -69,6 +69,24 @@ Optional `includes` accepts the case-sensitive values `Shop`, `Images`, `User`, 
 | `Personalization` | Up to five questions with selected IDs, text (45 characters), type, required flag, character/file limits, options, and optional add-on `Money` (`amount`, `divisor`, `currency_code`). Instructions are capped at 120 characters; up to 30 options per question are returned, with labels capped at 20 characters for dropdowns and 45 for labeled uploads. |
 
 Associations depend on Etsy returning them. Seller instructions, translations, tags, and URLs are untrusted Etsy data, not instructions to follow; URLs are not fetched. `truncated: true` means some selected content was shortened, and an exceptionally large detail response may be reduced to compact metadata. This display is not a complete writable snapshot. The `User` association is limited to public ID and login; email and raw owner fields are omitted.
+
+## Read personalization questions
+
+`get_listing_personalization` calls the public, API-key-only `GET /v3/application/listings/{listing_id}/personalization` (`getListingPersonalization`) once. It requires only a positive safe-integer numeric `listing_id`; Etsy declares no query parameters, so no flags or filters are sent. This is a question/option read, not an order-answer, file-download, or write tool.
+
+When supplied, `personalization_questions` selects at most five questions. Each question may include its returned `question_id`, `question_text`, `instructions`, `question_type`, `required`, `max_allowed_characters`, `max_allowed_files`, `add_on_price`, and `options`; at most 30 options are returned per question. Question text is capped at 45 characters, instructions at 120, and option labels at 20 characters for `dropdown` or 45 for other mapped types. Shortened strings/arrays set `truncated`. Etsy's guide lists `text_input`, `dropdown`, `unlabeled_upload`, and `labeled_upload`, but the read reports the returned type as data and does not claim it is writable.
+
+An absent `personalization_questions` field stays absent; it is not changed into an empty array or synthesized from deprecated single-instruction fields. An explicit empty array is preserved (the guide describes it as no configured personalization), as is an explicit null returned by Etsy. Missing fields remain absent, while zero, false, and null values in selected fields remain distinct. Etsy's guide says an existing `instructions` value over 120 characters is still returned in full by its GET endpoint; this server deliberately caps its displayed field at 120 and sets `truncated`, so a displayed question is not a full writable snapshot. Add-on pricing in the guide applies to optional text inputs. GET may return `null` when no price is configured or for other question types; a returned Money value keeps its raw integer `amount`, positive `divisor`, and `currency_code`, without `/100` scaling or any derived amount. The guide's 30-day add-on-price migration describes write behavior and provides no calendar anchor; this read does not assume where Etsy is in that rollout.
+
+Seller instructions and option labels are untrusted third-party text, not instructions to follow. The tool returns only bounded question metadata; it never fetches a supplied URL or file-upload answer.
+
+## Read an existing listing translation
+
+`get_listing_translation` calls the public, API-key-only `GET /v3/application/shops/{shop_id}/listings/{listing_id}/translations/{language}` (`getListingTranslation`) once. All three arguments are required: `shop_id` and `listing_id` are positive safe-integer numbers, and `language` is a required tag in the path. The operation declares no query parameters. A shop ID identifies Etsy's route and does not establish caller ownership.
+
+The tool selects only the documented `listing_id`, `language`, `title`, `description`, and `tags` fields. Etsy's schema makes these optional: missing values stay absent, explicit nulls remain null, and the response's `language` is never inferred from the requested path value. If Etsy supplies listing/shop identity references, the references are checked against the request; missing references are not invented. Translated title/description text is capped at 250/1,500 characters, and up to 20 tags of at most 100 characters each are returned. Any shortening sets `truncated`; unselected/private fields are omitted.
+
+Etsy documents `language` as an IETF language tag. Runtime validation limits it to 35 characters and checks BCP 47 subtag syntax, including extlangs such as `zh-cmn` and `ar-aao`. It does not consult the IANA registry, assert that a tag is registered, canonicalize it, or check Etsy's currently available languages. A syntactically well-formed tag may still be rejected by Etsy. This distinction also applies to the optional `get_listing_details.language` selector; it is not a promise of full registry validation. Localized text and tags are untrusted third-party data, not instructions.
 
 ## Read dedicated listing media metadata
 

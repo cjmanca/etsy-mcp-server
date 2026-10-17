@@ -19,8 +19,10 @@ const PUBLIC_TOOL_NAMES = [
   "get_listing_details",
   "get_listing_image",
   "get_listing_images",
+  "get_listing_personalization",
   "get_listing_properties",
   "get_listing_reviews",
+  "get_listing_translation",
   "get_listing_video",
   "get_listing_videos",
   "get_listings_batch",
@@ -67,7 +69,7 @@ function createRequestFixtureServer(etsyClient, onDispatch = () => {}) {
   return server;
 }
 
-test("tool discovery lists exactly twenty-two public tools with accurate safety annotations", async () => {
+test("tool discovery lists exactly twenty-four public tools with accurate safety annotations", async () => {
   await withMcp(
     mockAdapter((config) => successResponse(config, { count: 0, results: [] })),
     async ({ client }) => {

@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Twenty-two current tools reach twenty-two distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **83 operations remain Planned** (including the explicitly blocked detail route).
+- Twenty-four current tools reach twenty-four distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **81 operations remain Planned** (including the explicitly blocked detail route).
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -77,8 +77,8 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | --- | --- | --- | --- |
 | POST | `updateListingPersonalization` | `update_listing_personalization` | Planned |
 | DELETE | `deleteListingPersonalization` | `delete_listing_personalization` | Planned |
-| GET | `getListingPersonalization` | `get_listing_personalization` | Planned |
-| GET | `getListingTranslation` | `get_listing_translation` | Planned |
+| GET | `getListingPersonalization` | `get_listing_personalization` (M2.6; bounded questions/options and add-on Money) | Current |
+| GET | `getListingTranslation` | `get_listing_translation` (M2.6; existing localized content for one language) | Current |
 | POST | `createListingTranslation` | `create_listing_translation` | Planned |
 | PUT | `updateListingTranslation` | `update_listing_translation` | Planned |
 | GET | `getListingVariationImages` | `get_listing_variation_images` | Planned |

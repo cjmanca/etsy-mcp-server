@@ -50,6 +50,8 @@ Plan for current third-variation support (`max_variations_supported=3` where doc
 
 ## Content, attributes, and localization
 
+The public read-only `get_listing_personalization` and `get_listing_translation` tools are current in [M2.6 public discovery](planned-public-discovery.md#current-m26-personalization-and-translation-reads). The configuration, deletion, creation, and update tools in this section remain planned; implementing those reads does not authorize or implement seller writes.
+
 | Tools | Main inputs | Result/change |
 | --- | --- | --- |
 | `update_listing_property`, `delete_listing_property` | Shop/listing/property IDs; allowed scale/value selection for update; confirmation. | Apply/remove a structured attribute while respecting taxonomy constraints. |
@@ -57,7 +59,7 @@ Plan for current third-variation support (`max_variations_supported=3` where doc
 | `create_listing_translation`, `update_listing_translation` | Shop/listing IDs, language, localized fields, confirmation. | Create/update an Etsy listing translation without changing the source language implicitly. |
 | `get_listing_variation_images`, `update_variation_images` | Shop/listing IDs; variation-value/image mappings for update; confirmation. | Inspect or replace mappings between variation choices and existing images. |
 
-Use endpoint-specific write scopes (generally `listings_w`) and do not assume removal uses the same scope as deleting an entire listing. Personalization must follow the current multi-question schema rather than only deprecated single-instruction fields. Distinguish seller-configured instructions from executable instructions to the agent. For mapped images, reject references not belonging to the listing and do not silently drop unrelated mappings.
+Use endpoint-specific write scopes (generally `listings_w`) and do not assume removal uses the same scope as deleting an entire listing. Personalization must follow the current multi-question schema rather than only deprecated single-instruction fields. The personalization guide's 30-day add-on-price write migration has no calendar anchor in the retrieved guide; future writes must not assume whether that rollout period has elapsed and must handle explicit preserve/change/remove values. Distinguish seller-configured instructions from executable instructions to the agent. For mapped images, reject references not belonging to the listing and do not silently drop unrelated mappings.
 
 ## Images, videos, and digital files
 

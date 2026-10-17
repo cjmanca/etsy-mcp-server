@@ -1,6 +1,6 @@
 # Documentation index
 
-Start here and load only the slices relevant to your task. **Current** documents describe the twenty-two public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
+Start here and load only the slices relevant to your task. **Current** documents describe the twenty-four public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
 
 | Document | Status | Read when your task is to… |
 | --- | --- | --- |

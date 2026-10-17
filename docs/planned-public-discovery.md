@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, M2.4 dedicated media metadata, and the supported M2.5a listing-properties list are implemented; M2.5b single-property detail remains blocked by Etsy's 501-only reference. All other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, M2.4 dedicated media metadata, M2.5a listing-properties list, and M2.6 personalization/translation reads are implemented; M2.5b single-property detail remains blocked by Etsy's 501-only reference. All other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -115,6 +115,16 @@ The list is bounded to 100 properties and 25 selected IDs/labels per property, w
 
 The paired `get_listing_property` operation (`GET /v3/application/listings/{listing_id}/properties/{property_id}`) is currently feedback-only and explicitly returns HTTP 501. Do not register a tool or invent a fallback route until Etsy releases the operation.
 
+## Current M2.6: personalization and translation reads
+
+`get_listing_personalization` calls the public, API-key-only `GET /v3/application/listings/{listing_id}/personalization` (`getListingPersonalization`) once with a positive safe-integer `listing_id` and no query parameters. It selects the current `personalization_questions` array when Etsy supplies it: at most five questions and 30 options per question, with question/option IDs, question text, seller instructions, type, required state, character/file limits, options, and nullable add-on `Money`. Existing M1.4 selected mappers are reused, so missing and null fields, false/zero values, array/string truncation, and raw Money amount/divisor/currency semantics remain consistent. The dedicated response's optional question field stays absent when missing; an explicit empty array is distinct and is Etsy's documented no-personalization result. Deprecated single-instruction fields are not converted into questions.
+
+The migration guide lists `text_input`, `dropdown`, `unlabeled_upload`, and `labeled_upload` questions and describes limits for seller writes. This read reports returned values; it does not validate an editable snapshot or claim unsupported question types can be written. Etsy documents that its GET may return existing instructions longer than 120 characters; this server's display bound is 120 and `truncated` is set when shortening occurs. Add-on pricing is currently described for optional text inputs. Read responses may return `null` when no price is configured or for other question types; when a Money value is returned, its raw integer amount, positive divisor, and currency are preserved without scaling. Seller-authored instructions/labels and any file URLs are untrusted text/data; URLs are never fetched.
+
+`get_listing_translation` calls the public, API-key-only `GET /v3/application/shops/{shop_id}/listings/{listing_id}/translations/{language}` (`getListingTranslation`) once, with positive safe-integer shop/listing IDs and the required language tag in the path. It sends no query parameters and selects only an upstream `listing_id` when present plus `language`, `title`, `description`, and `tags`; each field remains absent when Etsy omits it. The requested language is not copied into a missing response field. Supplied shop/listing references are checked against the route IDs, but a caller-supplied shop ID does not prove ownership.
+
+Etsy describes `language` as an IETF language tag. The tool enforces a 35-character bound and BCP 47 tag structure, including syntactically valid extlang forms such as `zh-cmn` and `ar-aao`; it does not consult the IANA registry or verify Etsy language availability. `Intl.getCanonicalLocales` is not used because it rejects some valid extlang tags. Etsy may reject a syntactically valid but unregistered or unavailable tag. This is bounded syntax validation, not a claim of complete registry validation. Translated titles, descriptions, tags, and language metadata remain untrusted third-party data.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
@@ -122,8 +132,6 @@ The paired `get_listing_property` operation (`GET /v3/application/listings/{list
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
 | `get_listing_properties` | Shop ID and listing ID. | **Current M2.5a:** bounded actual listing-selected values. |
 | `get_listing_property` | Listing ID and property ID. | **Blocked M2.5b:** current Etsy reference promises only HTTP 501. |
-| `get_listing_personalization` | Listing ID. | Questions, required flags, character/file limits, options, and add-on prices when present. |
-| `get_listing_translation` | Shop ID, listing ID, IETF language tag. | Etsy's existing localized title, description, and tags, not an AI-generated translation. |
 | `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; return-policy ID for detail. | Return/exchange acceptance and deadlines. |
 | `get_return_policy_listings` | Connection ID, shop ID, return-policy ID; no paging query declared. | Authorized products associated with a policy (`listings_r`); follows M3, not a public-only tool. |
 | `get_shipping_carriers` | Country/filter fields supported by the endpoint. | Carrier IDs and mail classes for discovery and later fulfillment/shipping configuration. |
@@ -151,7 +159,8 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 - [x] Shop organization and featured-product tools reach their documented public routes and distinguish a shop's curated featured selection from trending (M2.2; mocked verification only).
 - [x] Listing-review tools reach their documented routes and describe sample/completeness limits (M2.3; mocked contract and bounds tests).
 - [x] Dedicated image/video tools reach the four documented metadata routes, match supplied IDs, bound selected output, and never fetch returned URLs (M2.4; mocked contract and bounds tests).
-- [ ] Attribute, translation, personalization, and policy tools expose selected useful fields, not unrestricted upstream objects.
+- [x] Personalization and translation tools reach their documented public GET routes, reuse selected M1.4 mapping, preserve raw add-on Money and missing/null fields, validate bounded language-tag syntax without a registry claim, and treat seller/localized text as untrusted (M2.6; mocked contract and bounds tests).
+- [ ] Remaining attribute and policy tools expose selected useful fields, not unrestricted upstream objects; M2.6 translation and personalization reads are current above.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.
 
 Dependencies: existing request protections and output conventions. Account-only fields, dedicated inventory/shipping endpoints, and all mutations belong in the other plans, not in a public-read shortcut.

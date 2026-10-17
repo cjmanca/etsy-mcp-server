@@ -62,6 +62,30 @@ Supported includes are `Shop`, `Images`, `User`, `Videos`, `Translations`, and `
 
 Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. Etsy's batch-only `BuyerPrice` association is exposed through the separate `get_listing_buyer_prices` tool, not through single-listing details. `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
 
+## Personalization questions
+
+Read the questions Etsy currently returns for one listing:
+
+```json
+{ "listing_id": 1234567890 }
+```
+
+Use this with `get_listing_personalization`. The response selects up to five questions and 30 options per question, including current text/dropdown/upload types, required state, character/file limits, and optional add-on Money. Money keeps Etsy's raw `amount`, `divisor`, and `currency_code`; a missing price is not zero. Seller instructions and option labels are untrusted data, and file/answer URLs are never fetched. This is a read tool, not an order-answer or personalization-write tool.
+
+## Existing listing translation
+
+Read an existing localization for a shop/listing/language selection:
+
+```json
+{
+  "shop_id": 12345678,
+  "listing_id": 1234567890,
+  "language": "fr-CA"
+}
+```
+
+Use this with `get_listing_translation`. It returns only fields Etsy supplies (`listing_id`, `language`, `title`, `description`, and `tags`) and never fills a missing response language from the requested path. Language input is limited to 35 characters and checked for BCP 47 syntax, including extlangs such as `zh-cmn` and `ar-aao`; no registry or Etsy-availability lookup is performed, so Etsy may reject a syntactically valid tag. The tool reads an existing translation; it does not create, generate, or replace localized text.
+
 ## Listing-selected property values
 
 Provide the listing and shop IDs to read the values Etsy returns for that listing:

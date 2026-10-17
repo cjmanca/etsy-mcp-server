@@ -38,7 +38,6 @@ export function optionalString(
 export const LANGUAGE_TAG_PATTERN =
   "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$";
 const languageTagPattern = new RegExp(LANGUAGE_TAG_PATTERN);
-const privateUseLanguageTagPattern = /^x(?:-[A-Za-z0-9]{1,8})+$/i;
 const grandfatheredLanguageTags = new Set([
   "art-lojban",
   "cel-gaulish",
@@ -69,23 +68,107 @@ const grandfatheredLanguageTags = new Set([
   "zh-xiang",
 ]);
 
-function isIetfLanguageTag(value: string): boolean {
-  if (!languageTagPattern.test(value)) return false;
-  if (privateUseLanguageTagPattern.test(value)) return true;
-  if (grandfatheredLanguageTags.has(value.toLowerCase())) return true;
-  try {
-    return Intl.getCanonicalLocales(value).length === 1;
-  } catch {
+function isAlpha(value: string): boolean {
+  return /^[A-Za-z]+$/.test(value);
+}
+
+function isAlphanumeric(value: string): boolean {
+  return /^[A-Za-z0-9]+$/.test(value);
+}
+
+function isVariant(value: string): boolean {
+  return /^[A-Za-z0-9]{5,8}$/.test(value) || /^[0-9][A-Za-z0-9]{3}$/.test(value);
+}
+
+/**
+ * Check bounded BCP 47 tag syntax without claiming registry membership or
+ * availability in Etsy. In particular, extlang tags such as zh-cmn and
+ * ar-aao are valid syntactic inputs even when Intl rejects them.
+ */
+export function isLanguageTagSyntax(value: string): boolean {
+  if (value.length < 2 || value.length > 35 || !languageTagPattern.test(value)) {
     return false;
   }
+  const normalized = value.toLowerCase();
+  if (grandfatheredLanguageTags.has(normalized)) return true;
+
+  const subtags = value.split("-");
+  if (subtags.some((part) => part.length === 0 || part.length > 8)) return false;
+
+  if (subtags[0].toLowerCase() === "x") {
+    return subtags.length > 1 && subtags.slice(1).every(isAlphanumeric);
+  }
+
+  const language = subtags[0];
+  if (!isAlpha(language) || !(
+    (language.length >= 2 && language.length <= 3) ||
+    language.length === 4 ||
+    (language.length >= 5 && language.length <= 8)
+  )) {
+    return false;
+  }
+
+  let index = 1;
+  if (language.length <= 3) {
+    let extlangs = 0;
+    while (
+      index < subtags.length &&
+      extlangs < 3 &&
+      /^[A-Za-z]{3}$/.test(subtags[index])
+    ) {
+      index += 1;
+      extlangs += 1;
+    }
+  }
+
+  if (index < subtags.length && /^[A-Za-z]{4}$/.test(subtags[index])) index += 1;
+  if (
+    index < subtags.length &&
+    (/^[A-Za-z]{2}$/.test(subtags[index]) || /^[0-9]{3}$/.test(subtags[index]))
+  ) {
+    index += 1;
+  }
+
+  while (index < subtags.length && isVariant(subtags[index])) index += 1;
+
+  const extensionSingletons = new Set<string>();
+  while (index < subtags.length) {
+    const singleton = subtags[index].toLowerCase();
+    if (subtags[index].length !== 1 || !/^[A-Za-z0-9]$/.test(singleton) || singleton === "x") {
+      break;
+    }
+    if (extensionSingletons.has(singleton)) return false;
+    extensionSingletons.add(singleton);
+    index += 1;
+    const extensionStart = index;
+    while (index < subtags.length && subtags[index].length >= 2) index += 1;
+    if (index === extensionStart) return false;
+  }
+
+  if (index < subtags.length && subtags[index].toLowerCase() === "x") {
+    index += 1;
+    const privateUseStart = index;
+    while (index < subtags.length && subtags[index].length <= 8) index += 1;
+    if (index === privateUseStart) return false;
+  }
+
+  return index === subtags.length;
 }
 
 export function optionalLanguageTag(args: ToolArguments): string | undefined {
   const value = optionalString(args, "language", 35);
-  if (value !== undefined && !isIetfLanguageTag(value)) {
+  if (value !== undefined && !isLanguageTagSyntax(value)) {
     throw new ValidationError(
-      "language must be a valid IETF language tag of at most 35 characters.",
+      "language must use bounded BCP 47 tag syntax (at most 35 characters).",
     );
+  }
+  return value;
+}
+
+export function requiredLanguageTag(args: ToolArguments): string {
+  const value = optionalLanguageTag(args);
+  if (value === undefined) {
+    throw new ValidationError("language must be a string.");
   }
   return value;
 }

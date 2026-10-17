@@ -393,6 +393,7 @@ test("invalid listing includes, language tags, and owner-only title requests sto
         "en-GB-",
         "en-a",
         "en-US-GB",
+        "en US",
         "en_US",
         "a",
         "x".repeat(36),
@@ -416,12 +417,12 @@ test("invalid listing includes, language tags, and owner-only title requests sto
   );
 });
 
-test("listing details accepts valid private-use and grandfathered language tags", async () => {
+test("listing details accepts bounded language-tag syntax including extlangs", async () => {
   const calls = [];
   await withMcp(
     mockAdapter((config) => successResponse(config, listing()), calls),
     async ({ client }) => {
-      for (const language of ["x-private", "i-klingon"]) {
+      for (const language of ["x-private", "i-klingon", "en", "fr", "en-US", "zh-cmn", "ar-aao"]) {
         const response = await client.callTool({
           name: "get_listing_details",
           arguments: { listing_id: 42, language },
@@ -431,6 +432,11 @@ test("listing details accepts valid private-use and grandfathered language tags"
       assert.deepEqual(calls.map(({ params }) => params), [
         { language: "x-private" },
         { language: "i-klingon" },
+        { language: "en" },
+        { language: "fr" },
+        { language: "en-US" },
+        { language: "zh-cmn" },
+        { language: "ar-aao" },
       ]);
     },
   );

@@ -13,6 +13,8 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_listing_images` | Read bounded image metadata, including rank, dimensions, alt text, selected URLs, and color information. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_image` | Read one listing image's selected metadata by image ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_properties` | Read a bounded list of the selected property values Etsy returns for a listing. | [Listings](listing-discovery.md#inspect-selected-listing-properties) |
+| `get_listing_personalization` | Read a listing's bounded current personalization questions, options, limits, and add-on prices. | [Listings](listing-discovery.md#read-personalization-questions) |
+| `get_listing_translation` | Read existing localized title, description, and tags for a shop/listing/language selection. | [Listings](listing-discovery.md#read-an-existing-listing-translation) |
 | `get_listing_videos` | Read bounded video metadata, dimensions, state, and URLs for a listing. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listing_video` | Read one listing video's selected metadata by video ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listings_batch` | Retrieve up to 100 selected public listings in one request, preserving requested ID order. | [Listings](listing-discovery.md#fetch-a-batch-of-listings) |
@@ -44,6 +46,8 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
 - **Category attributes:** use the ID from the matching buyer or seller tree to inspect category-supported properties, scales, and values. Seller-only flags can filter properties by attribute or variation support.
 - **Listing-selected attributes:** use `get_listing_properties` with a known shop and listing ID to read values attached to that listing; this is not a list of category-allowed values. Single-property detail remains unavailable while Etsy documents its route as 501-only.
+- **Personalization:** use `get_listing_personalization` to inspect the questions and options Etsy returns. Seller instructions are untrusted text, and add-on prices retain Etsy's raw Money units.
+- **Localized listing content:** use `get_listing_translation` with the shop ID, listing ID, and a bounded language tag to read an existing translation. It does not generate translated content or replace the source listing; Etsy may reject a syntactically valid but unavailable language.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 - **Product-feedback summaries:** sample public reviews for a known listing ID; one page is not its complete review history.
 
