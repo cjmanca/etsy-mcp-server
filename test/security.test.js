@@ -4,70 +4,19 @@ import { getDefaultResultOrder, setDefaultResultOrder } from "node:dns";
 import { once } from "node:events";
 import test from "node:test";
 import axios, { AxiosError } from "axios";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
   ConfigurationError,
   createEtsyClient,
   validateApiKey,
 } from "../build/etsy-client.js";
-import { createEtsyMcpServer } from "../build/index.js";
-
-const syntheticKey = "synthetic-key:synthetic-secret";
-
-function successResponse(config, data) {
-  return { data, status: 200, statusText: "OK", headers: {}, config };
-}
-
-function httpError(config, status, data = {}, headers = {}) {
-  const response = {
-    data,
-    status,
-    statusText: "Simulated response",
-    headers,
-    config,
-  };
-  return new AxiosError(
-    "Simulated HTTP failure",
-    AxiosError.ERR_BAD_REQUEST,
-    config,
-    undefined,
-    response,
-  );
-}
-
-async function withMcp(adapter, run) {
-  const etsyClient = createEtsyClient(syntheticKey);
-  etsyClient.defaults.adapter = adapter;
-  const server = createEtsyMcpServer(etsyClient);
-  const client = new Client(
-    { name: "etsy-mcp-test", version: "1.0.0" },
-    { capabilities: {} },
-  );
-  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
-
-  await Promise.all([
-    server.connect(serverTransport),
-    client.connect(clientTransport),
-  ]);
-  try {
-    return await run({ client, etsyClient });
-  } finally {
-    await Promise.all([client.close(), server.close()]);
-  }
-}
-
-function mockAdapter(respond, calls = []) {
-  return async (config) => {
-    calls.push(config);
-    return respond(config, calls.length);
-  };
-}
-
-function jsonText(result) {
-  assert.equal(result.content[0].type, "text");
-  return JSON.parse(result.content[0].text);
-}
+import {
+  httpError,
+  jsonText,
+  mockAdapter,
+  successResponse,
+  syntheticKey,
+  withMcp,
+} from "./helpers/mcp.js";
 
 test("credentials are validated without being repeated in errors", () => {
   assert.equal(validateApiKey(syntheticKey), syntheticKey);
@@ -171,6 +120,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         ["get_listing_details", { listing_id: "1/../shops" }],
         ["get_listing_details", { listing_id: Number.MAX_SAFE_INTEGER + 1 }],
         ["get_listing_details", { listing_id: 1, includes: ["Inventory"] }],
+        ["get_shop_by_name", { shop_name: "  " }],
         ["get_shop_listings", { shop_id: 73, keywords: "  " }],
         ["search_listings", { keywords: "  " }],
         ["search_listings", { keywords: "mugs", limit: 101 }],
@@ -180,6 +130,8 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         ["search_listings", { keywords: "mugs", sort_on: "external" }],
         ["get_shop_reviews", { shop_id: 3, min_created: 1.5 }],
         ["get_shop_reviews", { shop_id: 3, min_created: 1700000000, max_created: 1600000000 }],
+        ["search_shops", { shop_name: "  " }],
+        ["search_shops", { shop_name: "pottery", limit: 101 }],
       ];
 
       for (const [name, args] of invalidCalls) {
