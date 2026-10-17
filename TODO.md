@@ -20,7 +20,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 
 ## Public discovery — [plan](docs/planned-public-discovery.md)
 
-- [ ] Extend `search_listings` with taxonomy, shop location, safe-content, currency, and buyer-country controls.
+- [x] Extend `search_listings` with taxonomy, shop location, safe-content, currency, and buyer-country controls (M1.3; verification in [TASK.md](TASK.md)).
 - [ ] Extend listing detail/summary output with selected documented category, policy/readiness, variation, personalization, and localization information.
 - [x] Buyer/seller taxonomy browsing and bounded local filtering: `get_taxonomy_nodes` (M1.1; verification in [TASK.md](TASK.md)).
 - [x] Buyer/seller property/scale/value discovery: `get_taxonomy_properties` (M1.2; verification in [TASK.md](TASK.md)).

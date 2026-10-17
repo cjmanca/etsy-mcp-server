@@ -107,5 +107,6 @@ The reusable structured-money normalizer preserves Etsy's safe-integer
 `amount`, positive safe-integer `divisor`, and `currency_code` without scaling or
 assuming `/100`. Missing and explicit-null values are distinct from a real zero;
 invalid values remain invalid. Current listing output retains its existing
-formatted `price` string and does not add converted or shipping values that were
-not selected by the tool.
+formatted original `price` string and does not expose `converted_price` even when
+`search_listings.currency` requests conversion, or add buyer-price/shipping values
+that were not selected by the tool.

@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing and M1.2 category-property lookup are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, and M1.3 active-listing search filters are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -43,11 +43,16 @@ Output selects stable property/value/scale IDs, names and display names, `is_req
 
 Property lists are capped at 100; per-property scales at 10, possible values at 50, selected values at 25, and each value's `equal_to` IDs at 10. Property/value/scale labels are capped at 200 characters and scale descriptions at 500. Array, text, or output-row shortening sets `truncated`; `count` retains Etsy's source count when supplied and `returned` describes rows included after output-size trimming. JSON remains within the shared 128 KiB output limit and upstream bodies retain the shared 1 MiB cap. Etsy text in property names, values, and descriptions is untrusted.
 
+## Current M1.3: active-listing search filters
+
+`search_listings` calls the public, API-key-only `GET /v3/application/listings/active` (`findAllListingsActive`). It still requires trimmed, nonempty `keywords` up to 200 characters and retains the current price, page, and sort validation. Optional endpoint-supported filters are `taxonomy_id` (positive safe integer, including IDs from the seller taxonomy), `shop_location` (trimmed nonempty text up to 200 characters), `is_safe` (boolean, including false), `currency` (exact uppercase three-letter ISO 4217 form), and `buyer_country` (exact uppercase two-letter ISO 3166-1 alpha-2 form). No local list of available currencies or countries is maintained; Etsy may reject a syntactically valid but unsupported value or an unparseable location.
+
+For `sort_on: "score"`, the request always sends `sort_order: "desc"`; caller aliases remain accepted, while non-score ordering aliases pass through unchanged. With no sort options, Etsy's documented default is newest-first. `is_safe: true` filters out mature/adult content; false is passed through but does not activate that filter. `buyer_country` filters shipping eligibility only and does not produce a buyer price or checkout quote. `currency` requests Etsy conversion, but current selected output retains the existing formatted original `price` only and does not expose `converted_price`; absent/null original money remains `N/A`. Do not equate prices across currencies. All selected Etsy text remains untrusted.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
-| Extend `search_listings` | Existing fields plus `taxonomy_id`, `shop_location`, `is_safe`, `currency`, `buyer_country`. | Category/location/content filtering, requested-currency prices, and listings shipping to a buyer country. |
 | Extend `get_listing_details` and selected listing summaries | Listing ID; explicitly supported associations/field selections. | Category, return-policy/readiness references, listing type, variation/personalization flags, and other useful documented public fields; additional supported associations such as translations/personalization. |
 | `get_listings_batch` | 1–100 `listing_ids`; bounded allowed includes; optional `currency` and `buyer_country`. | Several listing summaries in one upstream call, keyed by listing ID. |
 | `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
@@ -71,11 +76,11 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 
 ## Important behaviors to preserve
 
-**Currency and buyer prices:** retain original money values separately from `converted_price`. A missing conversion is not zero. `buyer_country` filters shipping eligibility on active search but supplies buyer-price context on batch lookup; the latter does not filter the requested IDs. Buyer pricing is currently documented specifically for the batch endpoint. Null shipping cost does not necessarily mean free shipping; use `is_free_shipping`. Do not promise a final checkout quote.
+**Currency and buyer prices:** `search_listings` currently retains only its original formatted price and does not surface `converted_price`, even when the currency filter is used. Future batch buyer-price output must retain original money separately from strict structured `converted_price`; a missing conversion is not zero. `buyer_country` filters shipping eligibility on active search but supplies buyer-price context on batch lookup; the latter does not filter the requested IDs. Buyer pricing is currently documented specifically for the batch endpoint. Null shipping cost does not necessarily mean free shipping; use `is_free_shipping`. Do not promise a final checkout quote.
 
-**Search:** the existing keyword requirement should remain unless deliberately revised. Etsy documents `score` ordering as descending regardless of `sort_order`; expose this behavior rather than promising ascending score. An invalid location can be rejected by Etsy. Category selection and safe-content filtering must not be invented through keyword rewriting when explicit parameters exist.
+**Search:** `search_listings` now sends its supported taxonomy, location, safe-content, currency, and buyer-country parameters directly. The existing keyword requirement remains even though the endpoint allows broader queries. Etsy documents `score` ordering as descending regardless of `sort_order`; never promise ascending score. Etsy may reject an invalid/unparseable location. Do not invent category or safe-content filtering through keyword rewriting.
 
-**Taxonomy:** M1.1 implements local name/subtree filtering over validated, cached complete trees and returns bounded flat slices with stable IDs and paths. Etsy's node routes have no server-side filters, so an upstream tree above the 1 MiB cap fails safely; no live taxonomy size has been measured. Category-property lookup and listing-search taxonomy filters remain planned separately.
+**Taxonomy:** M1.1 implements local name/subtree filtering over validated, cached complete trees and returns bounded flat slices with stable IDs and paths. Etsy's node routes have no server-side filters, so an upstream tree above the 1 MiB cap fails safely; no live taxonomy size has been measured. M1.3 sends a selected buyer or seller taxonomy ID directly to global active-listing search without acquiring either tree or attempting local ID validation.
 
 **Batching:** deduplicate IDs, reject invalid/oversize lists before requests, and preserve ID-to-result mapping rather than assuming response order. Explain omitted/inaccessible IDs and all-or-nothing upstream errors without fabricating per-ID success. A 100-ID API maximum is not a guarantee the mapped output fits 128 KiB; support smaller batches and explicit truncation.
 

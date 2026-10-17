@@ -26,7 +26,7 @@ Read the linked subsystem and its contract-audit findings for proposed inputs, o
 | POST | `createDraftListing` | `create_draft_listing` | Planned |
 | GET | `getListing` | `get_listing_details`; richer parameters/fields planned | Current |
 | DELETE | `deleteListing` | `delete_listing` | Planned |
-| GET | `findAllListingsActive` | `search_listings`; advanced filters planned | Current |
+| GET | `findAllListingsActive` | `search_listings` with required keywords and bounded page/price/sort controls plus taxonomy, location, safe-content, currency, and buyer-country filters | Current |
 | GET | `findAllActiveListingsByShop` | `get_shop_listings` | Current |
 | GET | `getListingsByListingIds` | `get_listings_batch`, `get_listing_buyer_prices` | Planned |
 | GET | `getFeaturedListingsByShop` | `get_featured_shop_listings` | Planned |

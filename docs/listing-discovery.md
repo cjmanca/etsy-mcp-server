@@ -8,10 +8,15 @@
 
 | Option | Meaning |
 | --- | --- |
-| `min_price`, `max_price` | Finite, nonnegative price bounds; maximum must not be below minimum. No currency-selection option is exposed. |
+| `min_price`, `max_price` | Finite, nonnegative price bounds; maximum must not be below minimum. |
 | `limit`, `offset` | Page size 1–100 (default 25), offset 0–12000 (default 0). |
-| `sort_on` | `created`, `price`, `updated`, or `score`. |
-| `sort_order` | `asc`, `ascending`, `desc`, `descending`, `up`, or `down`. |
+| `taxonomy_id` | Optional positive safe-integer ID from Etsy's buyer or seller taxonomy. |
+| `shop_location` | Optional nonempty location text, trimmed and limited to 200 characters; Etsy parses the location and may reject it. |
+| `is_safe` | Optional boolean; `true` filters out mature/adult content. `false` is passed as false and does not enable this filter. |
+| `currency` | Optional uppercase three-letter ISO 4217 code, passed to Etsy for currency conversion. No local currency availability list is maintained. |
+| `buyer_country` | Optional uppercase two-letter ISO 3166-1 alpha-2 code; filters listings by shipping eligibility, not buyer price or shipping quotes. |
+| `sort_on` | `created`, `price`, `updated`, or `score`. Etsy always returns `score` results descending, regardless of requested `sort_order`. |
+| `sort_order` | `asc`, `ascending`, `desc`, `descending`, `up`, or `down`; non-score aliases are passed through unchanged. For `score`, the request is forced to `desc`. |
 
 Example tool arguments for `search_listings`:
 
@@ -26,9 +31,9 @@ Example tool arguments for `search_listings`:
 }
 ```
 
-Each result can include listing ID, title, description excerpt, formatted price and currency, URL, shop ID, quantity, state, creation/update timestamps, and tags. Missing upstream fields may be omitted; price is `N/A` when a usable money value is unavailable. Do not compare prices across different currencies as if they were equivalent.
+Each result can include listing ID, title, description excerpt, formatted original price and currency, URL, shop ID, quantity, state, creation/update timestamps, and tags. Missing upstream fields may be omitted; price is `N/A` when a usable money value is unavailable. Although `currency` asks Etsy to convert prices, this tool continues to return only its existing formatted original `price`; it does not expose `converted_price`. Do not compare prices across different currencies as if they were equivalent.
 
-The MCP tool does not currently expose category, location, currency, or other advanced search filters. It requires keywords even if an upstream API allows broader searches. `score` is a search ordering, not a documented measure of trending demand or sales.
+The tool continues to require keywords even though Etsy permits broader searches. Syntactically valid but unsupported currency codes or unparseable shop locations may still be rejected by Etsy; errors are sanitized. `score` is a search ordering, not a documented measure of trending demand or sales. A buyer-country filter indicates shipping eligibility only, not a final buyer-facing price or checkout quote.
 
 ## Inspect a listing
 

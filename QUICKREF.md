@@ -15,7 +15,7 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 
 ## Tools
 
-- `search_listings`
+- `search_listings` (category/location/safe-content/currency/shipping-country filters; score is always descending)
 - `get_listing_details` (`Shop`, `Images`, `User`, `Videos` associations)
 - `get_shop_by_name` (exact case-insensitive match; bounded searches report when incomplete)
 - `get_shop_listings` (active listings; pass `keywords` for effective sorting)

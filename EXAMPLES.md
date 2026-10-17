@@ -20,6 +20,23 @@ Search Etsy for handmade ceramic mugs priced between $15 and $40.
 }
 ```
 
+Category, location, safe-content, currency, and shipping-eligibility filters can be combined with the existing keyword, price, and page controls:
+
+```json
+{
+  "keywords": "handmade ceramic mugs",
+  "taxonomy_id": 12345,
+  "shop_location": "Brooklyn, NY",
+  "is_safe": false,
+  "currency": "EUR",
+  "buyer_country": "DE",
+  "sort_on": "score",
+  "sort_order": "asc"
+}
+```
+
+Etsy always sorts `score` results descending, even when `sort_order` requests ascending. `buyer_country` filters shipping eligibility; it does not request a checkout quote. `currency` is sent to Etsy, while the current result output continues to show the original formatted listing price only.
+
 ## Listing details
 
 ```text
