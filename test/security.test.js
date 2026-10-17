@@ -103,6 +103,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_featured_shop_listings",
         "get_listing_buyer_prices",
         "get_listing_details",
+        "get_listing_reviews",
         "get_listings_batch",
         "get_shop",
         "get_shop_by_name",

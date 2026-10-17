@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added buyer-country-aware listing price components for base, display, promotion, and shipping values.
 - Added direct public shop lookup by shop ID or owner user ID.
 - Added public shop section browsing and shop-curated featured listings.
+- Added public listing review samples with supported date filters and bounded output.
 
 ### Documentation
 

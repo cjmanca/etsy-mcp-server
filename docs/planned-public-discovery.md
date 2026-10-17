@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, and M2.1 direct shop discovery are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, and M2.3 listing reviews are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -86,12 +86,17 @@ The four public, API-key-only reads are:
 
 All four validate positive safe-integer IDs before requests and apply the existing 25-row default, 1–100 page bound, offset bound, 10-second request timeout, 1 MiB upstream cap, 128 KiB output cap, selected listing mapper, sanitized error handling, and untrusted-content notice. List responses report Etsy's `count`, displayed `returned`, and `truncated`; no tool claims a complete snapshot after a bound. An empty section/list and a zero active-listing count are valid. Supplied shop/section parent IDs in returned section/listing objects are checked against the request; absent references are not invented and public owner IDs do not establish caller authorization. Only selected section and M1.4 listing-summary fields are exposed.
 
+## Current M2.3: product review samples
+
+`get_listing_reviews` requests one page from the public, API-key-only `GET /v3/application/listings/{listing_id}/reviews` (`getReviewsByListing`) per tool call; it does not crawl pages. It requires a positive safe-integer listing ID and accepts only `limit`, `offset`, `min_created`, and `max_created` in addition. Page defaults and bounds match `get_shop_reviews`: limit 25 (1–100), offset 0 (0–12000), whole Unix-second timestamps from 946684800 onward, and an ordered date range. The shared transport retry policy still applies. There are no sort, reply, review-write, or buyer-lookup parameters.
+
+The tool reuses the selected shop-review mapper and paging/serializer conventions: only shop/listing IDs when supplied, rating, review text, and creation/update timestamps are retained. Missing optional fields remain absent; no listing ID is invented from the request, and any supplied listing ID must match it. Buyer identities, transaction/private fields, image URLs, and other raw fields are omitted. Review text is untrusted, capped at 1,000 characters, and output remains within the shared 128 KiB bound. Etsy's `count` is the source result count, `returned` is the included row count after trimming, and `truncated` flags shortened text or removed rows. The page is a sample, not a complete review history or order count.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_listing_reviews` | Listing ID; supported page/date controls. | Product-specific review samples using the existing bounded review output conventions. |
 | `get_listing_images`, `get_listing_image` | Listing ID; image ID for detail. | Image references with rank, dimensions, alt text, and selected metadata. |
 | `get_listing_videos`, `get_listing_video` | Listing ID; video ID for detail. | Dedicated video metadata without requiring a full listing response. |
 | `get_listing_properties`, `get_listing_property` | Listing ID; shop ID for the all-properties route; property ID for detail. | Actual structured product attributes and their selected values. |
@@ -122,7 +127,7 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 - [x] Batch lookup and buyer pricing preserve currency, IDs, null/unavailable fields, and bounded output (M1.5/M1.6 mocked verification; no live availability claim).
 - [x] Direct shop-ID and public owner-ID lookup use their documented routes and selected profile output without changing exact-name search (M2.1 mocked verification; no caller-ownership claim).
 - [x] Shop organization and featured-product tools reach their documented public routes and distinguish a shop's curated featured selection from trending (M2.2; mocked verification only).
-- [ ] Listing-review tools reach their documented routes and describe sample/completeness limits.
+- [x] Listing-review tools reach their documented routes and describe sample/completeness limits (M2.3; mocked contract and bounds tests).
 - [ ] Dedicated media/attribute/translation/personalization/policy tools expose selected useful fields, not unrestricted upstream objects.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.
 

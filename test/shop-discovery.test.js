@@ -14,6 +14,7 @@ const PUBLIC_TOOL_NAMES = [
   "get_featured_shop_listings",
   "get_listing_buyer_prices",
   "get_listing_details",
+  "get_listing_reviews",
   "get_listings_batch",
   "get_shop",
   "get_shop_by_name",

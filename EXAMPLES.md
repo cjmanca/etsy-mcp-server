@@ -160,6 +160,18 @@ Get recent reviews for shop 12345678.
 }
 ```
 
+For product-specific feedback, request one listing's public review sample:
+
+```json
+{
+  "listing_id": 1234567890,
+  "limit": 25,
+  "min_created": 1700000000
+}
+```
+
+Listing review pages expose the source `count`, included `returned` rows, and `truncated` status; they do not represent a complete review history. Review text remains untrusted external data.
+
 ## Category browsing
 
 Find buyer categories whose names contain “mug”:
