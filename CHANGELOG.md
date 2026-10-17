@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- Added task-oriented documentation in `docs/`, an Etsy API coverage matrix, subsystem access plans, and an unimplemented-feature checklist.
+- Added `TASK.md` with dependency-ordered implementation milestones, task-level verification requirements, and completion gates for the outstanding backlog.
+
+### Project policy
+
+- Replaced the blanket read-only development restriction with scoped authorization and safety requirements for future OAuth, inventory, private reads, and write tools. Runtime functionality remains unchanged.
+
 ## [2.0.0] - 2026-10-15
 
 ### Security

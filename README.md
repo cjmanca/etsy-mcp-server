@@ -2,6 +2,12 @@
 
 A lightweight, read-only [Model Context Protocol](https://modelcontextprotocol.io/) server for public Etsy Open API v3 data. It uses Node.js, TypeScript, Axios, and stdio transport.
 
+## Documentation and development scope
+
+Start with the [task-oriented documentation index](docs/index.md). It separates implemented capabilities from the [full Etsy API access roadmap](docs/roadmap.md) and [unimplemented-feature checklist](TODO.md).
+
+Development policy now permits OAuth, inventory, private account access, and write operations with the authorization and safety requirements in [access and operation policy](docs/access-policy.md). These are planned capabilities, not features enabled by changing the policy; version 2.0.0 still exposes only the six public read-only tools below.
+
 ## Requirements
 
 - Node.js 22 or later. CI validates Node.js 22 and 24.
