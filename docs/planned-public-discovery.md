@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: unimplemented proposals.** Read with the [access policy](access-policy.md); use the [coverage matrix](api-coverage.md) for exact Etsy operation IDs. This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing is implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -17,13 +17,25 @@ field contract supports batch only. Owner-only suggested titles need an OAuth
 token with an unspecified exact scope and remain disabled pending clarification.
 These are analysis findings, not implemented tools.
 
-## Proposed MCP capabilities
+## Current M1.1: taxonomy node browsing
+
+`get_taxonomy_nodes` reads the public buyer or seller hierarchy through exactly one of:
+
+- `GET /v3/application/buyer-taxonomy/nodes` (`getBuyerTaxonomyNodes`)
+- `GET /v3/application/seller-taxonomy/nodes` (`getSellerTaxonomyNodes`)
+
+The operation is API-key-only and declares no query parameters. `taxonomy_type` is required. Optional `taxonomy_id` selects that node and its descendants; optional `name` is a case-insensitive substring. Both filters and page slicing are **local**, because Etsy returns the full recursive tree. Responses identify the selected tree and local filters, report `count` as the locally matched node total, and return flat node summaries with stable numeric IDs, parent IDs, full ID paths, and bounded child-ID previews. Names are treated as untrusted text and output is truncated when needed.
+
+Acquisition uses the existing fixed Etsy origin, TLS verification, redirect/proxy isolation, request limiter, retry policy, 10-second timeout, and 1 MiB response limit; no taxonomy-specific exception raises the global cap. The full response is validated and flattened before it can enter an in-memory cache. Buyer and seller have separate single-flight cache entries with a 15-minute TTL; each tree is capped at 20,000 nodes, depth 32, and 512 characters per source name, and output child previews at 25 IDs. Invalid, incomplete, too-deep, duplicate, oversized, or malformed trees are rejected without caching partial data. If Etsy's full tree exceeds 1 MiB, the tool returns an actionable error explaining that local filters cannot reduce the upstream response. Tree sizes have not been measured with a live Etsy request.
+
+The property endpoints remain M1.2 work. Taxonomy IDs returned here are stable Etsy IDs, but this server does not yet expose category-property lookup or taxonomy filtering in `search_listings`.
+
+## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Extend `search_listings` | Existing fields plus `taxonomy_id`, `shop_location`, `is_safe`, `currency`, `buyer_country`. | Category/location/content filtering, requested-currency prices, and listings shipping to a buyer country. |
 | Extend `get_listing_details` and selected listing summaries | Listing ID; explicitly supported associations/field selections. | Category, return-policy/readiness references, listing type, variation/personalization flags, and other useful documented public fields; additional supported associations such as translations/personalization. |
-| `get_taxonomy_nodes` | `taxonomy_type`: buyer or seller; optional local subtree/name filters and bounded result controls. | Category IDs, names, ancestry, and child summaries to discover suitable categories. |
 | `get_taxonomy_properties` | Buyer/seller taxonomy type and `taxonomy_id`. | Allowed attributes, scales, values, and variation-related constraints for a category. |
 | `get_listings_batch` | 1–100 `listing_ids`; bounded allowed includes; optional `currency` and `buyer_country`. | Several listing summaries in one upstream call, keyed by listing ID. |
 | `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
@@ -51,7 +63,7 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 
 **Search:** the existing keyword requirement should remain unless deliberately revised. Etsy documents `score` ordering as descending regardless of `sort_order`; expose this behavior rather than promising ascending score. An invalid location can be rejected by Etsy. Category selection and safe-content filtering must not be invented through keyword rewriting when explicit parameters exist.
 
-**Taxonomy:** Etsy returns a full hierarchy rather than arbitrary server-side subtree searches. Any name/subtree filter is an MCP-side convenience, clearly labeled. Bound/cache the tree and return slices, not unlimited nested output. Establish whether the upstream tree fits the current 1 MiB cap before choosing an explicitly reviewed taxonomy-specific acquisition strategy; do not silently lift all response limits. Preserve stable node IDs and hierarchy paths.
+**Taxonomy:** M1.1 implements local name/subtree filtering over validated, cached complete trees and returns bounded flat slices with stable IDs and paths. Etsy's node routes have no server-side filters, so an upstream tree above the 1 MiB cap fails safely; no live taxonomy size has been measured. Category-property lookup and listing-search taxonomy filters remain planned separately.
 
 **Batching:** deduplicate IDs, reject invalid/oversize lists before requests, and preserve ID-to-result mapping rather than assuming response order. Explain omitted/inaccessible IDs and all-or-nothing upstream errors without fabricating per-ID success. A 100-ID API maximum is not a guarantee the mapped output fits 128 KiB; support smaller batches and explicit truncation.
 

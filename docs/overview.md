@@ -1,6 +1,6 @@
 # Project overview
 
-**Status: implemented in version 2.0.0.** See the [index](index.md) for task-specific documentation.
+**Status: current runtime capabilities.** See the [index](index.md) for task-specific documentation.
 
 Etsy MCP Server lets an AI assistant query public Etsy information through a local Model Context Protocol connection. It helps with product discovery, shop research, catalog comparisons, and review sampling without giving the assistant permission to change an Etsy account.
 
@@ -14,19 +14,21 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_shop_by_name` | Resolve an exact, case-insensitive shop name and read its public profile. | [Shops](shops.md) |
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
 | `get_shop_reviews` | Read public shop reviews, optionally within a date range. | [Reviews](reviews.md) |
+| `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
 
 ## Typical workflows
 
 - **Product research:** search active listings, select listing IDs, then inspect details and media metadata for a small shortlist.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
+- **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 
 ## Scope and boundaries
 
 These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) plans that expanded scope without claiming it exists today.
 
-- Public, read-only Etsy Open API v3 access using application credentials; no seller login or OAuth.
+- Public, read-only Etsy Open API v3 access using application credentials; no seller login or OAuth. Category browsing is available for both buyer and seller taxonomies.
 - No creation, editing, deletion, purchasing, messaging, order management, private financial data, or inventory access.
 - No supported trending tool. `get_trending_listings` was removed because there is no documented supported trending endpoint; sorting by score is not a trend metric.
 - No independent keyword search-volume, sales-history, or revenue analytics feed. Analysis must be grounded in fields actually returned.

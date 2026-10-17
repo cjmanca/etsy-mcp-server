@@ -27,6 +27,7 @@ export class EtsyApiError extends Error {
       | "redirect"
       | "network"
       | "upstream"
+      | "response_too_large"
       | "busy",
     message: string,
   ) {
@@ -152,6 +153,13 @@ function safeApiError(error: unknown): EtsyApiError {
   if (error instanceof EtsyApiError) return error;
   if (!axios.isAxiosError(error)) {
     return new EtsyApiError("upstream", "Unable to process the Etsy response.");
+  }
+
+  if (/maxContentLength size of \d+ exceeded/i.test(error.message)) {
+    return new EtsyApiError(
+      "response_too_large",
+      "The Etsy response exceeded the server's 1 MiB upstream response limit.",
+    );
   }
 
   const status = error.response?.status;

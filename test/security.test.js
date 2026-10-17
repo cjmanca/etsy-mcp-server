@@ -104,6 +104,7 @@ test("MCP tools validate arguments before requests and exclude unsupported featu
         "get_shop_by_name",
         "get_shop_listings",
         "get_shop_reviews",
+        "get_taxonomy_nodes",
         "search_listings",
         "search_shops",
       ]);

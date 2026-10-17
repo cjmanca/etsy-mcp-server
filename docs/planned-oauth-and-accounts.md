@@ -18,7 +18,7 @@ need listings_r. Scope bundles must reflect per-operation security, not verbs.
 ## M0.3 capability boundary
 
 The runtime has typed `public`, `account`, `write`, and `event` registration
-groups, but currently registers and enables only the six public tools. The other
+groups, but currently registers and enables only the seven public tools. The other
 groups are disabled and undiscoverable; no OAuth flow, stored connection, scope
 inspection, ownership check, write authorization, or event receiver is thereby
 implemented. Registry enablement is trusted server configuration, never a model

@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Six existing tools reach six distinct operations (five Current rows plus one Indirect row); **99 operations are Planned**. The indirect row also has a missing direct MCP tool.
+- Seven current tools reach eight distinct operations (seven directly and one Indirect row); **97 operations are Planned**. The indirect row also has a missing direct MCP tool.
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -13,9 +13,9 @@ Read the linked subsystem and its contract-audit findings for proposed inputs, o
 
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
-| GET | `getBuyerTaxonomyNodes` | `get_taxonomy_nodes` with buyer selector | Planned |
+| GET | `getBuyerTaxonomyNodes` | `get_taxonomy_nodes` with buyer selector | Current |
 | GET | `getPropertiesByBuyerTaxonomyId` | `get_taxonomy_properties` with buyer selector | Planned |
-| GET | `getSellerTaxonomyNodes` | `get_taxonomy_nodes` with seller selector | Planned |
+| GET | `getSellerTaxonomyNodes` | `get_taxonomy_nodes` with seller selector | Current |
 | GET | `getPropertiesByTaxonomyId` | `get_taxonomy_properties` with seller selector | Planned |
 
 ## Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)

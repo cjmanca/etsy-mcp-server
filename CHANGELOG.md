@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+### Added
+
+- Added buyer and seller category browsing with optional local subtree and name filters.
+
 ### Documentation
 
 - Added task-oriented documentation in `docs/`, an Etsy API coverage matrix, subsystem access plans, and an unimplemented-feature checklist.

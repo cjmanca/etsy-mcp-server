@@ -1,6 +1,6 @@
 # Documentation index
 
-Start here and load only the slices relevant to your task. **Current** documents describe the six tools implemented in version 2.0.0, checked against `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
+Start here and load only the slices relevant to your task. **Current** documents describe the seven public tools implemented in `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
 
 | Document | Status | Read when your task is to… |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ Start here and load only the slices relevant to your task. **Current** documents
 | [Access and operation policy](access-policy.md) | Policy | Add OAuth, inventory, private-data, or write capabilities without weakening authorization and safety boundaries. |
 | [Feature roadmap and sequencing](roadmap.md) | Planned | Choose a subsystem to build, understand dependencies, or check the definition of done. |
 | [Implementation tasks and milestones](../TASK.md) | Planned | Choose the next implementable task, check prerequisites, and record milestone completion evidence across the complete backlog. |
-| [Public discovery expansion](planned-public-discovery.md) | Planned | Add taxonomy, richer searches, batch lookups, buyer prices, listing reviews, public sections, or richer media metadata. |
+| [Public discovery expansion](planned-public-discovery.md) | Current + planned | Browse taxonomy nodes; add richer searches, batch lookups, buyer prices, listing reviews, public sections, or richer media metadata. |
 | [OAuth and account access](planned-oauth-and-accounts.md) | Planned | Plan account connection, consent, token lifecycle, identity, scope inspection, or address access. |
 | [Listing, inventory, and media management](planned-listing-management.md) | Planned | Add non-public catalogs, SKU/variation inventory, listing lifecycle writes, personalization, translations, or media/file management. |
 | [Shop, shipping, and policy management](planned-shop-management.md) | Planned | Add shop settings, sections, production partners, shipping destinations/upgrades, processing profiles, holidays, or return-policy management. |

@@ -1,6 +1,6 @@
 # Unimplemented features
 
-This is the feature backlog, not a list of tools currently available. All entries below are **unimplemented** as of the 2026-10-16 documentation audit. The revised [policy](docs/access-policy.md) permits OAuth, inventory, private reads, and writes. Changing that policy did not implement them.
+This is the feature backlog, not a list of tools currently available. Entries below are **unimplemented** unless checked off; `get_taxonomy_nodes` is now implemented as recorded under M1.1 in [TASK.md](TASK.md). The revised [policy](docs/access-policy.md) permits OAuth, inventory, private reads, and writes. Changing that policy did not implement them.
 
 Use the [documentation index](docs/index.md) to load only the relevant slice, the [roadmap](docs/roadmap.md) for sequencing/acceptance criteria, and the [105-operation matrix](docs/api-coverage.md) for exact upstream mappings. The checklist groups related tools; the matrix is the exhaustive operation-level inventory. Check off a group only when all named capabilities in it are implemented, tested, and documented as current.
 
@@ -21,7 +21,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 
 - [ ] Extend `search_listings` with taxonomy, shop location, safe-content, currency, and buyer-country controls.
 - [ ] Extend listing detail/summary output with selected documented category, policy/readiness, variation, personalization, and localization information.
-- [ ] Buyer/seller taxonomy browsing and bounded local filtering: `get_taxonomy_nodes`.
+- [x] Buyer/seller taxonomy browsing and bounded local filtering: `get_taxonomy_nodes` (M1.1; verification in [TASK.md](TASK.md)).
 - [ ] Buyer/seller property/scale/value discovery: `get_taxonomy_properties`.
 - [ ] Batch listing lookup: `get_listings_batch`.
 - [ ] Buyer-country-aware price components: `get_listing_buyer_prices`.
