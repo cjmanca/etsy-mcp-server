@@ -2,6 +2,19 @@
 
 **Status: unimplemented proposals.** This foundation enables private reads, inventory, and writes; those capabilities are permitted by [policy](access-policy.md), not yet available in the running server.
 
+## M0.1 verified contract findings (2026-10-17)
+
+The [operation index](contracts/operations.md) records exact security and
+request/response shapes for users, addresses, getMe and tokenScopes. Read the
+[callback/token audit](contracts/README.md#account-callback-and-token-contracts)
+for PKCE, actual granted scopes, callback errors and current guide differences.
+`getUser` is self/linked-buyer-only; primary_email needs app approval. **Address
+deletion is blocked pending clarification:** the current endpoint declares
+`address_r`, whereas the authentication guide associates deletion with
+`address_w`. Do not silently invent a scope correction or test live deletion.
+`updateShop` needs both shops_r and shops_w, and policy-linked listing reads
+need listings_r. Scope bundles must reflect per-operation security, not verbs.
+
 ## Account-connection experience
 
 An operator selects the capability bundle they need, reviews the requested scopes, and authorizes the application at Etsy. A registered HTTPS callback completes authorization outside the model conversation. The server stores credentials securely and gives the MCP client an opaque connection identifier. The assistant never handles raw authorization codes, access tokens, refresh tokens, or PKCE verifiers.
@@ -40,7 +53,7 @@ The first three are local orchestration features, not extra REST operations in t
 | Receipt/payment/ledger reads | `transactions_r`. |
 | Receipt status and fulfillment updates | `transactions_w`. |
 | User profile lookup | `email_r` on `getUser`; not an unrestricted user-directory permission. |
-| Address lookup | `address_r`; address deletion must verify the endpoint's `address_w` requirement. |
+| Address lookup/deletion | Reads: `address_r`. Deletion endpoint also declares `address_r`, conflicting with guide `address_w` description; production deletion blocked until clarified. |
 
 Scope descriptions do not prove endpoint availability. In particular, do not invent profile-edit, address-create, messaging, or checkout tools from scope names. Bind scopes per actual operation, not merely by HTTP verb or domain.
 

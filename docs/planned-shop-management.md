@@ -2,6 +2,19 @@
 
 **Status: unimplemented proposals.** These features extend shop research into account-authorized administration. Use the [OAuth plan](planned-oauth-and-accounts.md), [access policy](access-policy.md), and [operation matrix](api-coverage.md). Public profile, section, and return-policy reads are also described in [public discovery](planned-public-discovery.md).
 
+## M0.1 verified contract findings (2026-10-17)
+
+All shop, section, shipping/destination/upgrade, processing/holiday, partner and
+return-policy operations have [exact contracts](contracts/operations.md).
+Read the [configuration/migration audit](contracts/README.md#processing-profiles-and-shop-configuration):
+updateShop requires both shops_r and shops_w; policy-linked listing lookup needs
+listings_r despite public policy reads; consolidation deletes the source policy.
+Final shipping destination and linked-active-offering readiness deletion have
+explicit restrictions. legacy is operation-specific, not a blanket flag.
+General Release banners conflict with processing guide's test-only/no-real-seller
+warning: block production processing enablement until Etsy clarifies rollout.
+No deployment or live testing is authorized by this contract audit.
+
 Account tools take `connection_id`, shop ID, and the IDs/options below. Read/write scope families are generally `shops_r`/`shops_w` for private shop configuration; recheck **each** exact operation, including public exceptions and delete endpoints, before implementation.
 
 ## Shop profile and organization
@@ -51,7 +64,7 @@ Processing profiles link through `readiness_state_id` on physical listings/offer
 | `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; policy ID for detail. | Public structured return/exchange rules. |
 | `create_shop_return_policy`, `update_shop_return_policy`, `delete_shop_return_policy` | Acceptance/deadline settings; policy ID where needed; confirmation. | Manage a policy without asserting that it guarantees legal compliance. |
 | `consolidate_shop_return_policies` | Source/destination policy IDs and explicit confirmation of the move. | Reassign listings from one policy to another through Etsy's supported consolidation operation. |
-| `get_return_policy_listings` | Policy ID and supported paging. | Inspect affected listings before policy changes. |
+| `get_return_policy_listings` | Connection ID, shop ID, policy ID; no paging declared. | Authorized affected listings (`listings_r`) before policy changes. |
 
 Return-policy reads inspected in this research use API-key access; do not force OAuth onto public tools solely because the related mutations need authorization. Deletion is only permitted for policies not attached to listings according to the catalog description. Consolidation has multi-listing impact: show source/destination differences, linked-listing evidence, and any incomplete impact enumeration before confirmation. Recheck allowed deadlines and required combinations when returns or exchanges are enabled.
 

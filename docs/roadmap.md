@@ -6,7 +6,7 @@
 
 On 2026-10-16, the `etsy-api-dev-information` MCP catalog listed **105 operations**. The [matrix](api-coverage.md) accounts for every one. The current six MCP tools reach six distinct API operations: five directly and `getShop` indirectly through exact-name lookup. **99 cataloged operations are not reached at all**; direct shop-by-ID access is an additional MCP-surface gap on an already-used operation.
 
-Research used `learn_etsy_api`, the complete `list_endpoints` inventory, selected `get_endpoint` details, and the authentication, inventory/shipping data migration, processing-profile migration, and webhook guides. Endpoint details were examined for important access and behavior boundaries, not every request schema for all 105 operations. Before implementing each tool, re-fetch its exact operation details, constraints, and scope requirements. These high-level access plans deliberately do not freeze every low-level field or migration flag.
+The initial research used the MCP catalog and selected guides. M0.1 subsequently revalidated all 105 IDs/methods against the current official OpenAPI document on 2026-10-17 and retained all exact schemas in the [contract audit](contracts/README.md), with per-operation indexes and separately inspected guide semantics. Read that audit before implementation; its 501-only, scope-conflict, ownership, financial-unit and rollout blockers override optimistic assumptions in the original feature grouping. Re-fetch affected contracts before coding; this dated snapshot is not a perpetual API guarantee.
 
 ## Delivery sequence
 

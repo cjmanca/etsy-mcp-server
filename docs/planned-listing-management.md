@@ -2,6 +2,21 @@
 
 **Status: unimplemented proposals.** This slice covers seller catalog management, variants/SKUs, digital files, and content writes. Public-read extensions are in [public discovery](planned-public-discovery.md). Account operations require the [OAuth foundation](planned-oauth-and-accounts.md) and [write policy](access-policy.md).
 
+## M0.1 verified contract findings (2026-10-17)
+
+The [per-operation contracts](contracts/operations.md) retain all listing,
+inventory, personalization, translation, file/image/video and attribute schemas.
+Read [inventory/migration findings](contracts/README.md#listing-inventory-and-migration-semantics)
+and [personalization constraints](contracts/README.md#personalization-contract-beyond-schema-keywords)
+before implementation: full replacements must preserve complete seller data;
+third-variation/scale flags, guide-only bounds and add-on prices need explicit
+handling. getListingVariationImages is API-key-only, not listings_r. Single
+getListingProperty is blocked by 501-only status. Multi-video description names
+is_multi_video but declares no wire field; that extension is blocked pending
+clarification. Processing/third-variation/new personalization rollout conflicts
+remain explicit release gates. Current listing writes also contain eligible-only
+ecgt_* fields; an accepted or silently ignored field does not prove compliance.
+
 All account tools take `connection_id` plus the resource selection shown below. Proposed names map to exact operations in the [coverage matrix](api-coverage.md). Check each operation's current scope and constraints before implementation; scope families below are planning guidance, not a substitute for endpoint validation.
 
 ## Catalog lifecycle

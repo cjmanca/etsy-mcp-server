@@ -34,7 +34,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Structured attribute reads: `get_listing_properties`, `get_listing_property`.
 - [ ] Personalization question/option/add-on reads: `get_listing_personalization`.
 - [ ] Existing localized listing content: `get_listing_translation`.
-- [ ] Public return-policy reads and linked listings: `get_shop_return_policies`, `get_shop_return_policy`, `get_return_policy_listings`.
+- [ ] Public return-policy reads: `get_shop_return_policies`, `get_shop_return_policy`; OAuth `listings_r` linked listings: `get_return_policy_listings` (no paging query declared). See [M0.1 contract corrections](docs/contracts/README.md#public-discovery-blockers-and-routing-corrections).
 - [ ] Shipping carrier/mail-class discovery: `get_shipping_carriers`.
 
 ## Listings and inventory — [plan](docs/planned-listing-management.md)
@@ -89,6 +89,6 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 
 - [ ] Connected identity and permitted profile lookup: `get_me`, `get_user`.
 - [ ] Authorized address lists/details: `get_user_addresses`, `get_user_address`.
-- [ ] Confirmed address deletion: `delete_user_address`.
+- [ ] Confirmed address deletion: `delete_user_address` (blocked pending reference `address_r` versus guide `address_w` conflict clarification; see [contract audit](docs/contracts/README.md#account-callback-and-token-contracts)).
 
 Unsupported website-only or undocumented actions are not silently promised backlog items. In particular, no supported trending, cart/checkout, messaging, review-write, refund-initiation, or shipping-label-purchase operation was found in the researched catalog. Revisit only if Etsy documents an appropriate API.

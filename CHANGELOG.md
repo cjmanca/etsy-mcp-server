@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 - Added task-oriented documentation in `docs/`, an Etsy API coverage matrix, subsystem access plans, and an unimplemented-feature checklist.
 - Added `TASK.md` with dependency-ordered implementation milestones, task-level verification requirements, and completion gates for the outstanding backlog.
+- Audited all 105 API contracts against the 2026-10-17 official OpenAPI snapshot and guides, with checksum-pinned schemas, offline coverage verification, six existing-tool extension checks, and explicit scope/availability/rollout blockers. Runtime behavior is unchanged.
 
 ### Project policy
 

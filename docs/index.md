@@ -1,6 +1,6 @@
 # Documentation index
 
-Start here and load only the slices relevant to your task. **Current** documents describe the six tools implemented in version 2.0.0, checked against `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. API research was performed with the `etsy-api-dev-information` MCP on 2026-10-16.
+Start here and load only the slices relevant to your task. **Current** documents describe the six tools implemented in version 2.0.0, checked against `src/`. **Policy** defines permitted development scope. **Planned** documents describe unimplemented tools, not callable functionality. The 2026-10-16 MCP catalog was revalidated against the official OpenAPI document and relevant guides on 2026-10-17; see the contract audit for restrictions and unresolved differences.
 
 | Document | Status | Read when your task is to… |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ Start here and load only the slices relevant to your task. **Current** documents
 | [Shop, shipping, and policy management](planned-shop-management.md) | Planned | Add shop settings, sections, production partners, shipping destinations/upgrades, processing profiles, holidays, or return-policy management. |
 | [Orders, payments, and events](planned-orders-and-payments.md) | Planned | Add receipts, transactions, fulfillment updates, financial reconciliation, or webhook-backed event access. |
 | [Complete API coverage matrix](api-coverage.md) | Current + planned | Find the proposed MCP surface for any of the 105 cataloged API operations, or check whether access is direct, indirect, or missing. |
+| [Verified operation contracts and audit findings](contracts/README.md) | Research, not implementation | Before endpoint implementation/review, inspect all 105 exact method/path/input/scope/response contracts, guide semantics, six existing-tool extension checks, and explicit release blockers. Includes the original checksum-pinned official OpenAPI snapshot and offline coverage verification. |
 | [Unimplemented-feature checklist](../TODO.md) | Planned | Select or track outstanding features; each group links to its focused access plan. |
 
 For a multi-step task, combine only the applicable feature slice with response handling. Setup is needed only when configuring or troubleshooting the connection. Existing root-level [README](../README.md), [examples](../EXAMPLES.md), and [changelog](../CHANGELOG.md) remain useful entry points.

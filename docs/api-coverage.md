@@ -1,13 +1,13 @@
 # Complete Etsy API coverage matrix
 
-**Research snapshot: 2026-10-16, `etsy-api-dev-information` MCP, 105 operations.** This is a routing/coverage reference, not a claim that all tools exist. Use the operation ID with the MCP's `get_endpoint` tool or the [official reference](https://developers.etsy.com/documentation/reference/) to retrieve the current path, inputs, schema, and authorization before implementation.
+**Catalog baseline: 2026-10-16 MCP, 105 operations; all 105 IDs/methods revalidated against the official OpenAPI document on 2026-10-17.** This is a routing/coverage reference, not a claim that all tools exist. The [contract audit](contracts/README.md), [per-operation index](contracts/operations.md), and checksum-pinned original schema record inputs, scopes, responses, flags, guide restrictions and explicit blockers. Revalidate affected contracts before implementation.
 
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
 - Six existing tools reach six distinct operations (five Current rows plus one Indirect row); **99 operations are Planned**. The indirect row also has a missing direct MCP tool.
 
-Read the linked subsystem for proposed inputs, outputs, permission families, dependencies, and acceptance criteria. Detailed endpoint inspection during this research covered selected operations, not all 105 schemas; this matrix inventories the entire catalog without asserting that every field or scope was individually verified. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the API matrix because they are not additional catalog operations.
+Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
 ## Taxonomy — [public discovery plan](planned-public-discovery.md)
 
@@ -32,12 +32,12 @@ Read the linked subsystem for proposed inputs, outputs, permission families, dep
 | GET | `getFeaturedListingsByShop` | `get_featured_shop_listings` | Planned |
 | PUT | `updateListingProperty` | `update_listing_property` | Planned |
 | DELETE | `deleteListingProperty` | `delete_listing_property` | Planned |
-| GET | `getListingProperty` | `get_listing_property` | Planned |
+| GET | `getListingProperty` | `get_listing_property` — blocked: reference says 501-only | Planned |
 | GET | `getListingProperties` | `get_listing_properties` | Planned |
 | GET | `getListingsShippingByListingIds` | `get_listings_shipping_batch` | Planned |
 | PATCH | `updateListing` | `update_listing` | Planned |
 | GET | `getListingsByShopReceipt` | `get_receipt_listings` | Planned |
-| GET | `getListingsByShopReturnPolicy` | `get_return_policy_listings` | Planned |
+| GET | `getListingsByShopReturnPolicy` | `get_return_policy_listings` — OAuth `listings_r`, no paging declared | Planned |
 | GET | `getListingsByShopSectionId` | `get_shop_section_listings` | Planned |
 
 ## Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)
@@ -176,7 +176,7 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | GET | `getUser` | `get_user` | Planned |
 | GET | `getMe` | `get_me` | Planned |
 | GET | `getUserAddress` | `get_user_address` | Planned |
-| DELETE | `deleteUserAddress` | `delete_user_address` | Planned |
+| DELETE | `deleteUserAddress` | `delete_user_address` — blocked pending `address_r`/`address_w` conflict clarification | Planned |
 | GET | `getUserAddresses` | `get_user_addresses` | Planned |
 
 ## Diagnostics — [connection plan](planned-oauth-and-accounts.md), [public discovery](planned-public-discovery.md)

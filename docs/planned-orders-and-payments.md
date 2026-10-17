@@ -2,6 +2,20 @@
 
 **Status: unimplemented proposals.** This slice enables authorized fulfillment and reconciliation, not public competitor sales reporting. All account tools require the [OAuth foundation](planned-oauth-and-accounts.md) and the [access/write policy](access-policy.md). Exact operations are in the [matrix](api-coverage.md).
 
+## M0.1 verified contract findings (2026-10-17)
+
+All receipt, transaction, payment and ledger operations have
+[exact contracts](contracts/operations.md). Read the
+[fulfillment/financial-unit audit](contracts/README.md#orders-fulfillment-and-financial-units)
+and [separate event contract](contracts/README.md#events--separately-audited-guide-contract).
+Shipment creation requires application/regional fulfillment eligibility beyond
+transactions_w, always emails the buyer, and currently uses application/json
+with enhanced package/customs fields (not the older tutorial form example).
+Standalone ledger amount/balance and certain adjustment unit scaling remain
+unresolved; keep raw integers/currency rather than invent /100. Guide event URL
+examples differ from actual listing/product routes: reconstruct validated routes,
+never follow resource_url with credentials. Receiver deployment remains M10 work.
+
 ## Receipts and transactions
 
 All tools take `connection_id` and shop ID, plus the selection below. Read operations use `transactions_r`; recheck each operation's exact requirements before implementation.

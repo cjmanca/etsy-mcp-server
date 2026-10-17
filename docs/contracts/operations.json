@@ -1,0 +1,1797 @@
+[
+  {
+    "operationId": "consolidateShopReturnPolicies",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/policies/return/consolidate",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return~1consolidate/post",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Consolidates Return Policies by moving all listings from a source return policy to a destination return policy, and deleting the source return policy. This is commonly used in the event that a user attempts to update a Return Policy such that its data is a duplicate of some other Return Policy, which is prevented.",
+    "auditNotes": "Moves ALL source listings to destination AND deletes source policy; preview both effects and duplicates/conflicts."
+  },
+  {
+    "operationId": "createDraftListing",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings/post",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a physical draft [listing](https://developers.etsy.com/documentation/reference#tag/ShopListing) product in a shop on the Etsy channel.",
+    "auditNotes": "Draft creation is not publication. Conditional physical shipping/readiness and later image/file activation prerequisites apply. Stop sending deprecated legacy personalization fields."
+  },
+  {
+    "operationId": "createListingTranslation",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/translations/{language}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1translations~1{language}/post",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a ListingTranslation by listing_id and language",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "createReceiptShipment",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}/tracking",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}~1tracking/post",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Submits tracking information for a Shop Receipt, which creates a Shop Receipt Shipment entry for the given receipt_id. Each time you successfully submit tracking info, Etsy sends a notification email to the buyer User. When send_bcc is true, Etsy sends shipping notifications to the seller as well. When tracking_code and carrier_name aren't sent, the receipt is marked as shipped only. If the carrier is not supported, you may use `other` as the carrier name so you can provide the tracking code. **NOTES** When shipping within the United States AND the order is over $10 _or_ when shipping to India, tracking code and carrier name ARE required. **ACCESS RESTRICTION** In regions where Etsy's Preferred Partner Program is enforced, this endpoint is only available to applications that are approved fulfillment partners. Requests from other applications return `403 Forbidden`, even when the API key is valid, the OAuth token has the `transactions_w` scope and other receipt endpoints respond successfully. A request is authorized if the application is a commercial-access application categorized as Fulfillment or Print On Demand, if it is a personal-use application owned by the authenticated seller, or if the seller authorized the application before the Preferred Partner Program launched in their region. If your application doesn't meet these criteria, contact Etsy API support to ask about partner eligibility. Access to ShopReceipt's first_line, second_line, city, state, zip, country_iso and formatted_address is contingent in some regions to a preferred partnership status with Etsy",
+    "auditNotes": "RESTRICTED: transactions_w not sufficient; app/region fulfillment eligibility required, with reference-listed personal-owner/grandfathered exceptions. Every success emails buyer; send_bcc also emails seller. US >$10 or India requires tracking/carrier. Current request is application/json and includes enhanced package/customs/duty fields. Guide ship_date requires ISO8601 UTC; invalid date is silently ignored."
+  },
+  {
+    "operationId": "createShopReadinessStateDefinition",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/readiness-state-definitions",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1readiness-state-definitions/post",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new ReadinessStateDefinition. If an existing definition matches the input values, this endpoint will throw a Conflict error, please refer to the Content-Location header to obtain the get endpoint url for the values of the existing definition. Does not affect the product offering-readiness states definition relationship.",
+    "auditNotes": "Duplicate values produce conflict with Content-Location; no offering relationship change. Do not follow header URL with credentials; validate/reconstruct route. Reference General Release conflicts with migration test-only warning: production gate pending clarification."
+  },
+  {
+    "operationId": "createShopReturnPolicy",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/policies/return",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return/post",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new Return Policy. Note: if either accepts_returns or accepts_exchanges is true, then a return_deadline is required.",
+    "auditNotes": "return_deadline required when either accepts_returns or accepts_exchanges true."
+  },
+  {
+    "operationId": "createShopSection",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/sections",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1sections/post",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new section in a specific shop.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "createShopShippingProfile",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles/post",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new ShippingProfile. You can pass a country iso code or a region when creating a ShippingProfile, but not both. Only one is required. You must pass either a shipping_carrier_id AND mail_class, or both min and max_delivery_days.",
+    "auditNotes": "Country/region mutually exclusive; carrier+mail_class or min+max delivery days required. Calculated shipping profile creation unsupported per listings guide."
+  },
+  {
+    "operationId": "createShopShippingProfileDestination",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/destinations",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1destinations/post",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new shipping destination, which sets the shipping cost, carrier, and class for a destination in a [shipping profile](https://developers.etsy.com/documentation/reference/#tag/Shop-ShippingProfile). createShopShippingProfileDestination assigns costs using the currency of the associated shop. Set the destination using either `destination_country_iso` or `destination_region`; `destination_country_iso` and `destination_region` are mutually exclusive — set one or the other. Setting both triggers error 400. If the request sets neither `destination_country_iso` nor `destination_region`, the default destination is \"everywhere\". You must also either assign both a `shipping_carrier_id` AND `mail_class` or both `min_delivery_days` AND `max_delivery_days`.",
+    "auditNotes": "Shop currency; country/region mutually exclusive; neither defaults to everywhere. Carrier+mail_class or delivery range required."
+  },
+  {
+    "operationId": "createShopShippingProfileUpgrade",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/upgrades",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1upgrades/post",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates a new shipping profile upgrade, which can establish a price for a shipping option, such as an alternate carrier or faster delivery.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "deleteListing",
+    "method": "DELETE",
+    "path": "/v3/application/listings/{listing_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}/delete",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_d"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Open API V3 endpoint to delete a ShopListing. A ShopListing can be deleted only if the state is one of the following:  SOLD_OUT, DRAFT, EXPIRED, INACTIVE, ACTIVE and is_available or ACTIVE and has seller flags:  SUPRESSED (frozen), VACATION, CUSTOM_SHOPS (pattern), SELL_ON_FACEBOOK",
+    "auditNotes": "listings_d; enforce reference-listed states/availability/seller-flag conditions rather than any-state deletion."
+  },
+  {
+    "operationId": "deleteListingFile",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/files/{listing_file_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1files~1{listing_file_id}/delete",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a file from a specific listing. When you delete the final file for a digital listing, the listing converts into a physical listing. The response to a delete request returns a list of the remaining file records associated with the given listing.",
+    "auditNotes": "Deleting final digital file converts listing to physical; response contains remaining files. Preview consequence."
+  },
+  {
+    "operationId": "deleteListingImage",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/images/{listing_image_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1images~1{listing_image_id}/delete",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Open API V3 endpoint to delete a listing image. A copy of the file remains on our servers, and so a deleted image may be re-associated with the listing without re-uploading the original image; see uploadListingImage.",
+    "auditNotes": "Association removed, underlying Etsy copy retained and reassociable; not binary erasure."
+  },
+  {
+    "operationId": "deleteListingPersonalization",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/personalization",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1personalization/delete",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes personalization for a listing.",
+    "auditNotes": "Disables personalization, removes questions and sets is_personalizable false; scope listings_w, not listings_d."
+  },
+  {
+    "operationId": "deleteListingProperty",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/properties/{property_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1properties~1{property_id}/delete",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a property for a Listing.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "deleteListingVideo",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/videos/{video_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1videos~1{video_id}/delete",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Open API V3 endpoint to delete a listing video. A copy of the video remains on our servers, and so a deleted video may be re-associated with the listing without re-uploading the original video; see uploadListingVideo.",
+    "auditNotes": "Association removed; retained video can be reassociated; not binary erasure."
+  },
+  {
+    "operationId": "deleteShopReadinessStateDefinition",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/readiness-state-definitions/{readiness_state_definition_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1readiness-state-definitions~1{readiness_state_definition_id}/delete",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a ReadinessStateDefinition by given readiness state definition ID. If there any active offerings linked to the definition, this endpoint will throw a Bad Request error. If you want to delete a ReadinessStateDefinition that is linked to active offerings, you must link the offerings to a different readiness state definition.",
+    "auditNotes": "Fails if active offerings linked; reassign through separately approved operation first. Processing rollout gate remains."
+  },
+  {
+    "operationId": "deleteShopReturnPolicy",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/policies/return/{return_policy_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return~1{return_policy_id}/delete",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes an existing Return Policy. Deletion is only allowed for policies which have no associated listings – move them to another policy before attempting deletion.",
+    "auditNotes": "Only policies with no associated listings may be deleted."
+  },
+  {
+    "operationId": "deleteShopSection",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/sections/{shop_section_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1sections~1{shop_section_id}/delete",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a section in a specific shop given a valid shop_section_id.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "deleteShopShippingProfile",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}/delete",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a ShippingProfile by given id.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "deleteShopShippingProfileDestination",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/destinations/{shipping_profile_destination_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1destinations~1{shipping_profile_destination_id}/delete",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a shipping destination and removes the destination option from every listing that uses the associated shipping profile. A shipping profile requires at least one shipping destination, so this endpoint cannot delete the final shipping destination for any shipping profile. To delete the final shipping destination from a shipping profile, you must [delete the entire shipping profile](https://developers.etsy.com/documentation/reference/#operation/deleteShopShippingProfile).",
+    "auditNotes": "Affects every linked listing; cannot delete final destination. Deleting entire profile would require separate explicit approval."
+  },
+  {
+    "operationId": "deleteShopShippingProfileUpgrade",
+    "method": "DELETE",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/upgrades/{upgrade_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1upgrades~1{upgrade_id}/delete",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Deletes a shipping profile upgrade and removes the upgrade option from every listing that uses the associated shipping profile.",
+    "auditNotes": "Removes upgrade from all listings using profile."
+  },
+  {
+    "operationId": "deleteUserAddress",
+    "method": "DELETE",
+    "path": "/v3/application/user/addresses/{user_address_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1user~1addresses~1{user_address_id}/delete",
+    "matrixSection": "Users and addresses — [account access plan](planned-oauth-and-accounts.md#user-and-address-tools)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "address_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Open API V3 endpoint to delete a UserAddress for a User.",
+    "auditNotes": "SCOPE CONFLICT: endpoint declares address_r; authentication guide describes address_w for deletion. Record exact schema rather than invent a correction. Block production deletion pending Etsy clarification."
+  },
+  {
+    "operationId": "findAllActiveListingsByShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/active",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1active/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Only keywords/paging/sorting declared. Sorting requires a search option; do not copy advanced global-search fields here."
+  },
+  {
+    "operationId": "findAllListingsActive",
+    "method": "GET",
+    "path": "/v3/application/listings/active",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1active/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "buyer_country filters shipping eligibility, unlike batch pricing context. score always descending. Preserve existing required keywords and stricter local bounds."
+  },
+  {
+    "operationId": "findShops",
+    "method": "GET",
+    "path": "/v3/application/shops",
+    "sourcePointer": "#/paths/~1v3~1application~1shops/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Rare frozen/removed shops may appear. Search is not exact resolution; retain bounded local matching and getShop follow-up."
+  },
+  {
+    "operationId": "getAllListingFiles",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/files",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1files/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getBuyerTaxonomyNodes",
+    "method": "GET",
+    "path": "/v3/application/buyer-taxonomy/nodes",
+    "sourcePointer": "#/paths/~1v3~1application~1buyer-taxonomy~1nodes/get",
+    "matrixSection": "Taxonomy — [public discovery plan](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getFeaturedListingsByShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/featured",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1featured/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getHolidayPreferences",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/holiday-preferences",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1holiday-preferences/get",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "US/CA only. Guide maps holiday IDs 1-23, while update schema enum is 1-105: use returned country-specific holidays, not every enum value as regional entitlement."
+  },
+  {
+    "operationId": "getListing",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "allow_suggested_title is owner-OAuth-only but exact scope is not named: do not enable it until clarified. BuyerPrice is enumerated, but response description says batch only and this operation has no buyer_country. Inventory/Shipping includes removed."
+  },
+  {
+    "operationId": "getListingFile",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/files/{listing_file_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1files~1{listing_file_id}/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingImage",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/images/{listing_image_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1images~1{listing_image_id}/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingImages",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/images",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1images/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingInventory",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/inventory",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1inventory/get",
+    "matrixSection": "Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Owner-only SKU; absent inventory is not zero stock. show_deleted defaults false in prose; includes only Listing. No legacy or max_variations_supported query declared here."
+  },
+  {
+    "operationId": "getListingOffering",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/products/{product_id}/offerings/{product_offering_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1products~1{product_id}~1offerings~1{product_offering_id}/get",
+    "matrixSection": "Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "API-key-only, unlike product/inventory reads. Path omits /inventory; do not reconstruct from related routes or webhook examples."
+  },
+  {
+    "operationId": "getListingPersonalization",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/personalization",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1personalization/get",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingProduct",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/inventory/products/{product_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1inventory~1products~1{product_id}/get",
+    "matrixSection": "Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingProperties",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/properties",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1properties/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingProperty",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/properties/{property_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1properties~1{property_id}/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "BLOCKED: Feedback only banner explicitly says development in progress, only 501 responses. Do not advertise a callable detail tool from schema presence. Retain M2.5 detail task with this blocker."
+  },
+  {
+    "operationId": "getListingTranslation",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/translations/{language}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1translations~1{language}/get",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingVariationImages",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/variation-images",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1variation-images/get",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "API-key-only security, unlike inventory/product reads; M4 grouping is sequencing, not evidence of an OAuth requirement."
+  },
+  {
+    "operationId": "getListingVideo",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/videos/{video_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1videos~1{video_id}/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Reference says request can return empty result; do not fabricate video availability from response schema. Metadata only."
+  },
+  {
+    "operationId": "getListingVideos",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/videos",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1videos/get",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingsByListingIds",
+    "method": "GET",
+    "path": "/v3/application/listings/batch",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1batch/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "100-ID maximum in prose, not maxItems. BuyerPrice requires buyer_country, does not filter IDs, and is batch-only per response description. Removed Inventory/Shipping includes remain rejected."
+  },
+  {
+    "operationId": "getListingsByShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingsByShopReceipt",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}/listings",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}~1listings/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getListingsByShopReturnPolicy",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/policies/return/{return_policy_id}/listings",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return~1{return_policy_id}~1listings/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Requires listings_r: policy-linked listings are not public despite public policy detail/list routes. No limit/offset declared. M2.7 linked listings must follow M3, not acquire invented public access/paging."
+  },
+  {
+    "operationId": "getListingsByShopSectionId",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/shop-sections/listings",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shop-sections~1listings/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "shop_section_ids is required query array, not an invented section path segment; only declared sorting/paging/legacy supported."
+  },
+  {
+    "operationId": "getListingsInventoryByListingIds",
+    "method": "GET",
+    "path": "/v3/application/listings/batch/inventory",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1batch~1inventory/get",
+    "matrixSection": "Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "listings_r; <=100 IDs in prose; any missing ID causes whole-request 404; other sellers' SKUs are empty strings. Inventory may be null."
+  },
+  {
+    "operationId": "getListingsShippingByListingIds",
+    "method": "GET",
+    "path": "/v3/application/listings/batch/shipping",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1batch~1shipping/get",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "shops_r; <=100 IDs in prose; any missing ID causes whole-request 404; foreign-owner profile and ID null; digital listings may have no profile."
+  },
+  {
+    "operationId": "getMe",
+    "method": "GET",
+    "path": "/v3/application/users/me",
+    "sourcePointer": "#/paths/~1v3~1application~1users~1me/get",
+    "matrixSection": "Users and addresses — [account access plan](planned-oauth-and-accounts.md#user-and-address-tools)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getPaymentAccountLedgerEntryPayments",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/payment-account/ledger-entries/payments",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1payment-account~1ledger-entries~1payments/get",
+    "matrixSection": "Payments and ledger — [reconciliation plan](planned-orders-and-payments.md#payments-and-ledger-reconciliation)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Use required ledger_entry_ids, not tutorial's ledger_id wording. Unrelated entries can have no payment."
+  },
+  {
+    "operationId": "getPayments",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/payments",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1payments/get",
+    "matrixSection": "Payments and ledger — [reconciliation plan](planned-orders-and-payments.md#payments-and-ledger-reconciliation)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "payment_ids required despite optional-sounding description/tutorial. Money-shaped fields retain own divisor/currency, not blanket pennies."
+  },
+  {
+    "operationId": "getPropertiesByBuyerTaxonomyId",
+    "method": "GET",
+    "path": "/v3/application/buyer-taxonomy/nodes/{taxonomy_id}/properties",
+    "sourcePointer": "#/paths/~1v3~1application~1buyer-taxonomy~1nodes~1{taxonomy_id}~1properties/get",
+    "matrixSection": "Taxonomy — [public discovery plan](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getPropertiesByTaxonomyId",
+    "method": "GET",
+    "path": "/v3/application/seller-taxonomy/nodes/{taxonomy_id}/properties",
+    "sourcePointer": "#/paths/~1v3~1application~1seller-taxonomy~1nodes~1{taxonomy_id}~1properties/get",
+    "matrixSection": "Taxonomy — [public discovery plan](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getReviewsByListing",
+    "method": "GET",
+    "path": "/v3/application/listings/{listing_id}/reviews",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1reviews/get",
+    "matrixSection": "Reviews — [current reviews](reviews.md), [planned listing reviews](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getReviewsByShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/reviews",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1reviews/get",
+    "matrixSection": "Reviews — [current reviews](reviews.md), [planned listing reviews](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Public paged samples, min_created/max_created >=946684800; no sort control. Retain buyer minimization and sample/truncation notices."
+  },
+  {
+    "operationId": "getSellerTaxonomyNodes",
+    "method": "GET",
+    "path": "/v3/application/seller-taxonomy/nodes",
+    "sourcePointer": "#/paths/~1v3~1application~1seller-taxonomy~1nodes/get",
+    "matrixSection": "Taxonomy — [public discovery plan](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShippingCarriers",
+    "method": "GET",
+    "path": "/v3/application/shipping-carriers",
+    "sourcePointer": "#/paths/~1v3~1application~1shipping-carriers/get",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Public profile; used indirectly by existing get_shop_by_name. No extra filters/flags declared."
+  },
+  {
+    "operationId": "getShopByOwnerUserId",
+    "method": "GET",
+    "path": "/v3/application/users/{user_id}/shops",
+    "sourcePointer": "#/paths/~1v3~1application~1users~1{user_id}~1shops/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopPaymentAccountLedgerEntries",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/payment-account/ledger-entries",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1payment-account~1ledger-entries/get",
+    "matrixSection": "Payments and ledger — [reconciliation plan](planned-orders-and-payments.md#payments-and-ledger-reconciliation)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "min_created/max_created required. Reject tutorial NaN and missing-shop URL. Standalone amount/balance scaling unresolved: retain raw integer/currency."
+  },
+  {
+    "operationId": "getShopPaymentAccountLedgerEntry",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/payment-account/ledger-entries/{ledger_entry_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1payment-account~1ledger-entries~1{ledger_entry_id}/get",
+    "matrixSection": "Payments and ledger — [reconciliation plan](planned-orders-and-payments.md#payments-and-ledger-reconciliation)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Standalone amount/balance integers have no specified divisor. No invented cents conversion. Adjustment currencies/units are field-specific; see README."
+  },
+  {
+    "operationId": "getShopPaymentByReceiptId",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}/payments",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}~1payments/get",
+    "matrixSection": "Payments and ledger — [reconciliation plan](planned-orders-and-payments.md#payments-and-ledger-reconciliation)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopProductionPartners",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/production-partners",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1production-partners/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReadinessStateDefinition",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/readiness-state-definitions/{readiness_state_definition_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1readiness-state-definitions~1{readiness_state_definition_id}/get",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Physical processing definition, not digital shipping/transit. Readiness ID response visibility is conditional; rollout conflict documented in README."
+  },
+  {
+    "operationId": "getShopReadinessStateDefinitions",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/readiness-state-definitions",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1readiness-state-definitions/get",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Paged shops_r processing definitions. No legacy query declared on this operation; do not blanket-copy migration examples."
+  },
+  {
+    "operationId": "getShopReceipt",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Regional address fields require preferred partnership; buyer_email requires app approval. Consent does not guarantee fields."
+  },
+  {
+    "operationId": "getShopReceiptTransaction",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/transactions/{transaction_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1transactions~1{transaction_id}/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReceiptTransactionsByListing",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/transactions",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1transactions/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReceiptTransactionsByReceipt",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}/transactions",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}~1transactions/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReceiptTransactionsByShop",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/transactions",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1transactions/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReceipts",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/receipts",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts/get",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Regional address/email restrictions apply to lists. Use only declared filters; overlap/deduplicate sync without claiming snapshot consistency."
+  },
+  {
+    "operationId": "getShopReturnPolicies",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/policies/return",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return/get",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopReturnPolicy",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/policies/return/{return_policy_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return~1{return_policy_id}/get",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopSection",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/sections/{shop_section_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1sections~1{shop_section_id}/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopSections",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/sections",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1sections/get",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopShippingProfile",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}/get",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopShippingProfileDestinationsByShippingProfile",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/destinations",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1destinations/get",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopShippingProfileUpgrades",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/upgrades",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1upgrades/get",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getShopShippingProfiles",
+    "method": "GET",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles/get",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getUser",
+    "method": "GET",
+    "path": "/v3/application/users/{user_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1users~1{user_id}/get",
+    "matrixSection": "Users and addresses — [account access plan](planned-oauth-and-accounts.md#user-and-address-tools)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "email_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "Only authenticated user or linked buyers. primary_email requires case-by-case app approval in addition to email_r."
+  },
+  {
+    "operationId": "getUserAddress",
+    "method": "GET",
+    "path": "/v3/application/user/addresses/{user_address_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1user~1addresses~1{user_address_id}/get",
+    "matrixSection": "Users and addresses — [account access plan](planned-oauth-and-accounts.md#user-and-address-tools)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "address_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "getUserAddresses",
+    "method": "GET",
+    "path": "/v3/application/user/addresses",
+    "sourcePointer": "#/paths/~1v3~1application~1user~1addresses/get",
+    "matrixSection": "Users and addresses — [account access plan](planned-oauth-and-accounts.md#user-and-address-tools)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "address_r"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "ping",
+    "method": "GET",
+    "path": "/v3/application/openapi-ping",
+    "sourcePointer": "#/paths/~1v3~1application~1openapi-ping/get",
+    "matrixSection": "Diagnostics — [connection plan](planned-oauth-and-accounts.md), [public discovery](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Read only.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "tokenScopes",
+    "method": "POST",
+    "path": "/v3/application/scopes",
+    "sourcePointer": "#/paths/~1v3~1application~1scopes/post",
+    "matrixSection": "Diagnostics — [connection plan](planned-oauth-and-accounts.md), [public discovery](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": []
+      }
+    ],
+    "ownerFieldBoundary": "API-key baseline; do not infer access to private/owner-only fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Credential-bearing scope inspection, not a shop mutation; resolve token internally.",
+    "auditNotes": "POST diagnostic with API-key security and required token request body. Not a shop mutation, but secret-bearing; only internally resolved tokens."
+  },
+  {
+    "operationId": "updateHolidayPreferences",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/holiday-preferences/{holiday_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1holiday-preferences~1{holiday_id}/put",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates the preference for whether the seller will process orders or not on the holiday. Currently only supported in the US and CA",
+    "auditNotes": "US/CA only; validate holiday belongs to shop country; broad enum is not proof all holidays apply."
+  },
+  {
+    "operationId": "updateListing",
+    "method": "PATCH",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}/patch",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates a listing, identified by a listing ID, for a specific shop identified by a shop ID. Note that this is a PATCH method type. When activating, or manually renewing a physical listing, the shipping profile referenced by the `shipping_profile_id`, and all of its fields, along with its entries and upgrades must be complete and valid. If the shipping profile is not complete and valid, we will throw an exception with an error message that guides the request sender to update whatever data is bad.   Digital listings that are not made to order must have a file upload associated with it to be activated. While the listing is a draft, shipping profile and file upload are not required in any case.",
+    "auditNotes": "PATCH, not obsolete tutorial PUT. Activation/publication or renewal has visibility/fee effects; sold-out activation sets quantity to one per state description. Validate complete shipping, image and required digital-file prerequisites."
+  },
+  {
+    "operationId": "updateListingInventory",
+    "method": "PUT",
+    "path": "/v3/application/listings/{listing_id}/inventory",
+    "sourcePointer": "#/paths/~1v3~1application~1listings~1{listing_id}~1inventory/put",
+    "matrixSection": "Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates the inventory for a listing identified by a listing ID. The update fails if the supplied values for product sku, offering quantity, price, and/or processing profile are incompatible with values in `*_on_property` fields. When setting a price, assign a float equal to amount divided by divisor as specified in the Money resource.",
+    "auditNotes": "Whole product-set replacement. Preserve all four dependency arrays and unaffected variants; reject truncated/stale sources. Write decimal price = amount/divisor. max_variations_supported is string enum 2/3 in schema versus integer in guide; enable_scale_validation is temporary. No legacy query declared here. Third-variation eligibility and processing rollout conflicts are release gates in README."
+  },
+  {
+    "operationId": "updateListingPersonalization",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/personalization",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1personalization/post",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates or updates personalization settings for a listing, allowing the seller to collect personalization from the buyer. This endpoint will fully replace any existing personalization on the listing.",
+    "auditNotes": "Full replacement. Guide requires supports_multiple_personalization_questions=true for multiple/new types; omission can produce 409. Preserve question IDs and explicit add_on_price. Additional guide-only validation/undated pricing rollout in README."
+  },
+  {
+    "operationId": "updateListingProperty",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/properties/{property_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1properties~1{property_id}/put",
+    "matrixSection": "Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates or populates the properties list defining product offerings for a listing. Each offering requires both a `value` and a `value_id` that are valid for a `scale_id` assigned to the listing or that you assign to the listing with this request.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "updateListingTranslation",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/translations/{language}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1translations~1{language}/put",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates a ListingTranslation by listing_id and language",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "updateShop",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}/put",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_r",
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates a shop. Assumes that all string parameters are provided in the shop's primary language. Please note that the policy_additional field should only be set for shops located in the EU. Passing a value for this field for shops outside of the EU, will result in an error.",
+    "auditNotes": "Requires BOTH shops_r and shops_w. Strings use primary shop language; policy_additional is EU-only."
+  },
+  {
+    "operationId": "updateShopReadinessStateDefinition",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/readiness-state-definitions/{readiness_state_definition_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1readiness-state-definitions~1{readiness_state_definition_id}/put",
+    "matrixSection": "Processing profiles and holidays — [processing and holidays plan](planned-shop-management.md#processing-profiles-and-holiday-preferences)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates an existing ReadinessStateDefinition. If an existing definition matches the input values, this endpoint will throw a Conflict error, please refer to the Content-Location header to obtain the get endpoint url for the values of the existing definition. Does not affect the product offering-readiness states definition relationship.",
+    "auditNotes": "Duplicate values conflict with Content-Location; preserves offering links but shared definition values affect all linked offerings. Processing production gate pending guide/reference reconciliation."
+  },
+  {
+    "operationId": "updateShopReceipt",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/receipts/{receipt_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1receipts~1{receipt_id}/put",
+    "matrixSection": "Receipts and transactions — [orders and fulfillment plan](planned-orders-and-payments.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "transactions_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates the status of a receipt, identified by a receipt id, from an Etsy shop. **NOTE** Access to ShopReceipt's first_line, second_line, city, state, zip, country_iso and formatted_address is contingent in some regions to a preferred partnership status with Etsy",
+    "auditNotes": "Only was_paid/was_shipped flags, not cancellation/refunds/arbitrary status. Receipt field restrictions persist."
+  },
+  {
+    "operationId": "updateShopReturnPolicy",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/policies/return/{return_policy_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1policies~1return~1{return_policy_id}/put",
+    "matrixSection": "Return policies — [policy management plan](planned-shop-management.md#return-policies)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates an existing Return Policy. Note: if either accepts_returns or accepts_exchanges is true, then a return_deadline is required.",
+    "auditNotes": "return_deadline required when returns/exchanges accepted; shared impact and duplicate-policy conflicts matter."
+  },
+  {
+    "operationId": "updateShopSection",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/sections/{shop_section_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1sections~1{shop_section_id}/put",
+    "matrixSection": "Shops, sections, and production partners — [shop management plan](planned-shop-management.md#shop-profile-and-organization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates a section in a specific shop given a valid shop_section_id.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "updateShopShippingProfile",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}/put",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Changes the settings in a shipping profile. You can pass a country iso code or a region when updating a ShippingProfile, but not both. Only one is required. You must pass either a shipping_carrier_id AND mail_class, or both min and max_delivery_days.",
+    "auditNotes": "Country/region mutually exclusive; carrier+mail_class or min+max delivery days required. Shared impact; processing is not transit."
+  },
+  {
+    "operationId": "updateShopShippingProfileDestination",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/destinations/{shipping_profile_destination_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1destinations~1{shipping_profile_destination_id}/put",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates an existing shipping destination, which can set or reassign the shipping cost, carrier, and class for a destination.",
+    "auditNotes": "No additional guide-specific exception identified; apply subsystem findings and exact source contract."
+  },
+  {
+    "operationId": "updateShopShippingProfileUpgrade",
+    "method": "PUT",
+    "path": "/v3/application/shops/{shop_id}/shipping-profiles/{shipping_profile_id}/upgrades/{upgrade_id}",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1shipping-profiles~1{shipping_profile_id}~1upgrades~1{upgrade_id}/put",
+    "matrixSection": "Shipping profiles, destinations, and upgrades — [shipping plan](planned-shop-management.md#shipping-profiles-and-destinations)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "shops_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Updates a shipping profile upgrade and updates any listings that use the shipping profile.",
+    "auditNotes": "Updates all listings using profile."
+  },
+  {
+    "operationId": "updateVariationImages",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/variation-images",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1variation-images/post",
+    "matrixSection": "Personalization, translations, and variation images — [listing management](planned-listing-management.md#content-attributes-and-localization)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Creates variation images on a listing. `variation_images` is an array with inputs for the `property_id`, `value_id`, and `image_id` fields. `image_ids` are associated with a `ListingImage` on the listing associated with the provided `listing_id`. `property_id` and `value_id` pairs are associated with a `ListingProduct` on the listing associated with the provided `listing_id`. `variation_images` should not contain any duplicates. `variation_images` does not contain more than one `property_id` as variation images can only be associated on one property. The update overwrites all existing variation images on a listing, so if your request is successful, the variation images on the listing will be exactly those you specify.",
+    "auditNotes": "Full replacement; no duplicates; only one property_id; images and property/value pairs must belong to this listing."
+  },
+  {
+    "operationId": "uploadListingFile",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/files",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1files/post",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Uploads a new file for a digital listing, or associates an existing file with a specific listing. You must either provide the `listing_file_id` of an existing file, or the name and binary file data for a file to upload. Associating an existing file to a physical listing converts the physical listing into a digital listing, which removes all shipping costs and any product and inventory variations.",
+    "auditNotes": "Existing-file association can convert physical to digital and remove shipping costs and variations/inventory. Reference names listing_file_id; guide file_id/encoding examples conflict. Follow declared multipart contract and reject ambiguous source selection."
+  },
+  {
+    "operationId": "uploadListingImage",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/images",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1images/post",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Uploads or assigns an image to a listing identified by a shop ID with a listing ID. To upload a new image, set the image file as the value for the `image` parameter. You can assign a previously deleted image to a listing using the deleted image's image ID in the `listing_image_id` parameter. When a request contains both `image` and `listing_image_id` parameter values, the endpoint uploads the image in the `image` parameter only. Note: When uploading a new image, data such as colors and size may return as null values due to asynchronous processing of the image. Use getListingImage endpoint to fetch these values.",
+    "auditNotes": "If image and listing_image_id both supplied, binary image wins upstream; planned MCP should reject ambiguity. Asynchronous colors/size can be null; read metadata later."
+  },
+  {
+    "operationId": "uploadListingVideo",
+    "method": "POST",
+    "path": "/v3/application/shops/{shop_id}/listings/{listing_id}/videos",
+    "sourcePointer": "#/paths/~1v3~1application~1shops~1{shop_id}~1listings~1{listing_id}~1videos/post",
+    "matrixSection": "Digital files, images, and videos — [listing management](planned-listing-management.md), [public metadata reads](planned-public-discovery.md)",
+    "security": [
+      {
+        "api_key": [],
+        "oauth2": [
+          "listings_w"
+        ]
+      }
+    ],
+    "ownerFieldBoundary": "Enforce granted scopes and connected-account/resource relationship; minimize sensitive fields. Additional operation/field restrictions are in original descriptions and referenced schemas; absence of a stated restriction is not an entitlement guarantee.",
+    "mutationSemantics": "Mutation: Uploads a new video for a listing, or associates an existing video with a specific listing. You must either provide the `video_id` of an existing video, or the name and binary file data for a video to upload. If providing a `video_id`, the video must already be associated with the same shop as the listing, but it does not need to be currently associated with the listing. By default, the endpoint handles single video uploads, but setting `is_multi_video` to true enables to link up to 2 videos to the same listing.",
+    "auditNotes": "Existing video must belong to same shop. Description says is_multi_video=true permits up to two videos, but no query/body property declares this flag: wire placement unresolved, block that extension pending clarification."
+  }
+]

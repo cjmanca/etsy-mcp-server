@@ -2,6 +2,21 @@
 
 **Status: unimplemented proposals.** Read with the [access policy](access-policy.md); use the [coverage matrix](api-coverage.md) for exact Etsy operation IDs. This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
+## M0.1 verified contract findings (2026-10-17)
+
+Read the [complete operation contracts](contracts/operations.md) and
+[six-tool extension/public-discovery findings](contracts/README.md#six-existing-tool-extension-checks).
+All taxonomy, public listing/shop/review, section, metadata and diagnostic rows
+retain exact input/response schemas in the original snapshot. **Exceptions to
+the proposed grouping:** `getListingProperty` is feedback-only and returns 501;
+keep that detail capability blocked. `getListingsByShopReturnPolicy` requires
+`listings_r` and declares no paging parameters, so that portion follows OAuth M3.
+`getListingVariationImages` and `getListingOffering` are API-key-only; do not
+infer inventory scopes for them. BuyerPrice appears in detail includes but its
+field contract supports batch only. Owner-only suggested titles need an OAuth
+token with an unspecified exact scope and remain disabled pending clarification.
+These are analysis findings, not implemented tools.
+
 ## Proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
@@ -24,7 +39,7 @@
 | `get_listing_personalization` | Listing ID. | Questions, required flags, character/file limits, options, and add-on prices when present. |
 | `get_listing_translation` | Shop ID, listing ID, IETF language tag. | Etsy's existing localized title, description, and tags, not an AI-generated translation. |
 | `get_shop_return_policies`, `get_shop_return_policy` | Shop ID; return-policy ID for detail. | Return/exchange acceptance and deadlines. |
-| `get_return_policy_listings` | Shop ID, return-policy ID, supported paging. | Products associated with a policy. |
+| `get_return_policy_listings` | Connection ID, shop ID, return-policy ID; no paging query declared. | Authorized products associated with a policy (`listings_r`); follows M3, not a public-only tool. |
 | `get_shipping_carriers` | Country/filter fields supported by the endpoint. | Carrier IDs and mail classes for discovery and later fulfillment/shipping configuration. |
 | `ping_etsy` | No caller-supplied URL or credentials. | Bounded connectivity/application-access diagnostic; not proof that private scopes are granted. |
 
