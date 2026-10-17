@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, and M1.5 batch listing lookup are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, and M1.6 buyer-price components are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -61,14 +61,21 @@ Translations are mapped to a bounded language-keyed object containing only langu
 
 `get_listings_batch` uses the public, API-key-only `GET /v3/application/listings/batch` route once with 1–100 positive safe-integer IDs. Duplicate input IDs are removed in first-seen order, and rows are matched and ordered by ID rather than Etsy's response position. Etsy's `count`, source-row count, locally returned-row count, `requested_ids`, `not_returned_ids`, and `truncated` distinguish source omissions from rows dropped only to fit the 128 KiB JSON output cap. A whole-request error is one sanitized error; it is never converted into per-ID success claims.
 
-The accepted association allowlist reuses M1.4's bounded `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization` mapping. Private/unselected fields, `BuyerPrice`, `Inventory`, and `Shipping` are not exposed. Optional uppercase `currency` requests the documented conversion; original `price` remains unchanged and a returned `converted_price` is separate structured money. `buyer_country`/BuyerPrice components remain with M1.6, and no `legacy` migration flag is sent because M1.5 does not require processing-profile fields or establish rollout readiness. The upstream response remains capped at 1 MiB and MCP JSON output at 128 KiB.
+The accepted association allowlist reuses M1.4's bounded `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization` mapping. Private/unselected fields, `BuyerPrice`, `Inventory`, and `Shipping` are not exposed by `get_listings_batch`. Optional uppercase `currency` requests the documented conversion; original `price` remains unchanged and a returned `converted_price` is separate structured money. Buyer country and BuyerPrice components are exposed by the separate M1.6 tool, and no `legacy` migration flag is sent because M1.5 does not require processing-profile fields or establish rollout readiness. The upstream response remains capped at 1 MiB and MCP JSON output at 128 KiB.
+
+## Current M1.6: buyer-facing price components
+
+`get_listing_buyer_prices` calls public, API-key-only `GET /v3/application/listings/batch` once with required `buyer_country` and `includes=BuyerPrice`; optional `currency` is also passed when supplied. Buyer country is an uppercase two-letter ISO-format price context, not a filter on listing IDs. Currency accepts the existing uppercase three-letter syntax. No local supported-country/currency list is maintained; Etsy may reject values it does not support. The separate tool does not enable `BuyerPrice` in `get_listings_batch` or `get_listing_details`; the latter remains unavailable for BuyerPrice because Etsy documents the association as batch-only.
+
+Output selects the actual `ListingBuyerPrice` fields: `base_price`, `shipping_cost`, `is_free_shipping`, `original_price`, `discounted_price`, `discount_amount`, `discount_percentage`, `has_discount`, `discount_start_epoch`, and `discount_end_epoch`. Money is normalized using the shared structured-money helper and preserves raw `amount`, `divisor`, and `currency_code`; no `/100` scaling or derived values are added. The listing's original formatted `price` and optional separate `converted_price` are retained alongside `buyer_price`. Absent fields stay absent and explicit null/zero/false values stay distinct. Invalid/unsafe money fails the whole request with a sanitized upstream error.
+
+Per Etsy's current schema, `base_price` includes VAT and excludes shipping; `shipping_cost` includes VAT where applicable and may be null for free or unavailable shipping, distinguished only by the returned `is_free_shipping` flag. `original_price` is the display price (UK: base plus shipping under DMCC; elsewhere: base only), and `discounted_price` follows the same country-dependent display treatment. These fields are not a final checkout quote or a basis for invented taxes/totals. IDs, source-response validation, omissions, output trimming, the 10-second timeout, 1 MiB upstream limit, 128 KiB output cap, and untrusted-content notice retain the M1.5 shared batch behavior.
 
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
 | `get_shop` | `shop_id`. | Direct public profile lookup without repeating name search. |
 | `get_shop_by_owner` | `user_id`. | Public shop discovery using a known owner ID. |
 | `get_featured_shop_listings` | `shop_id`; only endpoint-supported result controls. | Products curated as featured by the shop, not a platform-wide trend ranking. |
@@ -101,8 +108,8 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 
 ## Acceptance criteria
 
-- [ ] Category discovery can produce an ID that a filtered listing search accepts; buyer and seller taxonomy results cannot be confused.
-- [ ] Batch lookup and buyer pricing preserve currency, IDs, null/unavailable fields, and bounded output.
+- [x] Category discovery can produce an ID that a filtered listing search accepts; buyer and seller taxonomy results cannot be confused (mocked end-to-end M1.6 sequence plus buyer/seller route coverage; no live availability claim).
+- [x] Batch lookup and buyer pricing preserve currency, IDs, null/unavailable fields, and bounded output (M1.5/M1.6 mocked verification; no live availability claim).
 - [ ] Direct shop, section, featured-product, and listing-review tools reach their documented routes and describe sample/completeness limits.
 - [ ] Dedicated media/attribute/translation/personalization/policy tools expose selected useful fields, not unrestricted upstream objects.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.

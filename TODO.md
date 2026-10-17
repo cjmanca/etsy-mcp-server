@@ -25,7 +25,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [x] Buyer/seller taxonomy browsing and bounded local filtering: `get_taxonomy_nodes` (M1.1; verification in [TASK.md](TASK.md)).
 - [x] Buyer/seller property/scale/value discovery: `get_taxonomy_properties` (M1.2; verification in [TASK.md](TASK.md)).
 - [x] Batch listing lookup: `get_listings_batch` (M1.5; evidence in [TASK.md](TASK.md)).
-- [ ] Buyer-country-aware price components: `get_listing_buyer_prices`.
+- [x] Buyer-country-aware price components: `get_listing_buyer_prices` (M1.6; evidence in [TASK.md](TASK.md)).
 - [ ] Direct shop/owner lookup: `get_shop`, `get_shop_by_owner`.
 - [ ] Featured products: `get_featured_shop_listings`.
 - [ ] Section browsing: `get_shop_sections`, `get_shop_section`, `get_shop_section_listings`.

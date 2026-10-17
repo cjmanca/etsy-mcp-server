@@ -60,7 +60,7 @@ Get Etsy listing 1234567890 with its shop and images.
 
 Supported includes are `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization`; the original four remain supported. `language` is an optional IETF language tag (up to 35 characters). Listing summaries may include returned category/policy/readiness references, listing type, variation/personalization flags, and default language. Readiness IDs are conditional references, not fulfillment guarantees.
 
-Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. Etsy's batch-only `BuyerPrice` association is not yet exposed; the selected buyer-price tool remains planned for M1.6. `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
+Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. Etsy's batch-only `BuyerPrice` association is exposed through the separate `get_listing_buyer_prices` tool, not through single-listing details. `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
 
 ## Batch listing lookup
 
@@ -74,7 +74,21 @@ Retrieve several known listing IDs with one public request. Duplicate IDs are re
 }
 ```
 
-The result order follows `requested_ids`, not Etsy's source order. `not_returned_ids` identifies only IDs missing from Etsy's source rows; `source_returned`, `returned`, and `truncated` distinguish those omissions from rows trimmed to fit the 128 KiB output limit. `price` stays in the listing's original currency; a returned `converted_price` is separate structured money. `BuyerPrice` components and `buyer_country` remain planned for M1.6.
+The result order follows `requested_ids`, not Etsy's source order. `not_returned_ids` identifies only IDs missing from Etsy's source rows; `source_returned`, `returned`, and `truncated` distinguish those omissions from rows trimmed to fit the 128 KiB output limit. `price` stays in the listing's original currency; a returned `converted_price` is separate structured money. Use the separate buyer-price tool when country-specific display and shipping components are needed.
+
+## Buyer-facing price components
+
+Supply listing IDs and the buyer's country; currency is optional:
+
+```json
+{
+  "listing_ids": [1234567890, 1234567891],
+  "buyer_country": "GB",
+  "currency": "EUR"
+}
+```
+
+The response keeps listing `price`, optional `converted_price`, and the selected `buyer_price` components separate. Each Money object retains Etsy's raw `amount`, `divisor`, and `currency_code`. A null `shipping_cost` is free only when Etsy separately returns `is_free_shipping: true`; false means unavailable, not free. UK display prices include shipping, while other-country display prices use the base price. These are not checkout totals or tax estimates. The country is price context, not a filter on the requested IDs.
 
 ## Shops and reviews
 
