@@ -20,13 +20,15 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_listings_batch` (1–100 IDs in one request; requested-order results, missing IDs, and output truncation reported)
 - `get_listing_buyer_prices` (1–100 IDs plus required buyer country; separate base/display/discount/shipping components)
 - `get_shop_by_name` (exact case-insensitive match; bounded searches report when incomplete)
+- `get_shop` (direct public profile lookup by shop ID)
+- `get_shop_by_owner` (public profile lookup by owner user ID; does not prove caller ownership)
 - `get_shop_listings` (active listings; pass `keywords` for effective sorting)
 - `search_shops`
 - `get_shop_reviews`
 - `get_taxonomy_nodes` (`buyer` or `seller`; optional local subtree/name filters)
 - `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
 
-All ten tools are read-only and use public Etsy API-key endpoints. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Trending listings and inventory are unsupported. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+All twelve tools are read-only and use public Etsy API-key endpoints. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Trending listings and inventory are unsupported. See [README.md](README.md) for MCP client configuration, limits, and development checks.
 
 Listing summaries may include returned category, return-policy/readiness references, listing type, variation/personalization flags, and default language. Detail translations and personalization are selected and bounded; their seller text is untrusted. Readiness IDs are references, not guarantees. Batch `currency` conversion preserves original `price` separately from `converted_price`. Buyer-price output keeps original, converted, display, discount, and shipping components separate, with raw money units preserved; it is not a checkout quote. `Inventory`/`Shipping` are not detail includes.
 

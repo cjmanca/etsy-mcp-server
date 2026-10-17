@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Ten current tools reach eleven distinct operations (ten directly and one Indirect row); **94 operations are Planned**. The indirect row also has a missing direct MCP tool.
+- Twelve current tools reach twelve distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **93 operations are Planned**.
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -137,9 +137,9 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
-| GET | `getShop` | Currently internal to `get_shop_by_name`; direct `get_shop` planned | Indirect |
+| GET | `getShop` | `get_shop`; also used internally by `get_shop_by_name` | Current |
 | PUT | `updateShop` | `update_shop` | Planned |
-| GET | `getShopByOwnerUserId` | `get_shop_by_owner` | Planned |
+| GET | `getShopByOwnerUserId` | `get_shop_by_owner` | Current |
 | GET | `findShops` | `search_shops`, `get_shop_by_name` | Current |
 | GET | `getShopProductionPartners` | `get_shop_production_partners` | Planned |
 | GET | `getShopSections` | `get_shop_sections` | Planned |

@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, and M1.6 buyer-price components are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, and M2.1 direct shop discovery are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -71,13 +71,15 @@ Output selects the actual `ListingBuyerPrice` fields: `base_price`, `shipping_co
 
 Per Etsy's current schema, `base_price` includes VAT and excludes shipping; `shipping_cost` includes VAT where applicable and may be null for free or unavailable shipping, distinguished only by the returned `is_free_shipping` flag. `original_price` is the display price (UK: base plus shipping under DMCC; elsewhere: base only), and `discounted_price` follows the same country-dependent display treatment. These fields are not a final checkout quote or a basis for invented taxes/totals. IDs, source-response validation, omissions, output trimming, the 10-second timeout, 1 MiB upstream limit, 128 KiB output cap, and untrusted-content notice retain the M1.5 shared batch behavior.
 
+## Current M2.1: direct shop discovery
+
+`get_shop` calls public API-key-only `GET /v3/application/shops/{shop_id}` (`getShop`) directly. `get_shop_by_owner` calls public API-key-only `GET /v3/application/users/{user_id}/shops` (`getShopByOwnerUserId`). Both require positive safe-integer numeric IDs and send no query parameters; neither calls `findShops`. Etsy documents each 200 response as one `Shop` object, not a result page. Both tools reuse the selected bounded shop-profile mapping from `get_shop_by_name`; only shop ID/name/title, announcement, currency, vacation state/messages, sale messages, creation timestamps, active-listing count, and URL can be returned. Missing shop resources retain Etsy's sanitized 404 error. A public owner-ID lookup does not prove caller ownership or authorize account access. Text remains untrusted and bounded, with shortening reported through `truncated`.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_shop` | `shop_id`. | Direct public profile lookup without repeating name search. |
-| `get_shop_by_owner` | `user_id`. | Public shop discovery using a known owner ID. |
 | `get_featured_shop_listings` | `shop_id`; only endpoint-supported result controls. | Products curated as featured by the shop, not a platform-wide trend ranking. |
 | `get_shop_sections`, `get_shop_section` | Shop ID; section ID for detail. | Public section titles, order, and active-listing counts. |
 | `get_shop_section_listings` | Shop ID and section ID selection, with endpoint-supported paging/sort controls. | Catalog browsing by actual shop section instead of keyword inference. |
@@ -110,7 +112,8 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 
 - [x] Category discovery can produce an ID that a filtered listing search accepts; buyer and seller taxonomy results cannot be confused (mocked end-to-end M1.6 sequence plus buyer/seller route coverage; no live availability claim).
 - [x] Batch lookup and buyer pricing preserve currency, IDs, null/unavailable fields, and bounded output (M1.5/M1.6 mocked verification; no live availability claim).
-- [ ] Direct shop, section, featured-product, and listing-review tools reach their documented routes and describe sample/completeness limits.
+- [x] Direct shop-ID and public owner-ID lookup use their documented routes and selected profile output without changing exact-name search (M2.1 mocked verification; no caller-ownership claim).
+- [ ] Shop organization, featured-product, and listing-review tools reach their documented routes and describe sample/completeness limits.
 - [ ] Dedicated media/attribute/translation/personalization/policy tools expose selected useful fields, not unrestricted upstream objects.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.
 

@@ -14,6 +14,8 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_listing_buyer_prices` | Compare Etsy's buyer-country-aware base, display, discount, and shipping price components for up to 100 listings. | [Listings](listing-discovery.md#compare-buyer-facing-price-components) |
 | `search_shops` | Find candidate shops by name. | [Shops](shops.md) |
 | `get_shop_by_name` | Resolve an exact, case-insensitive shop name and read its public profile. | [Shops](shops.md) |
+| `get_shop` | Read a public shop profile directly by numeric shop ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
+| `get_shop_by_owner` | Read the public shop associated with a numeric owner user ID. | [Shops](shops.md#look-up-a-known-shop-or-owner-id) |
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
 | `get_shop_reviews` | Read public shop reviews, optionally within a date range. | [Reviews](reviews.md) |
 | `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
@@ -25,6 +27,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Batch listing lookup:** retrieve a selected set of listing IDs in one call; inspect `not_returned_ids` and `truncated` before treating the response as complete.
 - **Buyer-facing price comparison:** provide a required buyer country to retrieve Etsy's separate base/display/discount/shipping components for selected IDs. This is not a checkout quote.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
+- **Known shop or owner ID:** use `get_shop` or `get_shop_by_owner` to read a public profile without repeating name search. Owner-ID lookup does not prove caller ownership.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
 - **Category attributes:** use the ID from the matching buyer or seller tree to inspect category-supported properties, scales, and values. Seller-only flags can filter properties by attribute or variation support.
