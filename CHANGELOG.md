@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added buyer and seller category browsing with optional local subtree and name filters.
 - Added buyer and seller category-property lookup with supported scales, values, and variation constraints.
 - Added category, location, safe-content, currency, and ship-to-country filters to listing search.
+- Enriched listing details with selected category, policy/readiness, variation, personalization, and translation data.
 
 ### Documentation
 

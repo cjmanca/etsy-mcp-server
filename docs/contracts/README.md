@@ -73,12 +73,12 @@ official sources above were used instead. No MCP fallback was needed.
 
 ## Six existing-tool extension checks
 
-These are audit findings, **not changes to the current tools**.
+These are verified extension contracts. M1.3 and M1.4 are implemented as bounded extensions; other observations remain research guidance, not additional tool behavior.
 
 | Existing tool | Current upstream operation(s) | Extension/compatibility contract |
 | --- | --- | --- |
 | `search_listings` | `findAllListingsActive` | Upstream supports taxonomy_id, shop_location, is_safe, currency, buyer_country; buyer country filters shipping eligibility. Retain required keywords and all current bounds. score always desc regardless of requested order. Currency conversion is a separate nullable Money value. |
-| `get_listing_details` | `getListing` | Includes enum: Images, Shop, User, Translations, Videos, Personalization, BuyerPrice. Keep existing four includes compatible; proposed translation/personalization use declared language/association fields. Inventory/Shipping removed. BuyerPrice remains batch-only by field description, despite enum. No currency/buyer_country/legacy query here. allow_suggested_title needs owner OAuth with unspecified exact scope: disabled until clarified. |
+| `get_listing_details` | `getListing` | Includes enum: Images, Shop, User, Translations, Videos, Personalization, BuyerPrice. M1.4 retains the existing four includes and adds selected translation/personalization output using the declared language/association fields. Inventory/Shipping are not accepted; BuyerPrice remains batch-only by field description despite enum. No currency/buyer_country/legacy query. `allow_suggested_title` needs owner OAuth with unspecified exact scope and remains disabled. |
 | `get_shop_by_name` | `findShops`, then `getShop` | No exact-match parameter exists. Keep bounded five-page/500-candidate local case-insensitive matching, ambiguity/incomplete outcomes and follow-up profile lookup; direct numeric tool is separate future work. Frozen/removed shops can rarely appear in search. |
 | `get_shop_listings` | `findAllActiveListingsByShop` | Supported shop_id, limit, offset, sort_on, sort_order, keywords only; sort depends on search options. Do not silently switch to scoped getListingsByShop or copy global advanced filters. Rich summaries only from returned permitted fields. |
 | `search_shops` | `findShops` | Required shop_name, optional limit/offset; no invented country/sort/exact flags. Existing search-string/output bounds retained. |

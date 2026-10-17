@@ -46,11 +46,21 @@ Get Etsy listing 1234567890 with its shop and images.
 ```json
 {
   "listing_id": 1234567890,
-  "includes": ["Shop", "Images"]
+  "includes": [
+    "Shop",
+    "Images",
+    "User",
+    "Videos",
+    "Translations",
+    "Personalization"
+  ],
+  "language": "fr"
 }
 ```
 
-Supported includes are `Shop`, `Images`, `User`, and `Videos`. Inventory is not included.
+Supported includes are `Shop`, `Images`, `User`, `Videos`, `Translations`, and `Personalization`; the original four remain supported. `language` is an optional IETF language tag (up to 35 characters). Listing summaries may include returned category/policy/readiness references, listing type, variation/personalization flags, and default language. Readiness IDs are conditional references, not fulfillment guarantees.
+
+Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. `BuyerPrice` is batch-only, `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
 
 ## Shops and reviews
 

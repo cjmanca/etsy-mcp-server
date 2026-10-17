@@ -35,6 +35,61 @@ export function optionalString(
   return trimmed;
 }
 
+export const LANGUAGE_TAG_PATTERN =
+  "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$";
+const languageTagPattern = new RegExp(LANGUAGE_TAG_PATTERN);
+const privateUseLanguageTagPattern = /^x(?:-[A-Za-z0-9]{1,8})+$/i;
+const grandfatheredLanguageTags = new Set([
+  "art-lojban",
+  "cel-gaulish",
+  "en-gb-oed",
+  "i-ami",
+  "i-bnn",
+  "i-default",
+  "i-enochian",
+  "i-hak",
+  "i-klingon",
+  "i-lux",
+  "i-mingo",
+  "i-navajo",
+  "i-pwn",
+  "i-tao",
+  "i-tay",
+  "i-tsu",
+  "no-bok",
+  "no-nyn",
+  "no-nynorsk",
+  "sgn-be-fr",
+  "sgn-be-nl",
+  "sgn-ch-de",
+  "zh-guoyu",
+  "zh-hakka",
+  "zh-min",
+  "zh-min-nan",
+  "zh-xiang",
+]);
+
+function isIetfLanguageTag(value: string): boolean {
+  if (!languageTagPattern.test(value)) return false;
+  if (privateUseLanguageTagPattern.test(value)) return true;
+  if (grandfatheredLanguageTags.has(value.toLowerCase())) return true;
+  try {
+    return Intl.getCanonicalLocales(value).length === 1;
+  } catch {
+    return false;
+  }
+}
+
+export function optionalLanguageTag(args: ToolArguments): string | undefined {
+  const value = optionalString(args, "language", 35);
+  if (value !== undefined && !isIetfLanguageTag(value)) {
+    throw new ValidationError(
+      "language must be a valid IETF language tag of at most 35 characters.",
+    );
+  }
+  return value;
+}
+
 export function requiredString(
   args: ToolArguments,
   key: string,
@@ -148,7 +203,14 @@ export function optionalUnixTimestamp(
   return value;
 }
 
-export const LISTING_INCLUDES = ["Shop", "Images", "User", "Videos"] as const;
+export const LISTING_INCLUDES = [
+  "Shop",
+  "Images",
+  "User",
+  "Videos",
+  "Translations",
+  "Personalization",
+] as const;
 
 export function listingIncludes(args: ToolArguments): string[] {
   const value = args.includes;

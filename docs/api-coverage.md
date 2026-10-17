@@ -20,11 +20,13 @@ Read the linked subsystem and its contract-audit findings for proposed inputs, o
 
 ## Listings — [public discovery](planned-public-discovery.md), [catalog management](planned-listing-management.md), [orders](planned-orders-and-payments.md)
 
+M1.4 extends the existing `getListing` surface without changing its public API-key access. Batch lookup and BuyerPrice remain planned on their separately contracted batch route; the single-listing BuyerPrice include remains blocked.
+
 | Method | Etsy operation ID | MCP access | Status |
 | --- | --- | --- | --- |
 | GET | `getListingsByShop` | `list_shop_listings` | Planned |
 | POST | `createDraftListing` | `create_draft_listing` | Planned |
-| GET | `getListing` | `get_listing_details`; richer parameters/fields planned | Current |
+| GET | `getListing` | `get_listing_details`; selected detail fields and Translations/Personalization associations (M1.4) | Current |
 | DELETE | `deleteListing` | `delete_listing` | Planned |
 | GET | `findAllListingsActive` | `search_listings` with required keywords and bounded page/price/sort controls plus taxonomy, location, safe-content, currency, and buyer-country filters | Current |
 | GET | `findAllActiveListingsByShop` | `get_shop_listings` | Current |

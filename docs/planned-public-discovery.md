@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, and M1.3 active-listing search filters are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, and M1.4 listing detail/summary enrichment are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -49,11 +49,19 @@ Property lists are capped at 100; per-property scales at 10, possible values at 
 
 For `sort_on: "score"`, the request always sends `sort_order: "desc"`; caller aliases remain accepted, while non-score ordering aliases pass through unchanged. With no sort options, Etsy's documented default is newest-first. `is_safe: true` filters out mature/adult content; false is passed through but does not activate that filter. `buyer_country` filters shipping eligibility only and does not produce a buyer price or checkout quote. `currency` requests Etsy conversion, but current selected output retains the existing formatted original `price` only and does not expose `converted_price`; absent/null original money remains `N/A`. Do not equate prices across currencies. All selected Etsy text remains untrusted.
 
+## Current M1.4: listing details and selected summaries
+
+`get_listing_details` uses the public, API-key-only `GET /v3/application/listings/{listing_id}` (`getListing`). It preserves the existing four associations and adds the verified `Translations` and `Personalization` includes. The optional `language` query is a bounded IETF language tag. Selected detail and listing-summary fields include taxonomy, return-policy and readiness IDs; listing type, customization/personalization flags, variation presence, and default listing language. Search and shop summaries use only fields returned by their respective active-listing operation; readiness references are omitted from global search and may be present on a shop-scoped or single-listing response.
+
+Translations are mapped to a bounded language-keyed object containing only language/title/description/tags; personalization selects at most five questions and 30 options per question, including documented question/option IDs, type, required state, character/file limits, instructions and add-on `Money`. Explicit nulls remain null and absent fields stay absent. Shortened arrays/text and compacted over-limit detail responses set `truncated`; these selected responses are display summaries, not complete writable snapshots. All seller-provided instructions and localized text remain untrusted data.
+
+`BuyerPrice` remains blocked on single-listing detail despite its enum entry; Etsy documents its field as batch-only. `Inventory` and `Shipping` are not accepted includes. `allow_suggested_title` remains disabled until Etsy clarifies the exact owner OAuth scope. No currency, buyer-country, or legacy query is sent, and no extra request is made to fill missing fields. See [listing discovery](listing-discovery.md) for caller examples and output bounds.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
-| Extend `get_listing_details` and selected listing summaries | Listing ID; explicitly supported associations/field selections. | Category, return-policy/readiness references, listing type, variation/personalization flags, and other useful documented public fields; additional supported associations such as translations/personalization. |
+| Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields; batch lookup and buyer-price context remain separate proposals. |
 | `get_listings_batch` | 1–100 `listing_ids`; bounded allowed includes; optional `currency` and `buyer_country`. | Several listing summaries in one upstream call, keyed by listing ID. |
 | `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
 | `get_shop` | `shop_id`. | Direct public profile lookup without repeating name search. |

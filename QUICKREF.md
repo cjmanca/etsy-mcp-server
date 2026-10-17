@@ -16,7 +16,7 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 ## Tools
 
 - `search_listings` (category/location/safe-content/currency/shipping-country filters; score is always descending)
-- `get_listing_details` (`Shop`, `Images`, `User`, `Videos` associations)
+- `get_listing_details` (`Shop`, `Images`, `User`, `Videos`, `Translations`, `Personalization`; optional IETF `language`)
 - `get_shop_by_name` (exact case-insensitive match; bounded searches report when incomplete)
 - `get_shop_listings` (active listings; pass `keywords` for effective sorting)
 - `search_shops`
@@ -25,6 +25,8 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
 
 All eight tools are read-only and use public Etsy API-key endpoints. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Trending listings and inventory are unsupported. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+
+Listing summaries may include returned category, return-policy/readiness references, listing type, variation/personalization flags, and default language. Detail translations and personalization are selected and bounded; their seller text is untrusted. Readiness IDs are references, not guarantees. `BuyerPrice` is batch-only, and `Inventory`/`Shipping` are not detail includes.
 
 ## Local checks
 

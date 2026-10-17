@@ -42,10 +42,12 @@ import {
 } from "./taxonomy.js";
 import {
   asArguments,
+  LANGUAGE_TAG_PATTERN,
   LISTING_INCLUDES,
   listingIncludes,
   MAX_PAGINATION_OFFSET,
   optionalEnum,
+  optionalLanguageTag,
   optionalNonnegativeNumber,
   optionalString,
   optionalUnixTimestamp,
@@ -60,6 +62,10 @@ import {
 
 const SERVER_VERSION = "2.0.0";
 const MAX_MCP_RESPONSE_BYTES = 128 * 1024;
+const MAX_TRANSLATIONS = 20;
+const MAX_PERSONALIZATION_QUESTIONS = 5;
+const MAX_PERSONALIZATION_OPTIONS = 30;
+const LANGUAGE_TAG_REGEX = new RegExp(LANGUAGE_TAG_PATTERN);
 const MAX_SHOP_NAME_SEARCH_RESULTS = 500;
 const MAX_SHOP_NAME_SEARCH_PAGES = 5;
 const TEXT_TRUNCATION_MARKER = "…[truncated]";
@@ -208,7 +214,15 @@ export const TOOLS: Tool[] = [
           type: "array",
           maxItems: LISTING_INCLUDES.length,
           items: { type: "string", enum: LISTING_INCLUDES },
-          description: "Optional public associations: Shop, Images, User, Videos",
+          description:
+            "Optional public associations: Shop, Images, User, Videos, Translations, Personalization",
+        },
+        language: {
+          type: "string",
+          description: "Optional IETF language tag for listing translations (up to 35 characters)",
+          minLength: 1,
+          maxLength: 35,
+          pattern: LANGUAGE_TAG_PATTERN,
         },
       },
       required: ["listing_id"],
@@ -388,6 +402,10 @@ function responseObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
 function pageData(value: unknown): EtsyPage {
   const data = responseObject(value);
   if (
@@ -420,6 +438,84 @@ function simpleField(value: unknown): number | boolean | undefined {
     return value;
   }
   return undefined;
+}
+
+function nullableOutputId(
+  value: unknown,
+  key: string,
+): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return safeUpstreamId(value, key);
+}
+
+function nullableTextField(
+  value: unknown,
+  maxLength: number,
+  truncation: TruncationState,
+  fieldName: string,
+): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string") {
+    throw new EtsyApiError("upstream", `Etsy returned an invalid ${fieldName} field.`);
+  }
+  return textField(value, maxLength, truncation);
+}
+
+function nullableBooleanField(
+  value: unknown,
+  fieldName: string,
+): boolean | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "boolean") {
+    throw new EtsyApiError("upstream", `Etsy returned an invalid ${fieldName} field.`);
+  }
+  return value;
+}
+
+function nullableIntegerField(
+  value: unknown,
+  fieldName: string,
+): number | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    throw new EtsyApiError("upstream", `Etsy returned an invalid ${fieldName} field.`);
+  }
+  return value;
+}
+
+function selectedTextField(
+  source: Record<string, unknown>,
+  key: string,
+  maxLength: number,
+  truncation: TruncationState,
+): string | null | undefined {
+  if (!hasOwn(source, key)) return undefined;
+  return nullableTextField(source[key], maxLength, truncation, key);
+}
+
+function selectedIdField(
+  source: Record<string, unknown>,
+  key: string,
+): number | null | undefined {
+  if (!hasOwn(source, key)) return undefined;
+  return nullableOutputId(source[key], key);
+}
+
+function selectedIntegerField(
+  source: Record<string, unknown>,
+  key: string,
+): number | null | undefined {
+  if (!hasOwn(source, key)) return undefined;
+  return nullableIntegerField(source[key], key);
+}
+
+function selectedBooleanField(
+  source: Record<string, unknown>,
+  key: string,
+): boolean | null | undefined {
+  if (!hasOwn(source, key)) return undefined;
+  return nullableBooleanField(source[key], key);
 }
 
 function outputId(value: unknown, key: string): number | undefined {
@@ -472,6 +568,7 @@ function safeUpstreamId(value: unknown, key: string): number {
 function mapListing(
   listing: Record<string, unknown>,
   truncation: TruncationState,
+  includeReadinessStateId = false,
 ): Record<string, unknown> {
   return {
     listing_id: outputId(listing.listing_id, "listing_id"),
@@ -485,7 +582,40 @@ function mapListing(
     created: simpleField(listing.created_timestamp),
     updated: simpleField(listing.updated_timestamp),
     tags: stringList(listing.tags, truncation),
+    taxonomy_id: nullableOutputId(listing.taxonomy_id, "taxonomy_id"),
+    return_policy_id: nullableOutputId(listing.return_policy_id, "return_policy_id"),
+    readiness_state_id: mapReadinessStateId(listing, includeReadinessStateId),
+    listing_type: nullableTextField(
+      listing.listing_type,
+      32,
+      truncation,
+      "listing_type",
+    ),
+    is_customizable: nullableBooleanField(
+      listing.is_customizable,
+      "is_customizable",
+    ),
+    is_personalizable: nullableBooleanField(
+      listing.is_personalizable,
+      "is_personalizable",
+    ),
+    has_variations: nullableBooleanField(listing.has_variations, "has_variations"),
+    language: nullableTextField(listing.language, 35, truncation, "language"),
   };
+}
+
+function mapReadinessStateId(
+  listing: Record<string, unknown>,
+  includeReadinessStateId: boolean,
+): number | null | undefined {
+  if (!includeReadinessStateId || listing.readiness_state_id === undefined) {
+    return undefined;
+  }
+  if (listing.readiness_state_id === null) return null;
+  if (listing.state !== "active" || listing.listing_type !== "physical") {
+    return undefined;
+  }
+  return nullableOutputId(listing.readiness_state_id, "readiness_state_id");
 }
 
 function mapShop(
@@ -509,8 +639,11 @@ function mapShop(
   };
 }
 
-function mappedImages(value: unknown, truncation: TruncationState): unknown[] | undefined {
-  if (value === undefined || value === null) return undefined;
+function mappedImages(
+  value: unknown,
+  truncation: TruncationState,
+): unknown[] | null | undefined {
+  if (value === undefined || value === null) return value;
   if (!Array.isArray(value)) {
     throw new EtsyApiError("upstream", "Etsy returned an unexpected image list.");
   }
@@ -525,8 +658,11 @@ function mappedImages(value: unknown, truncation: TruncationState): unknown[] | 
   });
 }
 
-function mappedVideos(value: unknown, truncation: TruncationState): unknown[] | undefined {
-  if (value === undefined || value === null) return undefined;
+function mappedVideos(
+  value: unknown,
+  truncation: TruncationState,
+): unknown[] | null | undefined {
+  if (value === undefined || value === null) return value;
   if (!Array.isArray(value)) {
     throw new EtsyApiError("upstream", "Etsy returned an unexpected video list.");
   }
@@ -542,6 +678,168 @@ function mappedVideos(value: unknown, truncation: TruncationState): unknown[] | 
       video_state: textField(video.video_state, 32, truncation),
     };
   });
+}
+
+function selectedStringList(
+  value: unknown,
+  truncation: TruncationState,
+  fieldName: string,
+  maxItems: number,
+  maxItemLength: number,
+): string[] | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (!Array.isArray(value)) {
+    throw new EtsyApiError("upstream", `Etsy returned an invalid ${fieldName} list.`);
+  }
+  if (value.length > maxItems) truncation.value = true;
+  return value.slice(0, maxItems).map((item) => {
+    if (typeof item !== "string") {
+      throw new EtsyApiError("upstream", `Etsy returned an invalid ${fieldName} item.`);
+    }
+    return textField(item, maxItemLength, truncation)!;
+  });
+}
+
+function mapTranslations(
+  value: unknown,
+  truncation: TruncationState,
+): Record<string, unknown> | null {
+  if (value === null) return null;
+  const translations = responseObject(value);
+  const entries = Object.entries(translations);
+  if (entries.length > MAX_TRANSLATIONS) truncation.value = true;
+
+  const mapped: Record<string, unknown> = Object.create(null);
+  for (const [locale, translationValue] of entries.slice(0, MAX_TRANSLATIONS)) {
+    if (locale.length > 35 || !LANGUAGE_TAG_REGEX.test(locale)) {
+      throw new EtsyApiError("upstream", "Etsy returned an invalid translation language.");
+    }
+    if (translationValue === null) {
+      mapped[locale] = null;
+      continue;
+    }
+
+    const translation = responseObject(translationValue);
+    const selected: Record<string, unknown> = {};
+    const language = selectedTextField(translation, "language", 35, truncation);
+    if (language !== undefined) selected.language = language;
+    const title = selectedTextField(translation, "title", 250, truncation);
+    if (title !== undefined) selected.title = title;
+    const description = selectedTextField(translation, "description", 1500, truncation);
+    if (description !== undefined) selected.description = description;
+    if (hasOwn(translation, "tags")) {
+      selected.tags = selectedStringList(
+        translation.tags,
+        truncation,
+        "translation tags",
+        20,
+        100,
+      );
+    }
+    mapped[locale] = selected;
+  }
+  return mapped;
+}
+
+function mapPersonalizationOption(
+  value: unknown,
+  questionType: string | null | undefined,
+  truncation: TruncationState,
+): Record<string, unknown> {
+  const option = responseObject(value);
+  const mapped: Record<string, unknown> = {};
+  const optionId = selectedIdField(option, "option_id");
+  if (optionId !== undefined) mapped.option_id = optionId;
+  const labelLimit = questionType === "dropdown" ? 20 : 45;
+  const label = selectedTextField(option, "label", labelLimit, truncation);
+  if (label !== undefined) mapped.label = label;
+  return mapped;
+}
+
+function mapPersonalizationQuestion(
+  value: unknown,
+  truncation: TruncationState,
+): Record<string, unknown> {
+  const question = responseObject(value);
+  const mapped: Record<string, unknown> = {};
+  const questionId = selectedIdField(question, "question_id");
+  if (questionId !== undefined) mapped.question_id = questionId;
+  const questionText = selectedTextField(question, "question_text", 45, truncation);
+  if (questionText !== undefined) mapped.question_text = questionText;
+  const instructions = selectedTextField(question, "instructions", 120, truncation);
+  if (instructions !== undefined) mapped.instructions = instructions;
+  const questionType = selectedTextField(question, "question_type", 32, truncation);
+  if (questionType !== undefined) mapped.question_type = questionType;
+  const required = selectedBooleanField(question, "required");
+  if (required !== undefined) mapped.required = required;
+  const maxCharacters = selectedIntegerField(question, "max_allowed_characters");
+  if (maxCharacters !== undefined) mapped.max_allowed_characters = maxCharacters;
+  const maxFiles = selectedIntegerField(question, "max_allowed_files");
+  if (maxFiles !== undefined) mapped.max_allowed_files = maxFiles;
+
+  if (hasOwn(question, "add_on_price") && question.add_on_price !== undefined) {
+    if (question.add_on_price === null) {
+      mapped.add_on_price = null;
+    } else {
+      const money = normalizeMoney(question.add_on_price);
+      if (money.kind !== "money") {
+        throw new EtsyApiError("upstream", "Etsy returned an invalid add-on price.");
+      }
+      mapped.add_on_price = {
+        amount: money.amount,
+        divisor: money.divisor,
+        currency_code: textField(money.currency_code, 3, truncation),
+      };
+    }
+  }
+
+  if (hasOwn(question, "options")) {
+    if (question.options === undefined || question.options === null) {
+      mapped.options = question.options;
+    } else if (!Array.isArray(question.options)) {
+      throw new EtsyApiError("upstream", "Etsy returned an invalid personalization options list.");
+    } else {
+      if (question.options.length > MAX_PERSONALIZATION_OPTIONS) {
+        truncation.value = true;
+      }
+      mapped.options = question.options
+        .slice(0, MAX_PERSONALIZATION_OPTIONS)
+        .map((option) => mapPersonalizationOption(option, questionType, truncation));
+    }
+  }
+  return mapped;
+}
+
+function mapPersonalization(
+  value: unknown,
+  truncation: TruncationState,
+): Record<string, unknown> | null {
+  if (value === null) return null;
+  const personalization = responseObject(value);
+  const mapped: Record<string, unknown> = {};
+  if (!hasOwn(personalization, "personalization_questions")) return mapped;
+
+  const questions = personalization.personalization_questions;
+  if (questions === null) {
+    mapped.personalization_questions = null;
+    return mapped;
+  }
+  if (!Array.isArray(questions)) {
+    throw new EtsyApiError("upstream", "Etsy returned an invalid personalization questions list.");
+  }
+  if (questions.length > MAX_PERSONALIZATION_QUESTIONS) truncation.value = true;
+  mapped.personalization_questions = questions
+    .slice(0, MAX_PERSONALIZATION_QUESTIONS)
+    .map((question) => mapPersonalizationQuestion(question, truncation));
+  return mapped;
+}
+
+function associationValue(
+  listing: Record<string, unknown>,
+  include: string,
+  schemaField: string,
+): unknown {
+  return hasOwn(listing, include) ? listing[include] : listing[schemaField];
 }
 
 function mapReview(
@@ -676,30 +974,59 @@ async function getListingDetails(argsValue: unknown, get: ReturnType<typeof crea
   const args = asArguments(argsValue);
   const listingId = positiveSafeInteger(args.listing_id, "listing_id");
   const includes = listingIncludes(args);
-  const params = includes.length ? { includes: includes.join(",") } : undefined;
+  if (hasOwn(args, "allow_suggested_title")) {
+    throw new ValidationError("allow_suggested_title is not supported for public listing details.");
+  }
+  const language = optionalLanguageTag(args);
+  const params: Record<string, string> = {};
+  if (includes.length) params.includes = includes.join(",");
+  if (language !== undefined) params.language = language;
   const listing = responseObject(
-    await get(`/application/listings/${listingId}`, params),
+    await get(`/application/listings/${listingId}`, Object.keys(params).length ? params : undefined),
   );
   const truncation = { value: false };
-  const result = mapListing(listing, truncation) as Record<string, unknown>;
+  const result = mapListing(listing, truncation, true) as Record<string, unknown>;
   result.materials = stringList(listing.materials, truncation, 20, 100);
-  result.shipping_profile_id = simpleField(listing.shipping_profile_id);
+  result.shipping_profile_id = nullableOutputId(
+    listing.shipping_profile_id,
+    "shipping_profile_id",
+  );
 
-  if (includes.includes("Shop") && listing.Shop !== undefined) {
-    result.shop = mapShop(responseObject(listing.Shop), truncation);
+  if (includes.includes("Shop")) {
+    const shop = associationValue(listing, "Shop", "shop");
+    result.shop = shop === undefined || shop === null
+      ? shop
+      : mapShop(responseObject(shop), truncation);
   }
   if (includes.includes("Images")) {
-    result.images = mappedImages(listing.Images, truncation);
+    result.images = mappedImages(associationValue(listing, "Images", "images"), truncation);
   }
-  if (includes.includes("User") && listing.User !== undefined) {
-    const user = responseObject(listing.User);
-    result.user = {
-      user_id: simpleField(user.user_id),
-      login_name: textField(user.login_name, 250, truncation),
-    };
+  if (includes.includes("User")) {
+    const userValue = associationValue(listing, "User", "user");
+    if (userValue === null || userValue === undefined) {
+      result.user = userValue;
+    } else {
+      const user = responseObject(userValue);
+      result.user = {
+        user_id: nullableOutputId(user.user_id, "user_id"),
+        login_name: nullableTextField(user.login_name, 250, truncation, "login_name"),
+      };
+    }
   }
   if (includes.includes("Videos")) {
-    result.videos = mappedVideos(listing.Videos, truncation);
+    result.videos = mappedVideos(associationValue(listing, "Videos", "videos"), truncation);
+  }
+  if (includes.includes("Translations")) {
+    const translations = associationValue(listing, "Translations", "translations");
+    if (translations !== undefined) {
+      result.translations = mapTranslations(translations, truncation);
+    }
+  }
+  if (includes.includes("Personalization")) {
+    const personalization = associationValue(listing, "Personalization", "personalization");
+    if (personalization !== undefined) {
+      result.personalization = mapPersonalization(personalization, truncation);
+    }
   }
   return responseText(result, truncation);
 }
@@ -808,7 +1135,7 @@ async function getShopListings(argsValue: unknown, get: ReturnType<typeof create
     await get(`/application/shops/${shopId}/listings/active`, params),
   );
   const truncation = { value: false };
-  const results = page.results.map((listing) => mapListing(listing, truncation));
+  const results = page.results.map((listing) => mapListing(listing, truncation, true));
   return responseText(
     { count: page.count, returned: results.length, results },
     truncation,
