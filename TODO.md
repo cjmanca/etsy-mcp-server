@@ -22,7 +22,7 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [ ] Extend `search_listings` with taxonomy, shop location, safe-content, currency, and buyer-country controls.
 - [ ] Extend listing detail/summary output with selected documented category, policy/readiness, variation, personalization, and localization information.
 - [x] Buyer/seller taxonomy browsing and bounded local filtering: `get_taxonomy_nodes` (M1.1; verification in [TASK.md](TASK.md)).
-- [ ] Buyer/seller property/scale/value discovery: `get_taxonomy_properties`.
+- [x] Buyer/seller property/scale/value discovery: `get_taxonomy_properties` (M1.2; verification in [TASK.md](TASK.md)).
 - [ ] Batch listing lookup: `get_listings_batch`.
 - [ ] Buyer-country-aware price components: `get_listing_buyer_prices`.
 - [ ] Direct shop/owner lookup: `get_shop`, `get_shop_by_owner`.

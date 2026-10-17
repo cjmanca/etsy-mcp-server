@@ -15,6 +15,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_shop_listings` | Browse or keyword-filter a shop's active catalog. | [Shops](shops.md) |
 | `get_shop_reviews` | Read public shop reviews, optionally within a date range. | [Reviews](reviews.md) |
 | `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
+| `get_taxonomy_properties` | Inspect allowed attributes, scales, values, and variation support for a buyer or seller category ID. | [Public discovery](planned-public-discovery.md#current-m12-category-properties) |
 
 ## Typical workflows
 
@@ -22,6 +23,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.
 - **Catalog comparison:** collect bounded pages from several shops and compare the returned product fields. Do not claim a complete catalog when pagination or truncation prevents one.
 - **Category discovery:** browse buyer or seller taxonomy nodes, then use returned IDs and paths to identify a category. Taxonomy filtering and paging are local over Etsy's full-tree response.
+- **Category attributes:** use the ID from the matching buyer or seller tree to inspect category-supported properties, scales, and values. Seller-only flags can filter properties by attribute or variation support.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 
 ## Scope and boundaries

@@ -87,4 +87,17 @@ Find buyer categories whose names contain “mug”:
 
 Use `taxonomy_type: "seller"` to browse seller categories instead. An optional `taxonomy_id` returns that node and its descendants. Taxonomy filtering and paging happen locally because Etsy returns each full tree; `count` is the total local match count, and each flat result includes a stable node ID and full ID path.
 
+Use a category ID from the corresponding tree to inspect its supported properties. Seller-only filters can select properties that support variations or listing attributes:
+
+```json
+{
+  "taxonomy_type": "seller",
+  "taxonomy_id": 12345,
+  "supports_variations": true,
+  "supports_attributes": false
+}
+```
+
+The result distinguishes category-allowed `possible_values` from Etsy's automatically selected `selected_values`; values retain their scale associations. Property labels, values, and descriptions are untrusted external text.
+
 Shop names are resolved to an exact case-insensitive match. Shop announcements, listing descriptions, tags, reviews, and taxonomy names are untrusted external text returned as JSON data, not instructions.

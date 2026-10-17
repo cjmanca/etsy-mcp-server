@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing is implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing and M1.2 category-property lookup are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -28,7 +28,20 @@ The operation is API-key-only and declares no query parameters. `taxonomy_type` 
 
 Acquisition uses the existing fixed Etsy origin, TLS verification, redirect/proxy isolation, request limiter, retry policy, 10-second timeout, and 1 MiB response limit; no taxonomy-specific exception raises the global cap. The full response is validated and flattened before it can enter an in-memory cache. Buyer and seller have separate single-flight cache entries with a 15-minute TTL; each tree is capped at 20,000 nodes, depth 32, and 512 characters per source name, and output child previews at 25 IDs. Invalid, incomplete, too-deep, duplicate, oversized, or malformed trees are rejected without caching partial data. If Etsy's full tree exceeds 1 MiB, the tool returns an actionable error explaining that local filters cannot reduce the upstream response. Tree sizes have not been measured with a live Etsy request.
 
-The property endpoints remain M1.2 work. Taxonomy IDs returned here are stable Etsy IDs, but this server does not yet expose category-property lookup or taxonomy filtering in `search_listings`.
+Taxonomy IDs returned here are stable Etsy IDs. Use the same explicit buyer or seller selector for property lookup; equal numeric IDs in different trees are not interchangeable. Taxonomy filtering in `search_listings` remains planned separately.
+
+## Current M1.2: category properties
+
+`get_taxonomy_properties` selects one of two public, API-key-only operations:
+
+- `GET /v3/application/buyer-taxonomy/nodes/{taxonomy_id}/properties` (`getPropertiesByBuyerTaxonomyId`); no query parameters.
+- `GET /v3/application/seller-taxonomy/nodes/{taxonomy_id}/properties` (`getPropertiesByTaxonomyId`); optional `supports_variations` and `supports_attributes` booleans.
+
+The required `taxonomy_type` and positive safe-integer `taxonomy_id` must refer to the matching tree. The ID is sent directly to that route; the server does not fetch the full tree just to validate it. Invalid selectors, IDs, non-boolean seller flags, or seller-only flags used with `buyer` fail before a request. The endpoints have no pagination or other filters.
+
+Output selects stable property/value/scale IDs, names and display names, `is_required`, `supports_attributes`, `supports_variations`, `is_multivalued`, `max_values_allowed`, `scales`, `possible_values`, and `selected_values`. A possible value's `scale_id` and `equal_to` associations remain intact. `possible_values` describes values permitted by the category; `selected_values` describes values Etsy says are automatically and always selected for that property, not values chosen on a particular listing. Missing fields remain omitted and explicit nulls remain null.
+
+Property lists are capped at 100; per-property scales at 10, possible values at 50, selected values at 25, and each value's `equal_to` IDs at 10. Property/value/scale labels are capped at 200 characters and scale descriptions at 500. Array, text, or output-row shortening sets `truncated`; `count` retains Etsy's source count when supplied and `returned` describes rows included after output-size trimming. JSON remains within the shared 128 KiB output limit and upstream bodies retain the shared 1 MiB cap. Etsy text in property names, values, and descriptions is untrusted.
 
 ## Remaining proposed MCP capabilities
 
@@ -36,7 +49,6 @@ The property endpoints remain M1.2 work. Taxonomy IDs returned here are stable E
 | --- | --- | --- |
 | Extend `search_listings` | Existing fields plus `taxonomy_id`, `shop_location`, `is_safe`, `currency`, `buyer_country`. | Category/location/content filtering, requested-currency prices, and listings shipping to a buyer country. |
 | Extend `get_listing_details` and selected listing summaries | Listing ID; explicitly supported associations/field selections. | Category, return-policy/readiness references, listing type, variation/personalization flags, and other useful documented public fields; additional supported associations such as translations/personalization. |
-| `get_taxonomy_properties` | Buyer/seller taxonomy type and `taxonomy_id`. | Allowed attributes, scales, values, and variation-related constraints for a category. |
 | `get_listings_batch` | 1–100 `listing_ids`; bounded allowed includes; optional `currency` and `buyer_country`. | Several listing summaries in one upstream call, keyed by listing ID. |
 | `get_listing_buyer_prices` | 1–100 listing IDs and required `buyer_country`; optional currency. | Buyer-facing base/display/discount/shipping price components using the batch endpoint's `BuyerPrice` association. |
 | `get_shop` | `shop_id`. | Direct public profile lookup without repeating name search. |

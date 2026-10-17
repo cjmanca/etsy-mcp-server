@@ -22,8 +22,9 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `search_shops`
 - `get_shop_reviews`
 - `get_taxonomy_nodes` (`buyer` or `seller`; optional local subtree/name filters)
+- `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
 
-All seven tools are read-only and use public Etsy API-key endpoints. Taxonomy results are bounded local pages over a cached full tree. Trending listings and inventory are unsupported. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+All eight tools are read-only and use public Etsy API-key endpoints. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Trending listings and inventory are unsupported. See [README.md](README.md) for MCP client configuration, limits, and development checks.
 
 ## Local checks
 
