@@ -10,6 +10,10 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | --- | --- | --- |
 | `search_listings` | Discover active products by keywords, price range, and sort order. | [Listings](listing-discovery.md) |
 | `get_listing_details` | Inspect a product and optionally its shop, images, public user summary, or videos. | [Listings](listing-discovery.md) |
+| `get_listing_images` | Read bounded image metadata, including rank, dimensions, alt text, selected URLs, and color information. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
+| `get_listing_image` | Read one listing image's selected metadata by image ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
+| `get_listing_videos` | Read bounded video metadata, dimensions, state, and URLs for a listing. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
+| `get_listing_video` | Read one listing video's selected metadata by video ID. | [Listings](listing-discovery.md#read-dedicated-listing-media-metadata) |
 | `get_listings_batch` | Retrieve up to 100 selected public listings in one request, preserving requested ID order. | [Listings](listing-discovery.md#fetch-a-batch-of-listings) |
 | `get_listing_buyer_prices` | Compare Etsy's buyer-country-aware base, display, discount, and shipping price components for up to 100 listings. | [Listings](listing-discovery.md#compare-buyer-facing-price-components) |
 | `search_shops` | Find candidate shops by name. | [Shops](shops.md) |
@@ -29,6 +33,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 ## Typical workflows
 
 - **Product research:** search active listings, select listing IDs, then inspect details and media metadata for a small shortlist.
+- **Media metadata:** use a listing ID to read its selected image or video metadata, then use the returned image or video ID for a focused detail lookup. Media URLs are data only and are never fetched.
 - **Batch listing lookup:** retrieve a selected set of listing IDs in one call; inspect `not_returned_ids` and `truncated` before treating the response as complete.
 - **Buyer-facing price comparison:** provide a required buyer country to retrieve Etsy's separate base/display/discount/shipping components for selected IDs. This is not a checkout quote.
 - **Shop research:** resolve a shop name, use its numeric ID to browse active products, then sample reviews.

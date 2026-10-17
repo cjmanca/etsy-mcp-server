@@ -30,8 +30,8 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 - [x] Featured products: `get_featured_shop_listings` (M2.2).
 - [x] Section browsing: `get_shop_sections`, `get_shop_section`, `get_shop_section_listings` (M2.2).
 - [x] Listing-specific feedback: `get_listing_reviews` (M2.3; verification in [TASK.md](TASK.md)).
-- [ ] Dedicated image metadata, including rank/dimensions/alt text: `get_listing_images`, `get_listing_image`.
-- [ ] Dedicated video metadata: `get_listing_videos`, `get_listing_video`.
+- [x] Dedicated image metadata, including rank/dimensions/alt text: `get_listing_images`, `get_listing_image` (M2.4; verification in [TASK.md](TASK.md)).
+- [x] Dedicated video metadata: `get_listing_videos`, `get_listing_video` (M2.4; verification in [TASK.md](TASK.md)).
 - [ ] Structured attribute reads: `get_listing_properties`, `get_listing_property`.
 - [ ] Personalization question/option/add-on reads: `get_listing_personalization`.
 - [ ] Existing localized listing content: `get_listing_translation`.

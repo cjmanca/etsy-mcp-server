@@ -62,6 +62,26 @@ Supported includes are `Shop`, `Images`, `User`, `Videos`, `Translations`, and `
 
 Translation output is limited to language, title, description, and tags. Personalization output selects bounded question/options fields and optional add-on money. Both contain untrusted seller text. Etsy's batch-only `BuyerPrice` association is exposed through the separate `get_listing_buyer_prices` tool, not through single-listing details. `Inventory` and `Shipping` are not detail includes, and owner-only suggested titles remain unavailable.
 
+## Listing media metadata
+
+Use the listing ID to retrieve selected image or video metadata, then provide the returned media ID for a focused detail lookup:
+
+```json
+{ "listing_id": 1234567890 }
+```
+
+Call `get_listing_images` or `get_listing_videos` with that input. Detail calls use the upstream ID names:
+
+```json
+{ "listing_id": 1234567890, "listing_image_id": 987654321 }
+```
+
+```json
+{ "listing_id": 1234567890, "video_id": 123456 }
+```
+
+Use the first input with `get_listing_images`/`get_listing_videos`, the image input with `get_listing_image`, and the video input with `get_listing_video`. The tools return selected IDs, rank/dimensions, alt text, URLs, and video state where Etsy supplies them; missing fields are not inferred. Lists are bounded to 20 images or 10 videos and have no paging parameters. Alt text and URLs are untrusted data. URLs are returned only as bounded strings and are never fetched.
+
 ## Batch listing lookup
 
 Retrieve several known listing IDs with one public request. Duplicate IDs are removed while preserving the first-requested order:

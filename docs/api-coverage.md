@@ -5,7 +5,7 @@
 - **Current:** registered MCP access exists, with the limited fields/options described in current documentation; not necessarily every upstream parameter.
 - **Indirect:** the API is called internally, but the proposed direct tool does not exist.
 - **Planned:** no current access to this API operation. All names in planned rows are proposals.
-- Seventeen current tools reach seventeen distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **88 operations are Planned**.
+- Twenty-one current tools reach twenty-one distinct operations; `getShop` is directly available as well as internally used by exact-name lookup. **84 operations are Planned**.
 
 Read the linked subsystem and its contract-audit findings for proposed inputs, outputs, permissions, dependencies, and acceptance criteria. M0.1 retains every operation's full original schema and separately records field/owner restrictions and unresolved guide/reference differences; schema presence does not prove live availability. In particular, `getListingProperty` is feedback-only/501; `getListingsByShopReturnPolicy` requires `listings_r`; address deletion has a scope conflict; processing and third-variation rollout require clarification. Shared proposed tools may wrap more than one operation through an explicit selector. Auth orchestration and event tools are listed after the matrix because they are not additional catalog operations.
 
@@ -53,12 +53,12 @@ The existing listing `Images`/`Videos` includes provide partial metadata, not ac
 | GET | `getAllListingFiles` | `get_listing_files` | Planned |
 | POST | `uploadListingFile` | `upload_listing_file` | Planned |
 | DELETE | `deleteListingImage` | `delete_listing_image` | Planned |
-| GET | `getListingImage` | `get_listing_image` | Planned |
-| GET | `getListingImages` | `get_listing_images` | Planned |
+| GET | `getListingImage` | `get_listing_image` | Current |
+| GET | `getListingImages` | `get_listing_images` | Current |
 | POST | `uploadListingImage` | `upload_listing_image` | Planned |
 | DELETE | `deleteListingVideo` | `delete_listing_video` | Planned |
-| GET | `getListingVideo` | `get_listing_video` | Planned |
-| GET | `getListingVideos` | `get_listing_videos` | Planned |
+| GET | `getListingVideo` | `get_listing_video` | Current |
+| GET | `getListingVideos` | `get_listing_videos` | Current |
 | POST | `uploadListingVideo` | `upload_listing_video` | Planned |
 
 ## Inventory, products, and offerings — [inventory plan](planned-listing-management.md#inventory-and-variations)

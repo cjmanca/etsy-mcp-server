@@ -17,6 +17,8 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 
 - `search_listings` (category/location/safe-content/currency/shipping-country filters; score is always descending)
 - `get_listing_details` (`Shop`, `Images`, `User`, `Videos`, `Translations`, `Personalization`; optional IETF `language`)
+- `get_listing_images`, `get_listing_image` (selected image metadata by listing/image ID; rank, dimensions, alt text, bounded URLs)
+- `get_listing_videos`, `get_listing_video` (selected video metadata by listing/video ID; dimensions, state, bounded URLs)
 - `get_listings_batch` (1–100 IDs in one request; requested-order results, missing IDs, and output truncation reported)
 - `get_listing_buyer_prices` (1–100 IDs plus required buyer country; separate base/display/discount/shipping components)
 - `get_shop_by_name` (exact case-insensitive match; bounded searches report when incomplete)
@@ -32,7 +34,7 @@ ETSY_API_KEY=<keystring>:<shared_secret>
 - `get_taxonomy_nodes` (`buyer` or `seller`; optional local subtree/name filters)
 - `get_taxonomy_properties` (matching buyer/seller category ID; seller-only variation/attribute filters)
 
-All seventeen tools are read-only and use public Etsy API-key endpoints. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Platform-wide trending listings and inventory are unsupported; shop-curated featured products are available separately. See [README.md](README.md) for MCP client configuration, limits, and development checks.
+All twenty-one tools are read-only and use public Etsy API-key endpoints. Media URLs are bounded data only and are never fetched; media list tools have no paging parameters. Taxonomy node results are bounded local pages over a cached full tree; property lookup uses the selected category route directly. Platform-wide trending listings and inventory are unsupported; shop-curated featured products are available separately. See [README.md](README.md) for MCP client configuration, limits, and development checks.
 
 Listing summaries may include returned category, return-policy/readiness references, listing type, variation/personalization flags, and default language. Detail translations and personalization are selected and bounded; their seller text is untrusted. Readiness IDs are references, not guarantees. Batch `currency` conversion preserves original `price` separately from `converted_price`. Buyer-price output keeps original, converted, display, discount, and shipping components separate, with raw money units preserved; it is not a checkout quote. `Inventory`/`Shipping` are not detail includes.
 

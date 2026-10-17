@@ -1,6 +1,6 @@
 # Planned public discovery expansion
 
-**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, and M2.3 listing reviews are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
+**Status: mixed.** M1.1 taxonomy node browsing, M1.2 category-property lookup, M1.3 active-listing search filters, M1.4 listing detail/summary enrichment, M1.5 batch listing lookup, M1.6 buyer-price components, M2.1 direct shop discovery, M2.2 shop sections/featured listings, M2.3 listing reviews, and M2.4 dedicated media metadata are implemented; all other entries remain proposals unless marked current in the [coverage matrix](api-coverage.md). Read with the [access policy](access-policy.md). This slice extends product/shop research without requiring a seller account for public data. Verify access requirements for each operation before implementation rather than assuming every GET is public.
 
 ## M0.1 verified contract findings (2026-10-17)
 
@@ -92,13 +92,24 @@ All four validate positive safe-integer IDs before requests and apply the existi
 
 The tool reuses the selected shop-review mapper and paging/serializer conventions: only shop/listing IDs when supplied, rating, review text, and creation/update timestamps are retained. Missing optional fields remain absent; no listing ID is invented from the request, and any supplied listing ID must match it. Buyer identities, transaction/private fields, image URLs, and other raw fields are omitted. Review text is untrusted, capped at 1,000 characters, and output remains within the shared 128 KiB bound. Etsy's `count` is the source result count, `returned` is the included row count after trimming, and `truncated` flags shortened text or removed rows. The page is a sample, not a complete review history or order count.
 
+## Current M2.4: dedicated media metadata
+
+The four public, API-key-only tools use the exact image and video metadata routes:
+
+- `get_listing_images`: `GET /v3/application/listings/{listing_id}/images` (`getListingImages`).
+- `get_listing_image`: `GET /v3/application/listings/{listing_id}/images/{listing_image_id}` (`getListingImage`).
+- `get_listing_videos`: `GET /v3/application/listings/{listing_id}/videos` (`getListingVideos`).
+- `get_listing_video`: `GET /v3/application/listings/{listing_id}/videos/{video_id}` (`getListingVideo`).
+
+Only the required positive safe-integer IDs are accepted. None of these operations declares query parameters, so list tools do not invent paging. Each call makes exactly one fixed-origin GET; only selected IDs, image rank/dimensions/alt text/URL variants/color summary, or video dimensions/state/URLs are mapped. Non-null image rank and dimensions are retained as nonnegative safe integers; dimensions are nullable, and full dimensions have no schema maximum. The rank schema permits zero even though its description says positive/non-zero; accepting zero follows the schema and does not assert that zero occurs in live Etsy data. The 3,000-pixel figure describes the `url_fullxfull` rendition, not a limit on the dimension metadata. Missing metadata remains absent and explicit nulls remain null. Supplied parent/media IDs are checked for request mismatch; duplicate non-null media IDs fail the list. The optional image `listing_id` response field is checked when supplied. The official `ListingVideo` schema does not include `listing_id`, so its absence is valid; an extra supplied parent reference is still checked.
+
+Image and video URLs and image alt text are untrusted bounded strings, not instructions. URLs remain JSON data and are never fetched or followed. Each list requires a valid `results` array, preserves Etsy's optional `count` only when present, reports `returned`, and marks the 20-image/10-video and shared 128 KiB output bounds with `truncated`. The existing listing `Images` and `Videos` includes remain compatible, gain selected image rank/dimensions/alt text, and do not trigger additional calls. See [listing discovery](listing-discovery.md#read-dedicated-listing-media-metadata) for input/output examples and limits.
+
 ## Remaining proposed MCP capabilities
 
 | Tool or extension | Main inputs | User-facing result |
 | --- | --- | --- |
 | Further listing detail and summary extensions | Listing ID; additional associations or fields verified against each operation. | Only operation-supported, selected public fields. |
-| `get_listing_images`, `get_listing_image` | Listing ID; image ID for detail. | Image references with rank, dimensions, alt text, and selected metadata. |
-| `get_listing_videos`, `get_listing_video` | Listing ID; video ID for detail. | Dedicated video metadata without requiring a full listing response. |
 | `get_listing_properties`, `get_listing_property` | Listing ID; shop ID for the all-properties route; property ID for detail. | Actual structured product attributes and their selected values. |
 | `get_listing_personalization` | Listing ID. | Questions, required flags, character/file limits, options, and add-on prices when present. |
 | `get_listing_translation` | Shop ID, listing ID, IETF language tag. | Etsy's existing localized title, description, and tags, not an AI-generated translation. |
@@ -128,7 +139,8 @@ The public `get_listing_offering` route is planned in the [inventory slice](plan
 - [x] Direct shop-ID and public owner-ID lookup use their documented routes and selected profile output without changing exact-name search (M2.1 mocked verification; no caller-ownership claim).
 - [x] Shop organization and featured-product tools reach their documented public routes and distinguish a shop's curated featured selection from trending (M2.2; mocked verification only).
 - [x] Listing-review tools reach their documented routes and describe sample/completeness limits (M2.3; mocked contract and bounds tests).
-- [ ] Dedicated media/attribute/translation/personalization/policy tools expose selected useful fields, not unrestricted upstream objects.
+- [x] Dedicated image/video tools reach the four documented metadata routes, match supplied IDs, bound selected output, and never fetch returned URLs (M2.4; mocked contract and bounds tests).
+- [ ] Attribute, translation, personalization, and policy tools expose selected useful fields, not unrestricted upstream objects.
 - [ ] Existing tools and API-key-only setup keep working without an OAuth connection.
 
 Dependencies: existing request protections and output conventions. Account-only fields, dedicated inventory/shipping endpoints, and all mutations belong in the other plans, not in a public-read shortcut.

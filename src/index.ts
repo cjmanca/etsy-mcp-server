@@ -45,6 +45,11 @@ import {
   SHOP_CATALOG_TOOLS,
 } from "./shop-catalog.js";
 import {
+  createListingMediaRegistrations,
+  mapListingImagesAssociation,
+  mapListingVideosAssociation,
+} from "./listing-media.js";
+import {
   asArguments,
   LANGUAGE_TAG_PATTERN,
   LISTING_INCLUDES,
@@ -870,47 +875,6 @@ function mapShopProfile(
   return mapShop(shop, truncation);
 }
 
-function mappedImages(
-  value: unknown,
-  truncation: TruncationState,
-): unknown[] | null | undefined {
-  if (value === undefined || value === null) return value;
-  if (!Array.isArray(value)) {
-    throw new EtsyApiError("upstream", "Etsy returned an unexpected image list.");
-  }
-  if (value.length > 20) truncation.value = true;
-  return value.slice(0, 20).map((item) => {
-    const image = responseObject(item);
-    return {
-      listing_image_id: outputId(image.listing_image_id, "listing_image_id"),
-      url_570xN: textField(image.url_570xN, 2048, truncation),
-      url_fullxfull: textField(image.url_fullxfull, 2048, truncation),
-    };
-  });
-}
-
-function mappedVideos(
-  value: unknown,
-  truncation: TruncationState,
-): unknown[] | null | undefined {
-  if (value === undefined || value === null) return value;
-  if (!Array.isArray(value)) {
-    throw new EtsyApiError("upstream", "Etsy returned an unexpected video list.");
-  }
-  if (value.length > 10) truncation.value = true;
-  return value.slice(0, 10).map((item) => {
-    const video = responseObject(item);
-    return {
-      video_id: outputId(video.video_id, "video_id"),
-      height: simpleField(video.height),
-      width: simpleField(video.width),
-      thumbnail_url: textField(video.thumbnail_url, 2048, truncation),
-      video_url: textField(video.video_url, 2048, truncation),
-      video_state: textField(video.video_state, 32, truncation),
-    };
-  });
-}
-
 function selectedStringList(
   value: unknown,
   truncation: TruncationState,
@@ -1077,6 +1041,8 @@ function mapListingAssociations(
   listing: Record<string, unknown>,
   includes: string[],
   truncation: TruncationState,
+  expectedListingId: number,
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   if (includes.includes("Shop")) {
@@ -1086,9 +1052,11 @@ function mapListingAssociations(
       : mapShop(responseObject(shop), truncation);
   }
   if (includes.includes("Images")) {
-    result.images = mappedImages(
+    result.images = mapListingImagesAssociation(
       associationValue(listing, "Images", "images"),
       truncation,
+      expectedListingId,
+      mediaDependencies,
     );
   }
   if (includes.includes("User")) {
@@ -1104,9 +1072,11 @@ function mapListingAssociations(
     }
   }
   if (includes.includes("Videos")) {
-    result.videos = mappedVideos(
+    result.videos = mapListingVideosAssociation(
       associationValue(listing, "Videos", "videos"),
       truncation,
+      expectedListingId,
+      mediaDependencies,
     );
   }
   if (includes.includes("Translations")) {
@@ -1130,12 +1100,23 @@ function mapListingAssociations(
 
 function mapBatchListing(
   listing: Record<string, unknown>,
+  expectedListingId: number,
   includes: string[],
   truncation: TruncationState,
   currency: string | undefined,
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
 ): Record<string, unknown> {
   const result = mapListing(listing, truncation) as Record<string, unknown>;
-  Object.assign(result, mapListingAssociations(listing, includes, truncation));
+  Object.assign(
+    result,
+    mapListingAssociations(
+      listing,
+      includes,
+      truncation,
+      expectedListingId,
+      mediaDependencies,
+    ),
+  );
   if (currency !== undefined && hasOwn(listing, "converted_price")) {
     result.converted_price = mapConvertedPrice(listing.converted_price);
   }
@@ -1274,7 +1255,11 @@ async function searchListings(argsValue: unknown, get: ReturnType<typeof createE
   );
 }
 
-async function getListingDetails(argsValue: unknown, get: ReturnType<typeof createEtsyRequester>["get"]) {
+async function getListingDetails(
+  argsValue: unknown,
+  get: ReturnType<typeof createEtsyRequester>["get"],
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
+) {
   const args = asArguments(argsValue);
   const listingId = positiveSafeInteger(args.listing_id, "listing_id");
   const includes = listingIncludes(args);
@@ -1296,7 +1281,10 @@ async function getListingDetails(argsValue: unknown, get: ReturnType<typeof crea
     "shipping_profile_id",
   );
 
-  Object.assign(result, mapListingAssociations(listing, includes, truncation));
+  Object.assign(
+    result,
+    mapListingAssociations(listing, includes, truncation, listingId, mediaDependencies),
+  );
   return responseText(result, truncation);
 }
 
@@ -1346,18 +1334,20 @@ function mapListingBatchResults(
   includes: string[],
   currency: string | undefined,
   truncation: TruncationState,
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
 ): Record<string, unknown>[] {
   return listingIds.flatMap((listingId) => {
     const listing = listingsById.get(listingId);
     return listing === undefined
       ? []
-      : [mapBatchListing(listing, includes, truncation, currency)];
+      : [mapBatchListing(listing, listingId, includes, truncation, currency, mediaDependencies)];
   });
 }
 
 async function getListingsBatch(
   argsValue: unknown,
   get: ReturnType<typeof createEtsyRequester>["get"],
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
 ) {
   const args = asArguments(argsValue);
   const allowedArguments = new Set(["listing_ids", "includes", "currency"]);
@@ -1393,6 +1383,7 @@ async function getListingsBatch(
     includes,
     currency,
     truncation,
+    mediaDependencies,
   );
 
   return responseText(
@@ -1411,6 +1402,7 @@ async function getListingsBatch(
 async function getListingBuyerPrices(
   argsValue: unknown,
   get: ReturnType<typeof createEtsyRequester>["get"],
+  mediaDependencies: Parameters<typeof mapListingImagesAssociation>[3],
 ) {
   const args = asArguments(argsValue);
   const allowedArguments = new Set(["listing_ids", "buyer_country", "currency"]);
@@ -1452,6 +1444,7 @@ async function getListingBuyerPrices(
     includes,
     currency,
     truncation,
+    mediaDependencies,
   );
 
   return responseText(
@@ -1872,6 +1865,7 @@ export function createEtsyMcpServer(
   enforceDevelopmentMode(client, developmentMode);
   const { get } = createEtsyRequester(client);
   const taxonomyCache = new TaxonomyTreeCache(options.now);
+  const mediaDependencies = { get, responseObject, textField, responseText };
   const shopCatalogHandlers = createShopCatalogHandlers({
     get,
     responseObject,
@@ -1895,7 +1889,7 @@ export function createEtsyMcpServer(
     {
       capability: "public",
       tool: TOOLS[1],
-      handler: (args) => getListingDetails(args, get),
+      handler: (args) => getListingDetails(args, get, mediaDependencies),
     },
     {
       capability: "public",
@@ -1930,12 +1924,12 @@ export function createEtsyMcpServer(
     {
       capability: "public",
       tool: TOOLS[8],
-      handler: (args) => getListingsBatch(args, get),
+      handler: (args) => getListingsBatch(args, get, mediaDependencies),
     },
     {
       capability: "public",
       tool: TOOLS[9],
-      handler: (args) => getListingBuyerPrices(args, get),
+      handler: (args) => getListingBuyerPrices(args, get, mediaDependencies),
     },
     {
       capability: "public",
@@ -1972,6 +1966,7 @@ export function createEtsyMcpServer(
       tool: TOOLS[16],
       handler: (args) => getListingReviews(args, get),
     },
+    ...createListingMediaRegistrations(mediaDependencies),
   ];
   const registry = new CapabilityRegistry({
     enabledCapabilities: ["public"],

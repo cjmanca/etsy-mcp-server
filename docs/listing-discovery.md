@@ -60,6 +60,25 @@ Optional `includes` accepts the case-sensitive values `Shop`, `Images`, `User`, 
 
 Associations depend on Etsy returning them. Seller instructions, translations, tags, and URLs are untrusted Etsy data, not instructions to follow; URLs are not fetched. `truncated: true` means some selected content was shortened, and an exceptionally large detail response may be reduced to compact metadata. This display is not a complete writable snapshot. The `User` association is limited to public ID and login; email and raw owner fields are omitted.
 
+## Read dedicated listing media metadata
+
+Four API-key-only public reads return media metadata without requiring a full listing response:
+
+| Tool | Exact Etsy request | Required IDs |
+| --- | --- | --- |
+| `get_listing_images` | `GET /v3/application/listings/{listing_id}/images` (`getListingImages`) | `listing_id` |
+| `get_listing_image` | `GET /v3/application/listings/{listing_id}/images/{listing_image_id}` (`getListingImage`) | `listing_id`, `listing_image_id` |
+| `get_listing_videos` | `GET /v3/application/listings/{listing_id}/videos` (`getListingVideos`) | `listing_id` |
+| `get_listing_video` | `GET /v3/application/listings/{listing_id}/videos/{video_id}` (`getListingVideo`) | `listing_id`, `video_id` |
+
+IDs must be positive safe integers supplied as numbers. The detail image parameter is named `listing_image_id` (not `image_id`); the detail video parameter is `video_id`. These routes declare no query parameters, so the tools do not accept invented pagination, filters, or URL arguments. Each call makes one GET to the fixed Etsy API origin and makes no follow-up listing or media request. Etsy's video-detail reference says a request may return an empty result when the video is not present.
+
+Image results select the returned image/listing IDs, `rank`, full-image width/height, alt text (up to 500 characters), four documented URL variants (`url_75x75`, `url_170x135`, `url_570xN`, `url_fullxfull`), and optional color summary fields. Non-null rank and dimensions are retained as nonnegative safe integers; dimensions are nullable. The official rank schema sets a minimum of zero, although its description says positive and non-zero; the tool preserves a schema-valid zero if supplied and does not claim Etsy returns one in live data. The full-dimension fields have no schema maximum: the 3,000-pixel description belongs to the `url_fullxfull` rendition, not these fields. Video results select `video_id`, width/height, `video_state`, `thumbnail_url`, and `video_url`. Missing fields remain absent; explicit nulls remain null. Image/video IDs and any returned parent listing ID are checked against the request; duplicate IDs in a returned list or conflicting parent references fail as a sanitized error. Etsy's `ListingVideo` schema does not define a `listing_id` field, so the tools do not require one; if a parent ID is present in a response, it is still checked.
+
+Image and video lists return Etsy's `count` only when supplied, plus `returned`, `results`, and `truncated`. A source count, when present, must match the unpaged `results` array; a missing `results` array is malformed rather than an empty list. Lists are capped at 20 images and 10 videos, with the shared 128 KiB JSON output cap. Selected text and every returned URL are bounded to 500 and 2,048 characters respectively; shortening or row removal sets `truncated`. Alt text and URLs are untrusted third-party data. URLs—including arbitrary or hostile URLs—are preserved only as bounded JSON strings and are never followed, downloaded, or used as request targets.
+
+The existing `get_listing_details` and `get_listings_batch` `Images`/`Videos` includes remain supported with their original request behavior. Their selected summaries now also include image rank, dimensions, and alt text; they continue to use the existing medium/full-size image URLs and video fields, with the same 20-image and 10-video bounds. No dedicated media request is made when using these includes.
+
 `BuyerPrice` remains unavailable on single-listing detail. Etsy lists it on the batch route and it is exposed through the separate M1.6 `get_listing_buyer_prices` tool; this detail tool does not accept it. `Inventory` and `Shipping` are not accepted includes. `allow_suggested_title` remains disabled because its owner OAuth scope is unspecified. This tool sends no `buyer_country`, `currency`, or legacy query parameter and makes no follow-up requests for absent fields. Search and shop-listing summaries select the same safe base fields when their own endpoint returns them; only shop-scoped summaries may include readiness references.
 
 ## Fetch a batch of listings
