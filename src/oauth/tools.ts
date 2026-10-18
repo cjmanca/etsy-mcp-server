@@ -16,6 +16,7 @@ const READ_BUNDLES = [
   "address_read",
 ] as const satisfies readonly Bundle[];
 const BEGIN_PREREQUISITE = "OAuth authorization is unavailable while startup or the local development lock blocks it.";
+const SCOPE_DIAGNOSTIC_PREREQUISITE = "Scope diagnostic is unavailable because the official response fields for Etsy tokenScopes are not documented.";
 const CONNECTION_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const CONNECTION_STATES = new Set([
   "connected",
@@ -190,6 +191,24 @@ function projectDisconnectResult(value: unknown, expectedId: string): Disconnect
   };
 }
 
+function projectScopeInspection(value: unknown): { scopes: string[]; checked_at: number } {
+  if (!isRecord(value) || Object.keys(value).length !== 2) return projectionFailure();
+  const scopes = ownDataValue(value, "scopes");
+  const checkedAt = ownDataValue(value, "checked_at");
+  if (
+    !Array.isArray(scopes) ||
+    scopes.length > STATUS_SCOPES.size ||
+    scopes.some((scope) => typeof scope !== "string" || !STATUS_SCOPES.has(scope)) ||
+    new Set(scopes).size !== scopes.length ||
+    !Number.isSafeInteger(checkedAt) ||
+    Number(checkedAt) < 946_684_800_000 ||
+    Number(checkedAt) > 4_102_444_800_000
+  ) {
+    return projectionFailure();
+  }
+  return { scopes: [...scopes] as string[], checked_at: Number(checkedAt) };
+}
+
 function lifecycleRegistrations(service: OAuthService): CapabilityRegistration[] {
   return [
     {
@@ -247,6 +266,38 @@ function lifecycleRegistrations(service: OAuthService): CapabilityRegistration[]
         const { connectionId, record } = parseConnectionIdArgs(args, ["confirm_local_disconnect"]);
         if (ownDataValue(record, "confirm_local_disconnect") !== true) return invalidInput();
         const result = projectDisconnectResult(await service.disconnect(connectionId), connectionId);
+        const text = JSON.stringify(result);
+        if (Buffer.byteLength(text, "utf8") > MAX_TOOL_OUTPUT_BYTES) {
+          throw new OAuthError("oauth_response_invalid");
+        }
+        return { content: [{ type: "text", text }] };
+      },
+    },
+    {
+      capability: "account",
+      available: service.scopeInspectionAvailable === true,
+      prerequisite: SCOPE_DIAGNOSTIC_PREREQUISITE,
+      tool: {
+        name: "get_etsy_token_scopes",
+        description: "Inspect documented scopes for a connected Etsy token; the credential is resolved internally.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            connection_id: { type: "string", pattern: "^[A-Za-z0-9_-]{22}$" },
+          },
+          required: ["connection_id"],
+          additionalProperties: false,
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      handler: async (args) => {
+        const { connectionId } = parseConnectionIdArgs(args);
+        const result = projectScopeInspection(await service.inspectScopes(connectionId));
         const text = JSON.stringify(result);
         if (Buffer.byteLength(text, "utf8") > MAX_TOOL_OUTPUT_BYTES) {
           throw new OAuthError("oauth_response_invalid");

@@ -1,6 +1,6 @@
 # Planned OAuth and account access
 
-**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a), conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2), and internal refresh/lifecycle service (M3.3b; parent M3.3) are complete and reviewed. M3.4's local status and disconnect controls are complete after independent security/spec/quality review and coordinator Windows/native-Linux verification; coordinator commit is pending. Details and limits are recorded in [TASK.md](../TASK.md) and the [Task 5 report](../.superpowers/sdd/2026-10-17-portable-oauth/task-5-report.md). Refresh remains internal and is not invoked by status. Per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) remain unimplemented; overall M3 acceptance remains open.
+**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a), conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2, commit `217325c`), and internal refresh/lifecycle service (M3.3b, commit `d8eb5c3`; parent M3.3) are complete and reviewed. M3.4's local status and disconnect controls are complete after independent security/spec/quality review and coordinator Windows/native-Linux verification (commit `5ad835c`). Details and limits are recorded in [TASK.md](../TASK.md), the [Task 5 report](../.superpowers/sdd/2026-10-17-portable-oauth/task-5-report.md), and the [Task 6 implementation/blocker report](../.superpowers/sdd/2026-10-17-portable-oauth/task-6-report.md). Refresh remains internal and is not invoked by status. The M3.5a operation-authorization core is complete after independent security/spec/quality approval and coordinator Windows/native-Linux verification; coordinator commit is pending and no private resource handler invokes it. The M3.5b token-scope diagnostic remains concretely blocked because the current official response schema has no declared properties, not because of operator permission. Parent M3.5 and overall M3 acceptance remain open; private Etsy tools (M4+) remain unimplemented.
 
 ## M3.1 deployment contract and current implementation status (2026-10-17)
 
@@ -67,8 +67,9 @@ The begin entry point starts browser consent and completes a durable protected
 connection after callback identity/scope checks. The two lifecycle controls inspect
 or remove local connection credentials only; none of these tools exposes private
 Etsy resource data. The lifecycle implementation passed independent review and
-coordinator platform verification. Internal refresh remains separate from status. Per-operation
-scope/resource authorization, writes, and event handling remain unimplemented.
+coordinator platform verification. Internal refresh remains separate from status.
+The M3.5a authorization guard is not yet integrated with any private resource
+handler; private reads, writes, and event handling remain unavailable.
 Registry enablement is trusted startup configuration, never a model argument or
 metadata hint. An unavailable begin tool is undiscoverable and direct dispatch
 receives a server-generated prerequisite; status and disconnect remain available
@@ -87,13 +88,13 @@ The tool is present only when OAuth is explicitly enabled and runtime prerequisi
 | `begin_etsy_connection` | Read-capability bundle and optional nonsecret label. | **Conditional current implementation:** authorization URL, human action, pending request ID/status; no token or verifier. M3.2 independent source/docs review and coordinator final platform verification passed. |
 | `get_etsy_connection_status` | `connection_id`. | **Conditional current (M3.4; reviewed):** bounded local state, requested/verified granted scopes, consented capability names, verified account/shop IDs, expiry, and fixed reconnect guidance. Does not refresh credentials or expose credentials/URLs. `shops_r` is labeled `account_identity`, not as an implemented private shop-read tool. Recent terminal flow statuses are in-memory, capped at 100 entries and five minutes. |
 | `disconnect_etsy_connection` | `connection_id` and `confirm_local_disconnect: true`. | **Conditional current (M3.4; reviewed):** immediately disables local dispatch, consumes a matching pending attempt, serializes removal behind in-flight lifecycle work, and reports either completed local removal or `recovery_required`. The result always says `upstream_revoked: false`; no Etsy-side token revocation is performed. |
-| `get_etsy_token_scopes` | Connection ID. | **Planned (M3.5b):** scope names from a separately verified `tokenScopes` response, with the stored token injected internally. Never accept a raw token as a model-facing argument. |
+| `get_etsy_token_scopes` | Connection ID. | **Registered but unavailable (M3.5b blocked):** omitted from discovery and direct calls receive a prerequisite. The current `Scopes` schema has `properties: {}`; no parser, transport call, or token read is enabled. Never accept a raw token as a model-facing argument. |
 
 These are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access. Keep the public-tool count at twenty-nine by default; a ready OAuth runtime adds all three conditional connection tools (32 total). With the local development lock enabled, `begin_etsy_connection` is hidden/denied while status and disconnect remain available (31 total).
 
 The supported deployment remains one trusted operator and one stdio transport attachment per server instance. A second attachment is rejected before dispatch; separate operators or less-trusted clients require separate OS/container instances, protected stores, and keys. Connection IDs and MCP client/model labels do not authenticate tenants. Disconnect removes local credentials only, and a recovery-required result keeps access disabled; it is not proof of durable removal or Etsy-side revocation.
 
-M3.3b's verified `ensureFresh` and `withConnection` methods are current internal service interfaces only. No current MCP tool or private Etsy handler invokes them; status performs no refresh. Overlapping callers share a freshness flight, including short-lived responses; rotated credentials and actual grants are committed before release. Ambiguous POST outcomes are not replayed, persistence failures block stale reuse, and expiry is rechecked after commit and before serialized work. Expired rotations remain durably saved but are not released; no same-call refresh loop occurs. M3.4's model-facing local status/disconnect integration is complete and reviewed. Disconnect invalidation is rechecked after awaited reads/flights/work; accepted status calls retain invalidation protection even if a terminal entry expires or is evicted. Already-started work is not cancelled, but its result is withheld after disconnect. Scope authorization and the diagnostic gate remain M3.5 work.
+M3.3b's verified `ensureFresh` and `withConnection` methods are current internal service interfaces only. No current MCP tool or private Etsy handler invokes them; status performs no refresh. Overlapping callers share a freshness flight, including short-lived responses; rotated credentials and actual grants are committed before release. Ambiguous POST outcomes are not replayed, persistence failures block stale reuse, and expiry is rechecked after commit and before serialized work. Expired rotations remain durably saved but are not released; no same-call refresh loop occurs. M3.4's model-facing local status/disconnect integration is complete and reviewed. Disconnect invalidation is rechecked after awaited reads/flights/work; accepted status calls retain invalidation protection even if a terminal entry expires or is evicted. Already-started work is not cancelled, but its result is withheld after disconnect. The M3.5a guard is complete and reviewed but is not called by any private handler; M3.5b's diagnostic remains unavailable and parent M3.5 remains open.
 
 ## Protocol and lifecycle requirements
 
@@ -131,12 +132,27 @@ closed, never substitutes requested scopes. The guide's formal every-request API
 key rule applies despite omitted header in token curl examples. This was public
 documentation research, not a live account request.
 
-The captured `Scopes` diagnostic schema declares no properties. M3.5a can implement
-authorization using documented token scopes; M3.5b must establish a current exact
-documented diagnostic shape and bounded fixtures before enabling its parser/tool.
-If still unknown, keep that diagnostic and M3.5 parent incomplete, not unrelated
-valid connections unusable. Unknown/unavailable diagnostic data is not evidence
-against an already validated token-response scope; actual contradictory trusted
+The current official [generated OpenAPI document](https://www.etsy.com/openapi/generated/oas/3.0.0.json)
+was re-fetched on 2026-10-17. Its `tokenScopes` operation is API-key-only
+`POST /v3/application/scopes` with a required form-urlencoded `token`; the 200
+response references `Scopes`. The schema description says “A list of scopes allowed
+for the token” but declares `properties: {}` and no response example or bounds.
+The authentication guide documents token-response `scope`, not the diagnostic
+response body. Therefore M3.5b cannot safely define a parser or enable the
+`get_etsy_token_scopes` transport call. Its registration is known but unavailable:
+it is hidden from discovery and direct calls fail with a server-generated
+prerequisite before stored credentials are read. This diagnostic blocker does not
+invalidate valid, documented token-response scopes.
+
+The M3.5a guard checks the connection owner and generation, usable lifecycle state,
+the intersection of validated token-response grants and consent-requested scopes,
+the configured account/write capability, exact operation requirements, and
+trusted account/shop/relationship proof. Independent security/spec/quality review
+approved after one dispatch-coverage fix round; coordinator Windows/native-Linux
+verification passed (370 tests each, including real SIGTERM on Linux). No M4+ handler invokes the guard; it does not expose private access or
+authorize a mutation. Writes still require M5's separate operation-specific
+approval and confirmation boundary. Unknown/unavailable diagnostic data is not
+evidence against validated token-response scopes; actual contradictory trusted
 evidence, if obtained through a supported parser, fails affected access closed.
 
 ## Scope planning

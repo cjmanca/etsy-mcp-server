@@ -70,6 +70,7 @@ export type CallbackOutcome = "complete" | "denied" | "failed";
 
 export interface OAuthService {
   readonly beginAvailable: boolean;
+  readonly scopeInspectionAvailable: boolean;
   begin(input: BeginInput): Promise<BeginResult>;
   completeCallback(input: CallbackInput): Promise<CallbackOutcome>;
   status(connectionId: string): Promise<ConnectionStatus>;
@@ -84,6 +85,7 @@ export interface OAuthService {
     connectionId: string,
     work: (record: ConnectionRecord) => Promise<T>,
   ): Promise<T>;
+  inspectScopes(connectionId: string): Promise<{ scopes: readonly Scope[]; checked_at: number }>;
   close(): Promise<void>;
 }
 
@@ -495,6 +497,10 @@ export function createOAuthService(
   let closed = false;
   let shutdownCleanupFailed = false;
   let closePromise: Promise<void> | undefined;
+  // The official tokenScopes schema currently declares no response properties.
+  // Do not infer support from injected transports until a parser-backed Etsy
+  // transport implementation has been reviewed against documented fixtures.
+  const scopeInspectionAvailable = false;
 
   function statusFromPending(entry: PendingStatus): ConnectionStatus {
     return {
@@ -1043,6 +1049,15 @@ export function createOAuthService(
     return trackConnectionLifecycle(connectionId, operation);
   }
 
+  function inspectScopes(_connectionId: string): Promise<{ scopes: readonly Scope[]; checked_at: number }> {
+    // This check intentionally precedes ID validation, storage lookup, token
+    // refresh, and all credential/network work while the response is unknown.
+    if (!scopeInspectionAvailable) {
+      return Promise.reject(new OAuthError("oauth_scope_diagnostic_unavailable"));
+    }
+    return Promise.reject(new OAuthError("oauth_scope_diagnostic_unavailable"));
+  }
+
   function disconnectResult(
     connectionId: string,
     state: DisconnectResult["state"],
@@ -1420,12 +1435,14 @@ export function createOAuthService(
     get beginAvailable() {
       return !closed && !config.developmentMode && validClientId(clientId, config.owner);
     },
+    scopeInspectionAvailable,
     begin,
     completeCallback,
     status,
     disconnect,
     ensureFresh,
     withConnection,
+    inspectScopes,
     close() {
       if (closePromise) return closePromise;
       closed = true;

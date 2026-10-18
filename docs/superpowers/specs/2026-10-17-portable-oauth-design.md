@@ -9,8 +9,10 @@ evidence is recorded in `TASK.md`. M3.3b internal refresh and parent M3.3 are al
 complete after independent security/spec/quality approval and final coordinator
 Windows/native-Linux verification; no current MCP/private handler invokes refresh.
 M3.4 local status/disconnect is also complete after independent security/spec/quality
-approval and coordinator Windows/native-Linux verification, pending coordinator
-commit. M3.5 and private M4+ tools remain planned; overall M3 acceptance remains
+approval and coordinator Windows/native-Linux verification (commit `5ad835c`).
+M3.5a's authorization core is complete after independent review and coordinator
+Windows/native-Linux verification; M3.5b is blocked by the empty official `Scopes`
+response contract. Parent M3.5 and private M4+ tools remain incomplete; overall M3 acceptance remains
 open. The user confirmed exact Etsy redirect
 registration; listener/reverse-proxy reachability, key provisioning, and live
 consent have not been verified.

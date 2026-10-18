@@ -119,9 +119,14 @@ upstream token revocation. Independent M3.4 review and coordinator platform
 verification are complete. Accepted lifecycle/status calls recheck disconnect
 invalidation across awaits, including after terminal status expiry or eviction;
 already-started work is not claimed to be cancelled. The
-connect flow validates consent identity and persists actual token-response scopes,
-but it does not implement the later per-operation authorization, account/resource
-checks, mutation approval, or event signature validation required by future tools.
+connect flow validates consent identity and persists actual token-response scopes.
+An M3.5a server-side operation-authorization guard now checks trusted owner/generation,
+validated grants versus requested scopes, configured capability, operation scopes,
+and account/shop/relationship proof; independent review and coordinator Windows/native-Linux verification are complete, and no private
+resource handler invokes it. Consequently private account/resource tools remain
+unavailable. The M3.5b `tokenScopes` diagnostic is hidden because Etsy's current
+`Scopes` response schema declares no properties. Mutation approval and event
+signature validation remain separate future-tool requirements.
 
 The reusable structured-money normalizer preserves Etsy's safe-integer
 `amount`, positive safe-integer `divisor`, and `currency_code` without scaling or

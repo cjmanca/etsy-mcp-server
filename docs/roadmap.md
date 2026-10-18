@@ -1,6 +1,6 @@
 # Feature roadmap and sequencing
 
-**Status: planned work remains.** The twenty-nine public tools remain available by default. After operator setup, conditional OAuth consent and reviewed local status/disconnect controls are implemented (M3.4 complete). Scope authorization, private reads, inventory, and writes remain planned under the revised [policy](access-policy.md). Tool names outside the [current public set](overview.md) are proposals unless explicitly marked conditional/current.
+**Status: planned work remains.** The twenty-nine public tools remain available by default. After operator setup, conditional OAuth consent and reviewed local status/disconnect controls are implemented (M3.4 complete). The internal scope-authorization core is reviewed and complete (M3.5a); no private resource handler invokes it. The scope diagnostic is blocked by the empty official response contract (M3.5b), so parent M3.5 and overall M3 remain open. Private reads, inventory, and writes remain planned under the revised [policy](access-policy.md). Tool names outside the [current public set](overview.md) are proposals unless explicitly marked conditional/current.
 
 ## Research basis and coverage
 
@@ -17,7 +17,7 @@ The detailed [implementation tasks and milestones](../TASK.md) expand these phas
 | Phase | Deliverable | Dependencies | Completion evidence |
 | --- | --- | --- | --- |
 | 1 | [Public discovery expansion](planned-public-discovery.md) | Existing API-key access. | Each new public tool is discoverable, has bounded results, rejects invalid input, and works in mocked MCP tests. |
-| 2 | [OAuth and account foundation](planned-oauth-and-accounts.md) | Reviewed consent/callback and secret-storage design. | Conditional browser consent, durable callback completion, internal refresh, and local status/disconnect are verified and reviewed; scope authorization and remaining account-isolation gates are still required before this phase is complete. |
+| 2 | [OAuth and account foundation](planned-oauth-and-accounts.md) | Reviewed consent/callback and secret-storage design. | Conditional browser consent, durable callback completion, internal refresh, local status/disconnect, and the authorization core are verified and reviewed; the scope diagnostic remains blocked by its empty official response contract. Overall M3 acceptance remains open; private resource integration is M4+. |
 | 3 | Private listing, inventory, shipping, processing, order, and payment reads. | Phase 2 plus the relevant read scopes. | Ownership/field restrictions and complete-versus-truncated data are represented accurately. |
 | 4 | [Listing and inventory writes](planned-listing-management.md). | Phases 2–3; confirmation and outcome-verification controls. | Draft, publish/update/delete, variation replacement, and media/file workflows have positive, denial, and uncertain-outcome tests. |
 | 5 | [Shop configuration](planned-shop-management.md) and [fulfillment writes](planned-orders-and-payments.md). | Phase 2 and the corresponding read-before-write paths. | Shared-resource impact, destructive changes, buyer notifications, and conflict handling are tested. |

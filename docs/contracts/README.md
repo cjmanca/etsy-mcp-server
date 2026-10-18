@@ -242,8 +242,24 @@ app approval. getMe requires shops_r. Address reads use address_r.
 **deleteUserAddress conflict:** operation says address_r, guide scope summary says
 address_w permits deletion. Preserve the exact recorded security and block
 production deletion until Etsy confirms; do not silently substitute a guessed
-scope. tokenScopes is API-key POST with secret token body, not a seller mutation;
-model-facing tools must resolve the token internally.
+scope. `tokenScopes` is an API-key POST with a required form-urlencoded `token`
+body, not a seller mutation; any model-facing diagnostic must resolve the token
+internally.
+
+The current official [generated OpenAPI document](https://www.etsy.com/openapi/generated/oas/3.0.0.json)
+was re-fetched on 2026-10-17. `tokenScopes` remains `POST
+/v3/application/scopes`, API-key-only; its 200 response references `Scopes`, whose
+description says “A list of scopes allowed for the token” but whose `properties`
+object is empty. It declares no response field names, types, bounds, or example
+payload. The current [authentication guide](https://developers.etsy.com/markdown/essentials/authentication.md),
+also retrieved 2026-10-17, documents `scope` as the space-delimited actual grant
+on authorization-code and refresh token responses, but does not document the
+`tokenScopes` response body. Therefore the diagnostic parser/transport/tool must
+remain unavailable until Etsy documents an exact bounded response shape and
+fixtures can be grounded in it. This does not block access based on valid,
+documented token-response scope evidence. This is public-documentation research,
+not an account request; the pinned OpenAPI snapshot and checksum above are
+unchanged.
 
 OAuth is supporting protocol, not a 106th catalog operation: consent GET
 `https://www.etsy.com/oauth/connect` with response_type=code, keystring client_id,

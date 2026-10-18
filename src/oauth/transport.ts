@@ -32,6 +32,7 @@ export interface OAuthTransport {
   exchange(input: { code: string; verifier: string }): Promise<TokenResult>;
   refresh(refreshToken: string): Promise<TokenResult>;
   getMe(accessToken: string): Promise<{ accountId: number; shopId?: number }>;
+  inspectScopes?(accessToken: string): Promise<ScopeEvidence>;
 }
 
 type FixedOperation = Readonly<{

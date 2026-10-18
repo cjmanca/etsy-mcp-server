@@ -82,6 +82,8 @@ export type OAuthErrorReason =
   | "connection_unavailable"
   | "oauth_token_expired"
   | "oauth_reconnect_required"
+  | "oauth_operation_not_authorized"
+  | "oauth_scope_diagnostic_unavailable"
   | "callback_bind_failed";
 
 export type OAuthStorageDiagnosticCode =
@@ -130,6 +132,8 @@ const SAFE_ERROR_MESSAGES: Readonly<Record<OAuthErrorReason, string>> = {
   connection_unavailable: "The requested Etsy connection is unavailable.",
   oauth_token_expired: "The Etsy access token expired before it could be used; start a fresh connection operation.",
   oauth_reconnect_required: "The Etsy connection requires fresh consent or offline recovery before use.",
+  oauth_operation_not_authorized: "The Etsy connection is not authorized for this operation.",
+  oauth_scope_diagnostic_unavailable: "Scope inspection is unavailable because Etsy's official tokenScopes response fields are not documented.",
   callback_bind_failed: "The OAuth callback listener could not bind the configured address and port.",
 };
 
