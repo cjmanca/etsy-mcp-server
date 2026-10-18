@@ -81,3 +81,16 @@ reviewing changes and verification evidence.
   to perform live account operations, publish packages, or deploy callbacks.
 - Update affected documentation when behavior changes; mark planned work complete
   only with implementation and verification evidence.
+- Keep the changelog and README as user facing changes only. The user doesn't need to know about the technical project details (if they want to know that they can look at commit history). They only need to know about features.
+
+
+## Testing restrictions (from Etsy Testing Policy)
+- Create listings in draft state when possible. This removes the need to deactivate them later and also helps you avoid listing fees.
+- Use low prices (< 1 USD) when creating test listings. After you have finished testing, you must deactivate the listings.
+- Etsy still charges fees on developer mode accounts. Limit listing creation as much as possible, just to verify that it works. Try to ensure that everything looks correct before doing a live test of anything with a transaction fee.
+- Don't do any purchases. Developer mode only affects the shop selling side. 
+- Add "test" to the title or description of any listings created for testing purposes.
+- Not use stock images in your shop when testing. Doing so will increase the odds of your testing activity being flagged as fraud.
+- Cancel any transactions if a buyer accidentally purchases your test listings.
+- Don't use any mutating commands that would affect other shops or other people.
+
