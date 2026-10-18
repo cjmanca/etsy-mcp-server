@@ -1,13 +1,13 @@
 # Planned OAuth and account access
 
-**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a) and conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2) are complete. Independent source/docs review and final coordinator Windows/native-Linux verification passed, including the real SIGTERM subprocess gate; concrete evidence is recorded in [TASK.md](../TASK.md). Refresh orchestration (M3.3b), connection status/disconnect (M3.4), per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) are not implemented.
+**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a), conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2), and internal refresh/lifecycle service (M3.3b; parent M3.3) are complete. Independent security/spec/quality review approved the refresh service after one fix round; final coordinator Windows/native-Linux verification passed, including the real SIGTERM subprocess gate. Concrete evidence is recorded in [TASK.md](../TASK.md). Refresh remains internal, not a user-facing tool. Connection status/disconnect (M3.4), per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) remain unimplemented.
 
 ## M3.1 deployment contract and current implementation status (2026-10-17)
 
 Read the [approved portable OAuth design](superpowers/specs/2026-10-17-portable-oauth-design.md)
 and [focused implementation plan](superpowers/plans/2026-10-17-portable-oauth.md).
 The user approved proceeding; M3.1 passed independent contract/ignore-prerequisite
-review. M3.3a and the M3.2 conditional connect implementation now exist, but the
+review. M3.3a, M3.2 conditional connect, and M3.3b internal refresh now exist, but the
 overall M3 milestone is not complete. Native Windows local NTFS and Linux local
 POSIX storage use Node AES-256-GCM with a separate operator-provided protected key
 file, not a Windows-only vault. Native Windows and native Linux protected-store
@@ -26,8 +26,8 @@ the actual nearest proxy/bridge peer. Callback tests bind synthetic loopback onl
 no deployed listener, proxy reachability, or live browser consent has been verified.
 
 Dependency ruling: **M3.1 → M3.3a protected store/config/permissions → M3.2 secure
-connect → M3.3b refresh → M3.4 → M3.5**. M3.3's parent stays incomplete until both
-children pass; a usable production connection requires verified scopes/identity
+connect → M3.3b refresh → M3.4 → M3.5**. Both M3.3 children have passed, completing
+the storage/refresh parent; a usable production connection requires verified scopes/identity
 and durable encrypted commit, never an interim plaintext or memory-only store.
 
 One supported stdio client/transport per process; trusted operator/store context
@@ -64,7 +64,7 @@ When `ETSY_OAUTH_ENABLED=true` and the protected store, key, and callback listen
 start successfully, it conditionally adds `begin_etsy_connection` under `account`.
 This single entry point starts browser consent and completes a durable protected
 connection after callback identity/scope checks; it does not expose any private
-Etsy resource tools. The remaining account lifecycle, per-operation scope and
+Etsy resource tools. Internal refresh is verified, but status/disconnect, per-operation scope and
 resource authorization, writes, and event handling are still unimplemented.
 Registry enablement is trusted startup configuration, never a model argument or
 metadata hint. A blocked/unavailable begin tool is undiscoverable and direct
@@ -86,6 +86,8 @@ The tool is present only when OAuth is explicitly enabled and runtime prerequisi
 | `get_etsy_token_scopes` | Connection ID. | **Planned (M3.5b):** scope names from a separately verified `tokenScopes` response, with the stored token injected internally. Never accept a raw token as a model-facing argument. |
 
 These are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access. Keep the public-tool count at twenty-nine by default; the conditional connect tool is additive only when explicitly enabled and ready.
+
+M3.3b's verified `ensureFresh` and `withConnection` methods are current internal service interfaces only. No current MCP tool or private Etsy handler invokes them. Overlapping callers share a freshness flight, including short-lived responses; rotated credentials and actual grants are committed before release. Ambiguous POST outcomes are not replayed, persistence failures block stale reuse, and expiry is rechecked after commit and before serialized work. Expired rotations remain durably saved but are not released; no same-call refresh loop occurs. Model-facing lifecycle/authorization integration remains M3.4–M3.5 work.
 
 ## Protocol and lifecycle requirements
 

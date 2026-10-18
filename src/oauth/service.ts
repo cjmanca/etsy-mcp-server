@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { OAuthTransport } from "./transport.js";
 import { parseGrantedScopes } from "./scopes.js";
@@ -7,6 +8,7 @@ import {
   type ConnectionStore,
   type OAuthConfig,
   type Scope,
+  type ScopeEvidence,
 } from "./types.js";
 
 export type Bundle =
@@ -42,6 +44,16 @@ export interface OAuthService {
   readonly beginAvailable: boolean;
   begin(input: BeginInput): Promise<BeginResult>;
   completeCallback(input: CallbackInput): Promise<CallbackOutcome>;
+  /** Internal token lifecycle operation. Never expose the returned record to MCP. */
+  ensureFresh(connectionId: string): Promise<ConnectionRecord>;
+  /**
+   * Run trusted lifecycle work while the connection is serialized. The callback
+   * must not reenter ensureFresh/withConnection for this same connection ID.
+   */
+  withConnection<T>(
+    connectionId: string,
+    work: (record: ConnectionRecord) => Promise<T>,
+  ): Promise<T>;
   close(): Promise<void>;
 }
 
@@ -67,10 +79,21 @@ const MAX_TOKEN_BYTES = 16 * 1024;
 const MAX_TOKEN_LIFETIME_SECONDS = 366 * 24 * 60 * 60;
 const MIN_EPOCH_MS = 946_684_800_000;
 const MAX_EPOCH_MS = 4_102_444_800_000;
+const REFRESH_SKEW_MS = 60_000;
 const CONNECTION_ID = /^[A-Za-z0-9_-]{22}$/;
+const STORED_CONNECTION_ID = /^[A-Za-z0-9_-]{22,128}$/;
 const STATE_OR_VERIFIER = /^[A-Za-z0-9_-]{43}$/;
 const TOKEN_PATTERN = /^([1-9][0-9]{0,15})\.[\x21-\x7e]+$/;
 const CODE_PATTERN = /^[\x21-\x7e]{1,2048}$/;
+const CONNECTION_STATES = new Set([
+  "connected",
+  "connected_limited",
+  "scope_verification_required",
+  "reconnect_required",
+  "recovery_required",
+]);
+const TOKEN_RESULT_KEYS = new Set(["accessToken", "refreshToken", "expiresIn", "grants"]);
+const SCOPE_EVIDENCE_KEYS = new Set(["scopes", "source", "checkedAt"]);
 
 const BUNDLE_SCOPES: Readonly<Record<Bundle, readonly Scope[]>> = Object.freeze({
   catalog_read: ["listings_r"],
@@ -181,7 +204,29 @@ function tokenAccountId(value: unknown): { token: string; accountId: number } {
   return { token: value, accountId };
 }
 
-function validateTokenResult(value: unknown, now: number): {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function ownDataValue(value: Record<string, unknown>, key: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+function hasExactOwnKeys(value: Record<string, unknown>, expected: ReadonlySet<string>): boolean {
+  const keys = Object.keys(value);
+  return keys.length === expected.size && keys.every((key) => expected.has(key));
+}
+
+function validStoredConnectionId(value: unknown): value is string {
+  if (typeof value !== "string" || !STORED_CONNECTION_ID.test(value)) return false;
+  const decoded = Buffer.from(value, "base64url");
+  return decoded.length >= 16 && decoded.length <= 96 && decoded.toString("base64url") === value;
+}
+
+function validateTokenResult(value: unknown, now: number, expectedSource?: ScopeEvidence["source"]): {
   accessToken: string;
   refreshToken: string;
   accountId: number;
@@ -189,34 +234,46 @@ function validateTokenResult(value: unknown, now: number): {
   grants: ReturnType<typeof parseGrantedScopes>;
 } {
   try {
-    if (value === null || typeof value !== "object") return fail("oauth_response_invalid");
-    const token = value as Record<string, unknown>;
-    const access = tokenAccountId(token.accessToken);
-    const refresh = tokenAccountId(token.refreshToken);
+    if (!isPlainRecord(value) || !hasExactOwnKeys(value, TOKEN_RESULT_KEYS)) {
+      return fail("oauth_response_invalid");
+    }
+    const access = tokenAccountId(ownDataValue(value, "accessToken"));
+    const refresh = tokenAccountId(ownDataValue(value, "refreshToken"));
     const prefix = access.token.slice(0, access.token.indexOf("."));
     const refreshPrefix = refresh.token.slice(0, refresh.token.indexOf("."));
+    const expiresIn = ownDataValue(value, "expiresIn");
     if (
       access.accountId !== refresh.accountId ||
       prefix !== refreshPrefix ||
-      !Number.isSafeInteger(token.expiresIn) ||
-      Number(token.expiresIn) <= 0 ||
-      Number(token.expiresIn) > MAX_TOKEN_LIFETIME_SECONDS ||
+      !Number.isSafeInteger(expiresIn) ||
+      Number(expiresIn) <= 0 ||
+      Number(expiresIn) > MAX_TOKEN_LIFETIME_SECONDS ||
       !validEpoch(now)
     ) {
       return fail("oauth_response_invalid");
     }
-    const grants = token.grants as { scopes?: unknown; source?: unknown; checkedAt?: unknown } | undefined;
+    const grants = ownDataValue(value, "grants");
     if (
-      !grants ||
-      !Array.isArray(grants.scopes) ||
-      (grants.source !== "authorization_code_response" && grants.source !== "refresh_response") ||
-      !validEpoch(grants.checkedAt)
+      !isPlainRecord(grants) ||
+      !hasExactOwnKeys(grants, SCOPE_EVIDENCE_KEYS)
     ) {
       return fail("oauth_scope_invalid");
     }
-    const scopeText = grants.scopes.join(" ");
-    const parsedGrants = parseGrantedScopes(scopeText, grants.source, grants.checkedAt);
-    const expiresAt = now + Number(token.expiresIn) * 1_000;
+    const rawScopes = ownDataValue(grants, "scopes");
+    const source = ownDataValue(grants, "source");
+    const checkedAt = ownDataValue(grants, "checkedAt");
+    if (
+      !Array.isArray(rawScopes) ||
+      rawScopes.some((scope) => typeof scope !== "string") ||
+      (source !== "authorization_code_response" && source !== "refresh_response") ||
+      (expectedSource !== undefined && source !== expectedSource) ||
+      !validEpoch(checkedAt)
+    ) {
+      return fail("oauth_scope_invalid");
+    }
+    const scopeText = rawScopes.join(" ");
+    const parsedGrants = parseGrantedScopes(scopeText, source, checkedAt);
+    const expiresAt = now + Number(expiresIn) * 1_000;
     if (!validEpoch(expiresAt) || expiresAt <= now) return fail("oauth_response_invalid");
     return {
       accessToken: access.token,
@@ -228,6 +285,107 @@ function validateTokenResult(value: unknown, now: number): {
   } catch (error) {
     if (error instanceof OAuthError) throw error;
     return fail("oauth_response_invalid");
+  }
+}
+
+function validateConnectionRecord(value: unknown, connectionId: string, owner: OAuthConfig["owner"]): ConnectionRecord {
+  try {
+    if (!isPlainRecord(value)) return fail("connection_unavailable");
+    const record = value;
+    const storedId = ownDataValue(record, "connectionId");
+    const recordOwner = ownDataValue(record, "owner");
+    const accountId = ownDataValue(record, "accountId");
+    const generation = ownDataValue(record, "generation");
+    const state = ownDataValue(record, "state");
+    const accessValue = ownDataValue(record, "accessToken");
+    const refreshValue = ownDataValue(record, "refreshToken");
+    const issuedAt = ownDataValue(record, "issuedAt");
+    const expiresAt = ownDataValue(record, "expiresAt");
+    const requestedValue = ownDataValue(record, "requestedScopes");
+    const grantsValue = ownDataValue(record, "grants");
+    if (
+      storedId !== connectionId ||
+      !validStoredConnectionId(storedId) ||
+      !isPlainRecord(recordOwner) ||
+      ownDataValue(recordOwner, "operatorId") !== owner.operatorId ||
+      ownDataValue(recordOwner, "appFingerprint") !== owner.appFingerprint ||
+      !Number.isSafeInteger(accountId) ||
+      Number(accountId) <= 0 ||
+      !Number.isSafeInteger(generation) ||
+      Number(generation) <= 0 ||
+      typeof state !== "string" ||
+      !CONNECTION_STATES.has(state) ||
+      !validEpoch(issuedAt) ||
+      !validEpoch(expiresAt) ||
+      Number(expiresAt) <= Number(issuedAt) ||
+      Number(expiresAt) - Number(issuedAt) > MAX_TOKEN_LIFETIME_SECONDS * 1_000
+    ) {
+      return fail("connection_unavailable");
+    }
+    const access = tokenAccountId(accessValue);
+    const refresh = tokenAccountId(refreshValue);
+    if (access.accountId !== Number(accountId) || refresh.accountId !== Number(accountId)) {
+      return fail("connection_unavailable");
+    }
+    if (!Array.isArray(requestedValue) || requestedValue.some((scope) => typeof scope !== "string")) {
+      return fail("connection_unavailable");
+    }
+    const rawGrants = grantsValue;
+    if (!isPlainRecord(rawGrants) || !hasExactOwnKeys(rawGrants, SCOPE_EVIDENCE_KEYS)) {
+      return fail("connection_unavailable");
+    }
+    const rawGrantedScopes = ownDataValue(rawGrants, "scopes");
+    const source = ownDataValue(rawGrants, "source");
+    const checkedAt = ownDataValue(rawGrants, "checkedAt");
+    if (
+      !Array.isArray(rawGrantedScopes) ||
+      rawGrantedScopes.some((scope) => typeof scope !== "string") ||
+      (source !== "authorization_code_response" && source !== "refresh_response" && source !== "diagnostic") ||
+      !validEpoch(checkedAt)
+    ) {
+      return fail("connection_unavailable");
+    }
+    const requestedScopes = parseGrantedScopes(
+      requestedValue.join(" "),
+      "authorization_code_response",
+      checkedAt,
+    ).scopes;
+    const grants = parseGrantedScopes(rawGrantedScopes.join(" "), source, checkedAt);
+    const shopId = ownDataValue(record, "shopId");
+    const label = ownDataValue(record, "label");
+    const reason = ownDataValue(record, "reason");
+    if (
+      (shopId !== undefined && (!Number.isSafeInteger(shopId) || Number(shopId) <= 0)) ||
+      (label !== undefined && (typeof label !== "string" || label.length > 100)) ||
+      (reason !== undefined && typeof reason !== "string")
+    ) {
+      return fail("connection_unavailable");
+    }
+    return Object.freeze({
+      connectionId,
+      owner: Object.freeze({ operatorId: owner.operatorId, appFingerprint: owner.appFingerprint }),
+      accountId: Number(accountId),
+      ...(shopId === undefined ? {} : { shopId: Number(shopId) }),
+      generation: Number(generation),
+      ...(label === undefined ? {} : { label }),
+      state: state as ConnectionRecord["state"],
+      ...(reason === undefined ? {} : { reason }),
+      accessToken: access.token,
+      refreshToken: refresh.token,
+      issuedAt: Number(issuedAt),
+      expiresAt: Number(expiresAt),
+      requestedScopes,
+      grants,
+    });
+  } catch (error) {
+    if (error instanceof OAuthError && error.reason === "oauth_scope_invalid") {
+      return fail("connection_unavailable");
+    }
+    if (error instanceof OAuthError && error.reason === "oauth_response_invalid") {
+      return fail("connection_unavailable");
+    }
+    if (error instanceof OAuthError) throw error;
+    return fail("connection_unavailable");
   }
 }
 
@@ -260,6 +418,11 @@ export function createOAuthService(
   const pendingConnections = new Set<string>();
   const activeBegins = new Set<Promise<BeginResult>>();
   const activeCompletions = new Set<Promise<CallbackOutcome>>();
+  const activeLifecycle = new Set<Promise<unknown>>();
+  const lifecycleLocks = new Map<string, Promise<void>>();
+  const freshnessFlights = new Map<string, Promise<ConnectionRecord>>();
+  const blockedGenerations = new Set<string>();
+  const lifecycleContext = new AsyncLocalStorage<ReadonlySet<string>>();
   let activeExchanges = 0;
   let beginReservations = 0;
   let closed = false;
@@ -287,6 +450,230 @@ export function createOAuthService(
       if (error instanceof OAuthError) throw error;
       return fail("oauth_flow_unavailable");
     }
+  }
+
+  function generationKey(connectionId: string, generation: number): string {
+    return `${connectionId}:${generation}`;
+  }
+
+  function trackLifecycle<T>(operation: Promise<T>): Promise<T> {
+    activeLifecycle.add(operation);
+    void operation.then(
+      () => activeLifecycle.delete(operation),
+      () => activeLifecycle.delete(operation),
+    );
+    return operation;
+  }
+
+  function runConnectionLock<T>(connectionId: string, operation: () => Promise<T>): Promise<T> {
+    const previous = lifecycleLocks.get(connectionId) ?? Promise.resolve();
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tail = previous.then(() => held);
+    lifecycleLocks.set(connectionId, tail);
+    return (async () => {
+      await previous;
+      try {
+        return await operation();
+      } finally {
+        release();
+        if (lifecycleLocks.get(connectionId) === tail) lifecycleLocks.delete(connectionId);
+      }
+    })();
+  }
+
+  async function requireRecoveryFence(): Promise<void> {
+    try {
+      await store.markRecoveryRequired();
+    } catch {
+      // The protected store retains its ownership lock when marker persistence
+      // cannot be verified. Do not let service shutdown present as clean either.
+      shutdownCleanupFailed = true;
+    }
+  }
+
+  async function disableRefreshGeneration(
+    record: ConnectionRecord,
+    state: "scope_verification_required" | "reconnect_required",
+    reason: string,
+  ): Promise<never> {
+    blockedGenerations.add(generationKey(record.connectionId, record.generation));
+    const nextGeneration = record.generation + 1;
+    if (!Number.isSafeInteger(nextGeneration)) {
+      await requireRecoveryFence();
+      return fail("oauth_reconnect_required");
+    }
+    try {
+      await store.put({ ...record, generation: nextGeneration, state, reason }, record.generation);
+    } catch {
+      await requireRecoveryFence();
+    }
+    return fail("oauth_reconnect_required");
+  }
+
+  async function readLifecycleRecord(connectionId: string): Promise<ConnectionRecord> {
+    if (closed) return fail("oauth_flow_unavailable");
+    let value: ConnectionRecord | undefined;
+    try {
+      value = await store.read(connectionId);
+    } catch (error) {
+      if (error instanceof OAuthError) throw error;
+      return fail("connection_unavailable");
+    }
+    if (closed) return fail("oauth_flow_unavailable");
+    if (!value) return fail("connection_unavailable");
+    return validateConnectionRecord(value, connectionId, config.owner);
+  }
+
+  function requireUnexpiredRecord(record: ConnectionRecord): ConnectionRecord {
+    const currentTime = now();
+    if (!validEpoch(currentTime)) return fail("oauth_flow_unavailable");
+    if (record.expiresAt <= currentTime) return fail("oauth_token_expired");
+    return record;
+  }
+
+  async function ensureFreshLocked(connectionId: string): Promise<ConnectionRecord> {
+    if (config.developmentMode) return fail("development_mode_locked");
+    if (closed) return fail("oauth_flow_unavailable");
+    const record = await readLifecycleRecord(connectionId);
+    if (blockedGenerations.has(generationKey(connectionId, record.generation))) {
+      return fail("oauth_reconnect_required");
+    }
+    if (record.state !== "connected" && record.state !== "connected_limited") {
+      return fail("oauth_reconnect_required");
+    }
+    const currentTime = now();
+    if (!validEpoch(currentTime)) return fail("oauth_flow_unavailable");
+    if (record.expiresAt - currentTime > REFRESH_SKEW_MS) return record;
+
+    let tokenResponse: unknown;
+    try {
+      tokenResponse = await transport.refresh(record.refreshToken);
+    } catch (error) {
+      const scopeEvidenceMissing = error instanceof OAuthError && error.reason === "oauth_scope_invalid";
+      return disableRefreshGeneration(
+        record,
+        scopeEvidenceMissing ? "scope_verification_required" : "reconnect_required",
+        scopeEvidenceMissing ? "scope_verification_required" : "refresh_uncertain",
+      );
+    }
+
+    const receivedAt = now();
+    let token: ReturnType<typeof validateTokenResult>;
+    try {
+      token = validateTokenResult(tokenResponse, receivedAt, "refresh_response");
+    } catch (error) {
+      const scopeEvidenceMissing = error instanceof OAuthError && error.reason === "oauth_scope_invalid";
+      return disableRefreshGeneration(
+        record,
+        scopeEvidenceMissing ? "scope_verification_required" : "reconnect_required",
+        scopeEvidenceMissing ? "scope_verification_required" : "refresh_uncertain",
+      );
+    }
+
+    if (token.accountId !== record.accountId) {
+      return disableRefreshGeneration(record, "reconnect_required", "identity_unverified");
+    }
+    const existingGrants = new Set(record.grants.scopes);
+    const consentedScopes = new Set(record.requestedScopes);
+    if (token.grants.scopes.some((scope) => !existingGrants.has(scope) || !consentedScopes.has(scope))) {
+      return disableRefreshGeneration(record, "scope_verification_required", "scope_verification_required");
+    }
+    const nextGeneration = record.generation + 1;
+    if (!Number.isSafeInteger(nextGeneration)) {
+      return disableRefreshGeneration(record, "reconnect_required", "refresh_uncertain");
+    }
+    const completeGrant = record.requestedScopes.every((scope) => token.grants.scopes.includes(scope));
+    const refreshed: ConnectionRecord = Object.freeze({
+      ...record,
+      generation: nextGeneration,
+      state: completeGrant ? "connected" : "connected_limited",
+      ...(completeGrant ? {} : { reason: "scope_missing" }),
+      ...((completeGrant && record.reason === "scope_missing") ? { reason: undefined } : {}),
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      issuedAt: receivedAt,
+      expiresAt: token.expiresAt,
+      grants: token.grants,
+    });
+
+    const blockedKey = generationKey(connectionId, record.generation);
+    blockedGenerations.add(blockedKey);
+    try {
+      await store.put(refreshed, record.generation);
+    } catch {
+      await requireRecoveryFence();
+      return fail("oauth_reconnect_required");
+    }
+    blockedGenerations.delete(blockedKey);
+    if (closed) return fail("oauth_flow_unavailable");
+    return requireUnexpiredRecord(refreshed);
+  }
+
+  function getFreshnessFlight(connectionId: string): Promise<ConnectionRecord> {
+    const existing = freshnessFlights.get(connectionId);
+    if (existing) return existing;
+
+    const flight = runConnectionLock(connectionId, () => ensureFreshLocked(connectionId));
+    freshnessFlights.set(connectionId, flight);
+    void flight.then(
+      () => {
+        if (freshnessFlights.get(connectionId) === flight) freshnessFlights.delete(connectionId);
+      },
+      () => {
+        if (freshnessFlights.get(connectionId) === flight) freshnessFlights.delete(connectionId);
+      },
+    );
+    return flight;
+  }
+
+  function ensureFresh(connectionId: string): Promise<ConnectionRecord> {
+    const operation = (async () => {
+      if (config.developmentMode) return fail("development_mode_locked");
+      if (closed) return fail("oauth_flow_unavailable");
+      if (!validStoredConnectionId(connectionId)) return fail("connection_unavailable");
+      if (lifecycleContext.getStore()?.has(connectionId)) return fail("oauth_flow_invalid");
+      const record = await getFreshnessFlight(connectionId);
+      if (closed) return fail("oauth_flow_unavailable");
+      return requireUnexpiredRecord(record);
+    })();
+    return trackLifecycle(operation);
+  }
+
+  function withConnection<T>(
+    connectionId: string,
+    work: (record: ConnectionRecord) => Promise<T>,
+  ): Promise<T> {
+    const operation = (async () => {
+      if (config.developmentMode) return fail("development_mode_locked");
+      if (closed) return fail("oauth_flow_unavailable");
+      if (!validStoredConnectionId(connectionId)) return fail("connection_unavailable");
+      if (lifecycleContext.getStore()?.has(connectionId)) return fail("oauth_flow_invalid");
+      if (typeof work !== "function") return fail("oauth_flow_invalid");
+      const prepared = await getFreshnessFlight(connectionId);
+      if (closed) return fail("oauth_flow_unavailable");
+      return runConnectionLock(connectionId, async () => {
+        const record = await readLifecycleRecord(connectionId);
+        if (closed) return fail("oauth_flow_unavailable");
+        if (
+          blockedGenerations.has(generationKey(connectionId, record.generation)) ||
+          (record.state !== "connected" && record.state !== "connected_limited") ||
+          record.generation !== prepared.generation ||
+          record.accountId !== prepared.accountId
+        ) {
+          return fail("oauth_reconnect_required");
+        }
+        const usableRecord = requireUnexpiredRecord(record);
+        const activeConnections = new Set(lifecycleContext.getStore() ?? []);
+        activeConnections.add(connectionId);
+        const result = await lifecycleContext.run(activeConnections, () => work(usableRecord));
+        if (closed) return fail("oauth_flow_unavailable");
+        return result;
+      });
+    })();
+    return trackLifecycle(operation);
   }
 
   async function allocateConnectionId(): Promise<string> {
@@ -443,76 +830,83 @@ export function createOAuthService(
 
       activeExchanges += 1;
       try {
-        const tokenResponse = await transport.exchange({ code: input.code, verifier: candidate.verifier });
-        if (closed) return "failed";
-        const issuedAt = now();
-        const token = validateTokenResult(tokenResponse, issuedAt);
-        if (!token.grants.scopes.includes("shops_r")) return "failed";
-        const identity = await transport.getMe(token.accessToken);
-        if (
-          closed ||
-          !identity ||
-          !Number.isSafeInteger(identity.accountId) ||
-          identity.accountId <= 0 ||
-          identity.accountId !== token.accountId ||
-          (identity.shopId !== undefined && (!Number.isSafeInteger(identity.shopId) || identity.shopId <= 0))
-        ) {
-          return "failed";
-        }
-        if (candidate.replaceRecord) {
+        return await runConnectionLock(candidate.connectionId, async () => {
+          if (closed) return "failed";
           const current = await readConnection(candidate.connectionId);
+          if (closed) return "failed";
+          if (candidate.replaceRecord) {
+            if (
+              !current ||
+              current.generation !== candidate.replaceRecord.generation ||
+              current.accountId !== candidate.replaceRecord.accountId
+            ) {
+              return "failed";
+            }
+          } else if (current) {
+            return "failed";
+          }
+
+          const tokenResponse = await transport.exchange({ code: input.code, verifier: candidate.verifier });
+          if (closed) return "failed";
+          const issuedAt = now();
+          const token = validateTokenResult(tokenResponse, issuedAt, "authorization_code_response");
+          if (!token.grants.scopes.includes("shops_r")) return "failed";
+          const identity = await transport.getMe(token.accessToken);
           if (
             closed ||
-            !current ||
-            current.generation !== candidate.replaceRecord.generation ||
-            current.accountId !== identity.accountId
+            !identity ||
+            !Number.isSafeInteger(identity.accountId) ||
+            identity.accountId <= 0 ||
+            identity.accountId !== token.accountId ||
+            (identity.shopId !== undefined && (!Number.isSafeInteger(identity.shopId) || identity.shopId <= 0)) ||
+            (candidate.replaceRecord && identity.accountId !== candidate.replaceRecord.accountId)
           ) {
             return "failed";
           }
-        }
-        if (closed) return "failed";
-        const allRequestedGranted = candidate.requestedScopes.every((scope) => token.grants.scopes.includes(scope));
-        const record: ConnectionRecord = {
-          connectionId: candidate.connectionId,
-          owner: config.owner,
-          accountId: identity.accountId,
-          ...(identity.shopId === undefined ? {} : { shopId: identity.shopId }),
-          generation: candidate.replaceRecord ? candidate.replaceRecord.generation + 1 : 1,
-          ...(candidate.label === undefined ? {} : { label: candidate.label }),
-          state: allRequestedGranted ? "connected" : "connected_limited",
-          ...(!allRequestedGranted ? { reason: "scope_missing" } : {}),
-          accessToken: token.accessToken,
-          refreshToken: token.refreshToken,
-          issuedAt,
-          expiresAt: token.expiresAt,
-          requestedScopes: candidate.requestedScopes,
-          grants: token.grants,
-        };
-        await store.put(record, candidate.replaceRecord ? candidate.replaceRecord.generation : null);
-        if (closed) {
-          try {
-            if (candidate.replaceRecord) {
-              await store.put(
-                { ...candidate.replaceRecord, generation: record.generation + 1 },
-                record.generation,
-              );
-            } else {
-              await store.remove(record.connectionId, record.generation);
-            }
-          } catch {
-            shutdownCleanupFailed = true;
-            // The durable write may have committed even though its compensating
-            // action failed. Fence the entire protected store before runtime
-            // cleanup is allowed to release its process lock.
+          if (closed) return "failed";
+          const allRequestedGranted = candidate.requestedScopes.every((scope) => token.grants.scopes.includes(scope));
+          const record: ConnectionRecord = {
+            connectionId: candidate.connectionId,
+            owner: config.owner,
+            accountId: identity.accountId,
+            ...(identity.shopId === undefined ? {} : { shopId: identity.shopId }),
+            generation: candidate.replaceRecord ? candidate.replaceRecord.generation + 1 : 1,
+            ...(candidate.label === undefined ? {} : { label: candidate.label }),
+            state: allRequestedGranted ? "connected" : "connected_limited",
+            ...(!allRequestedGranted ? { reason: "scope_missing" } : {}),
+            accessToken: token.accessToken,
+            refreshToken: token.refreshToken,
+            issuedAt,
+            expiresAt: token.expiresAt,
+            requestedScopes: candidate.requestedScopes,
+            grants: token.grants,
+          };
+          await store.put(record, candidate.replaceRecord ? candidate.replaceRecord.generation : null);
+          if (closed) {
             try {
-              await store.markRecoveryRequired();
+              if (candidate.replaceRecord) {
+                await store.put(
+                  { ...candidate.replaceRecord, generation: record.generation + 1 },
+                  record.generation,
+                );
+              } else {
+                await store.remove(record.connectionId, record.generation);
+              }
             } catch {
               shutdownCleanupFailed = true;
+              // The durable write may have committed even though its compensating
+              // action failed. Fence the entire protected store before runtime
+              // cleanup is allowed to release its process lock.
+              try {
+                await store.markRecoveryRequired();
+              } catch {
+                shutdownCleanupFailed = true;
+              }
             }
+            return "failed";
           }
-          return "failed";
-        }
-        return "complete";
+          return "complete";
+        });
       } catch {
         return "failed";
       } finally {
@@ -539,13 +933,19 @@ export function createOAuthService(
     },
     begin,
     completeCallback,
+    ensureFresh,
+    withConnection,
     close() {
       if (closePromise) return closePromise;
       closed = true;
       pendingByState.clear();
       pendingConnections.clear();
       closePromise = (async () => {
-        await Promise.allSettled([...activeBegins, ...activeCompletions]);
+        await Promise.allSettled([
+          ...activeBegins,
+          ...activeCompletions,
+          ...activeLifecycle,
+        ]);
         if (shutdownCleanupFailed) return fail("oauth_flow_unavailable");
       })();
       return closePromise;

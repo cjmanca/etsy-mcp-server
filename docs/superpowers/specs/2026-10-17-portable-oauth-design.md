@@ -5,8 +5,10 @@ This document defines the M3.1–M3.5 design contract, not evidence of a deploye
 callback or live account connection. M3.1, M3.3a, and the conditional M3.2 connect
 flow are complete after independent source/docs review and final coordinator
 Windows/native-Linux verification (including real child SIGTERM); concrete
-evidence is recorded in `TASK.md`. M3.3b, M3.4,
-M3.5, and private M4+ tools remain planned. The user confirmed exact Etsy redirect
+evidence is recorded in `TASK.md`. M3.3b internal refresh and parent M3.3 are also
+complete after independent security/spec/quality approval and final coordinator
+Windows/native-Linux verification; no current MCP/private handler invokes refresh.
+M3.4, M3.5, and private M4+ tools remain planned. The user confirmed exact Etsy redirect
 registration; listener/reverse-proxy reachability, key provisioning, and live
 consent have not been verified.
 

@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { parseOAuthConfig } from "../../build/oauth/config.js";
+import { createOAuthService } from "../../build/oauth/service.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -304,7 +305,7 @@ export function syntheticConnection(overrides = {}) {
     label: "Synthetic fixture",
     state: "connected",
     accessToken: "12345.synthetic-access-token",
-    refreshToken: "synthetic-refresh-token",
+    refreshToken: "12345.synthetic-refresh-token",
     issuedAt,
     expiresAt: issuedAt + 3_600_000,
     requestedScopes: ["shops_r"],
@@ -410,6 +411,38 @@ export function createSyntheticOAuthTransport(overrides = {}) {
     },
     setGetMe(behavior) {
       identityBehavior = behavior;
+    },
+  };
+}
+
+export async function createOAuthServiceHarness(t, options = {}) {
+  const fixture = options.fixture ?? (process.platform === "win32"
+    ? await createNativeWindowsOAuthFixture(t)
+    : await createOAuthFixture(t));
+  const baseConfig = options.config ?? syntheticOAuthConfig(fixture);
+  const config = options.developmentMode
+    ? { ...baseConfig, developmentMode: true }
+    : baseConfig;
+  const storeFixture = createSyntheticOAuthStore(options.records ?? []);
+  const connectionStore = options.store ?? storeFixture.store;
+  const transport = createSyntheticOAuthTransport(options.transport);
+  let currentTime = options.initialTime ?? 1_800_000_000_000;
+  let randomCounter = 0;
+  const service = createOAuthService(config, connectionStore, transport.transport, {
+    now: () => currentTime,
+    randomBytes: (size) => Buffer.alloc(size, ++randomCounter),
+    clientId: "synthetic-keystring",
+  });
+  return {
+    fixture,
+    config,
+    store: storeFixture,
+    connectionStore,
+    transport,
+    service,
+    now: () => currentTime,
+    setNow(value) {
+      currentTime = value;
     },
   };
 }

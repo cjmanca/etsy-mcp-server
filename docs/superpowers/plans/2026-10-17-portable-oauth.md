@@ -127,8 +127,11 @@ Linux-only skip; native Linux Node22 313 total/304 passed/0 failed/9 Windows-onl
 skips, including the real child SIGTERM test. Production audit: 0 vulnerabilities;
 contract audit: 105/105; scoped whitespace clean. See [M3.2 evidence in TASK.md](../../../TASK.md#m3--oauth-and-account-connections)
 and its Task 3/platform/limiter reports. The steps below retain the original
-execution checklist; current completion is tracked in `TASK.md`. Tasks 4–6 remain
-planned; no Docker, deployed callback/proxy, or live consent verification is claimed.
+execution checklist; current completion is tracked in `TASK.md`. Task 3 was
+committed as `217325c`. Task 4's M3.3b internal refresh and parent M3.3 are
+complete after independent review and final coordinator verification; Tasks 5–6
+remain planned. No Docker, deployed callback/proxy,
+or live consent verification is claimed.
 
 **Files:** create `src/request-limiter.ts`, `src/oauth/transport.ts`, `callback.ts`, `service.ts`, `runtime.ts`, `tools.ts`, `scopes.ts`; modify `src/etsy-client.ts:101-123,226-249`, `src/index.ts:1720-1763,1858-1903`, `src/capabilities.ts:28-39,91-125`; tests `test/request-limiter.test.js`, `test/oauth-transport.test.js`, `test/oauth-callback.test.js`, `test/oauth-connection.test.js`, extend `test/capabilities.test.js`, `test/helpers/oauth.js`. Consume Task 2 store/config/types and existing capability registry, validation/response helpers.
 
@@ -199,6 +202,19 @@ For unavailable-but-known controls add optional trusted `available?: boolean` an
 - [ ] **Step 8: Independent review before coordinator commit** (`feat: complete durable Etsy OAuth authorization`). Audit actual peer validation order, quotas, credential destination isolation, callback logs and cleanup. Record M3.2 evidence only after review; no claim proxy/listener deployment/live account tested.
 
 ### Task 4: M3.3b refresh, rotation and lifecycle concurrency
+
+**Status: complete, coordinator commit pending (2026-10-17).** Independent
+security/spec/quality review `ses_eb3a75465ffecKteduC8wXYx6m` approved after one
+fix round (short-expiry single-flight and post-commit/queued-work expiry).
+Coordinator final build/test: Windows336 total/335 pass/0 fail/1 Linux-only skip;
+native Linux336 total/327 pass/0 fail/9 Windows-only skips, including real SIGTERM.
+Production audit0, contracts105/105, scoped whitespace clean. Both M3.3a and b
+are verified, so parent M3.3 is complete; full M3 is not. See the
+[Task 4 report](../../../.superpowers/sdd/2026-10-17-portable-oauth/task-4-report.md)
+and [TASK.md](../../../TASK.md#m3--oauth-and-account-connections). Refresh is
+internal only; no current MCP/private handler invokes it. The original execution
+checklist below is retained as historical procedure. Tasks 5–6, live consent,
+callback/proxy deployment, and Docker verification are not completed here.
 
 **Files:** extend `src/oauth/service.ts`, `types.ts` only if safe reason enums needed; create `test/oauth-refresh.test.js`, extend `test/helpers/oauth.js`.
 

@@ -10,8 +10,8 @@ For dependency-ordered implementation tasks and milestone exit gates, use [TASK.
 
 - [x] Optional startup-only read-only testing lock (`ETSY_DEVELOPMENT_MODE=true`) for write-capability dispatch and mutating HTTP methods (M0.4; does not authorize or add mutations).
 - [x] Protected encrypted connection store/configuration/permissions foundation (M3.3a; native Windows NTFS and native Linux POSIX evidence; Docker untested; see [TASK.md](TASK.md)).
-- [ ] OAuth Authorization Code + PKCE S256, single-use state validation, and registered HTTPS callback: `begin_etsy_connection` is conditionally implemented after operator setup and its independent security re-review is approved; leave M3.2 open pending coordinator's fresh Windows/native-Linux runs (including real SIGTERM) and commit. See the [M3.2 report](.superpowers/sdd/2026-10-17-portable-oauth/task-3-report.md).
-- [ ] Token refresh/rotation, expiry/reconnect lifecycle, and stale-generation handling (M3.3b; not implemented).
+- [x] OAuth Authorization Code + PKCE S256, single-use state validation, and registered HTTPS callback: `begin_etsy_connection` is conditionally implemented after operator setup; independent security review, coordinator Windows/native-Linux verification (including real SIGTERM), and commit are complete. See the [M3.2 report](.superpowers/sdd/2026-10-17-portable-oauth/task-3-report.md).
+- [x] Internal token refresh/rotation, expiry/reconnect lifecycle, and stale-generation handling (M3.3b and parent M3.3 complete after independent security/spec/quality approval and coordinator Windows/native-Linux verification; no model-facing refresh tool or private handler; see [Task 4 evidence](.superpowers/sdd/2026-10-17-portable-oauth/task-4-report.md)).
 - [ ] Account/connection isolation, per-operation scope/resource authorization, and broader capability-aware private-tool discovery (M3.5/M4+; not implemented).
 - [ ] Connection controls: `get_etsy_connection_status` and `disconnect_etsy_connection` (M3.4; not implemented).
 - [ ] Internal-token scope inspection: `get_etsy_token_scopes` (M3.5b; not implemented pending an exact supported response contract).

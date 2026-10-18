@@ -79,6 +79,9 @@ export type OAuthErrorReason =
   | "oauth_flow_invalid"
   | "oauth_flow_unavailable"
   | "oauth_store_failed"
+  | "connection_unavailable"
+  | "oauth_token_expired"
+  | "oauth_reconnect_required"
   | "callback_bind_failed";
 
 export type OAuthStorageDiagnosticCode =
@@ -124,6 +127,9 @@ const SAFE_ERROR_MESSAGES: Readonly<Record<OAuthErrorReason, string>> = {
   oauth_flow_invalid: "The OAuth authorization flow is invalid or expired.",
   oauth_flow_unavailable: "OAuth authorization is not available until startup prerequisites are ready.",
   oauth_store_failed: "The OAuth connection could not be durably saved.",
+  connection_unavailable: "The requested Etsy connection is unavailable.",
+  oauth_token_expired: "The Etsy access token expired before it could be used; start a fresh connection operation.",
+  oauth_reconnect_required: "The Etsy connection requires fresh consent or offline recovery before use.",
   callback_bind_failed: "The OAuth callback listener could not bind the configured address and port.",
 };
 
