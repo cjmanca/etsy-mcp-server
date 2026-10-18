@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { OAuthTransport } from "./transport.js";
-import { parseGrantedScopes } from "./scopes.js";
+import { parseGrantedScopeList, parseGrantedScopes } from "./scopes.js";
 import {
   OAuthError,
   type ConnectionRecord,
@@ -328,15 +328,13 @@ function validateTokenResult(value: unknown, now: number, expectedSource?: Scope
     const checkedAt = ownDataValue(grants, "checkedAt");
     if (
       !Array.isArray(rawScopes) ||
-      rawScopes.some((scope) => typeof scope !== "string") ||
       (source !== "authorization_code_response" && source !== "refresh_response") ||
       (expectedSource !== undefined && source !== expectedSource) ||
       !validEpoch(checkedAt)
     ) {
       return fail("oauth_scope_invalid");
     }
-    const scopeText = rawScopes.join(" ");
-    const parsedGrants = parseGrantedScopes(scopeText, source, checkedAt);
+    const parsedGrants = parseGrantedScopeList(rawScopes, source, checkedAt);
     const expiresAt = now + Number(expiresIn) * 1_000;
     if (!validEpoch(expiresAt) || expiresAt <= now) return fail("oauth_response_invalid");
     return {
@@ -391,7 +389,7 @@ function validateConnectionRecord(value: unknown, connectionId: string, owner: O
     if (access.accountId !== Number(accountId) || refresh.accountId !== Number(accountId)) {
       return fail("connection_unavailable");
     }
-    if (!Array.isArray(requestedValue) || requestedValue.some((scope) => typeof scope !== "string")) {
+    if (!Array.isArray(requestedValue)) {
       return fail("connection_unavailable");
     }
     const rawGrants = grantsValue;
@@ -403,18 +401,17 @@ function validateConnectionRecord(value: unknown, connectionId: string, owner: O
     const checkedAt = ownDataValue(rawGrants, "checkedAt");
     if (
       !Array.isArray(rawGrantedScopes) ||
-      rawGrantedScopes.some((scope) => typeof scope !== "string") ||
       (source !== "authorization_code_response" && source !== "refresh_response" && source !== "diagnostic") ||
       !validEpoch(checkedAt)
     ) {
       return fail("connection_unavailable");
     }
-    const requestedScopes = parseGrantedScopes(
-      requestedValue.join(" "),
+    const requestedScopes = parseGrantedScopeList(
+      requestedValue,
       "authorization_code_response",
       checkedAt,
     ).scopes;
-    const grants = parseGrantedScopes(rawGrantedScopes.join(" "), source, checkedAt);
+    const grants = parseGrantedScopeList(rawGrantedScopes, source, checkedAt);
     const shopId = ownDataValue(record, "shopId");
     const label = ownDataValue(record, "label");
     const reason = ownDataValue(record, "reason");
@@ -1371,7 +1368,17 @@ export function createOAuthService(
             requestedScopes: candidate.requestedScopes,
             grants: token.grants,
           };
-          await store.put(record, candidate.replaceRecord ? candidate.replaceRecord.generation : null);
+          try {
+            await store.put(record, candidate.replaceRecord ? candidate.replaceRecord.generation : null);
+          } catch (error) {
+            if (error instanceof OAuthError && error.reason === "store_commit_uncertain") {
+              // A rejected post-replacement commit may still be the live durable
+              // snapshot. Fence it before normal callback cleanup can release the
+              // process owner; marker failure deliberately retains that lock.
+              await requireRecoveryFence();
+            }
+            throw error;
+          }
           if (locallyDisabledConnections.has(candidate.connectionId)) return "failed";
           if (closed) {
             try {

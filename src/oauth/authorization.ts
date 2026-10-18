@@ -1,4 +1,4 @@
-import { parseGrantedScopes } from "./scopes.js";
+import { parseGrantedScopeList } from "./scopes.js";
 import { OAuthError, type ConnectionRecord, type OwnerContext, type Scope } from "./types.js";
 
 export interface OperationRequirement {
@@ -41,17 +41,9 @@ function ownValue(value: Record<string, unknown>, key: string): unknown {
 }
 
 function validScopeList(value: unknown, checkedAt: number): readonly Scope[] | undefined {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    value.length > 32 ||
-    value.some((scope) => typeof scope !== "string")
-  ) {
-    return undefined;
-  }
   try {
-    return parseGrantedScopes(
-      (value as string[]).join(" "),
+    return parseGrantedScopeList(
+      value,
       "authorization_code_response",
       checkedAt,
     ).scopes;

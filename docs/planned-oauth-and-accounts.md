@@ -109,16 +109,20 @@ M3.3b's verified `ensureFresh` and `withConnection` methods are current internal
 
 ### Uncertain rollback and offline recovery
 
-If shutdown cannot compensate a possibly committed OAuth write, the protected
-store persists the fixed owner-bound `oauth-recovery-required.json` marker and
-checks it before reading key bytes or credential snapshots on reopen. It contains
-only owner context and a fixed reason, never connection IDs or credential data.
-If the marker cannot be durably written and verified, the current process retains
-its ownership lock; ordinary reopen remains blocked. Neither a stale lock nor an
-uncertain callback/commit is permission to simply unlock and resume potentially
-cancelled credentials. Stop all possible owners and require verified offline
-recovery or fresh Etsy consent before reusing affected credentials. Normal runtime
-has no marker clear/reset or filesystem API. This is not a guarantee against every
+If a callback `put` may have replaced the encrypted snapshot but its durability
+cannot be verified, or shutdown cannot compensate a possibly committed OAuth
+write, the protected store persists the fixed owner-bound
+`oauth-recovery-required.json` marker before releasing normal ownership. It
+contains only owner context and a fixed reason, never connection IDs or
+credential data. Reopen checks it before reading key bytes or credential
+snapshots. If the marker cannot be durably written and verified, the current
+process retains its ownership lock; ordinary reopen remains blocked. Definite
+pre-replacement failures and ordinary validation errors do not automatically
+trigger this uncertainty fence. Neither a stale lock nor an uncertain
+callback/commit is permission to simply unlock and resume potentially cancelled
+credentials. Stop all possible owners and require verified offline recovery or
+fresh Etsy consent before reusing affected credentials. Normal runtime has no
+marker clear/reset or filesystem API. This is not a guarantee against every
 power-loss window or a malicious local operator.
 
 ### Actual scopes versus diagnostic response gate

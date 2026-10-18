@@ -69,3 +69,30 @@ export function parseGrantedScopes(
   }
   return Object.freeze({ scopes: Object.freeze(scopes), source, checkedAt });
 }
+
+export function parseGrantedScopeList(
+  value: unknown,
+  source: ScopeEvidence["source"],
+  checkedAt: number,
+): ScopeEvidence {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_SCOPES) {
+    return invalidScopeEvidence();
+  }
+
+  const names: string[] = [];
+  for (const name of value) {
+    if (
+      typeof name !== "string" ||
+      name.length === 0 ||
+      name.length > 64 ||
+      !SCOPE_NAME.test(name) ||
+      !KNOWN_SCOPES.has(name) ||
+      names.includes(name)
+    ) {
+      return invalidScopeEvidence();
+    }
+    names.push(name);
+  }
+
+  return parseGrantedScopes(names.join(" "), source, checkedAt);
+}

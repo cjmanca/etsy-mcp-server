@@ -244,6 +244,42 @@ test("getMe and updateShop require their exact documented scopes", async (t) => 
   assert.doesNotThrow(() => authorizeOperation(updateShopRequirement(shopWriteRecord)));
 });
 
+test("malformed trusted scope arrays are not split into multiple entries", () => {
+  const record = syntheticConnection({
+    requestedScopes: ["shops_r", "shops_w"],
+    grants: {
+      scopes: ["shops_r", "shops_w"],
+      source: "authorization_code_response",
+      checkedAt: BASE_TIME,
+    },
+  });
+  const malformedInputs = [
+    updateShopRequirement({
+      ...record,
+      grants: { ...record.grants, scopes: ["shops_r shops_w"] },
+    }),
+    updateShopRequirement({
+      ...record,
+      requestedScopes: ["shops_r shops_w"],
+    }),
+    updateShopRequirement(record, {
+      required: {
+        scopes: ["shops_r shops_w"],
+        capability: "write",
+        resource: "shop",
+      },
+    }),
+    updateShopRequirement({
+      ...record,
+      grants: { ...record.grants, scopes: ["shops_r", "shops_r"] },
+    }),
+  ];
+
+  for (const input of malformedInputs) {
+    assert.throws(() => authorizeOperation(input), { name: "OAuthError" });
+  }
+});
+
 test("missing scopes and stale owner generation deny direct dispatch", async (t) => {
   if (typeof authorizeOperation !== "function") {
     assert.fail("authorizeOperation must deny reduced grants and stale generations.");

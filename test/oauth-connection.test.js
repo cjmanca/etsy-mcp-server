@@ -31,6 +31,8 @@ const typesModule = await import("../build/oauth/types.js").catch(() => undefine
 const runtimeModule = await import("../build/oauth/runtime.js").catch(() => undefined);
 const storeModule = await import("../build/oauth/store.js").catch(() => undefined);
 const serverModule = await import("../build/index.js");
+const STORE_FILE = "connections.enc";
+const RECOVERY_MARKER_FILE = "oauth-recovery-required.json";
 
 async function unusedLocalhostPort() {
   const server = createTcpServer();
@@ -136,6 +138,92 @@ async function createProtectedService(t, options = {}) {
 
 function stateFrom(result) {
   return new URL(result.authorization_url).searchParams.get("state");
+}
+
+function injectPostRenameDirectorySyncFailure(t, fixture, failRecoveryMarker = false) {
+  const dataDir = path.resolve(fixture.config.dataDir);
+  const markerFile = path.resolve(dataDir, RECOVERY_MARKER_FILE);
+  const keyFile = path.resolve(fixture.config.keyFile);
+  const originalOpen = fs.open.bind(fs);
+  let directorySyncFailures = 0;
+  let markerWriteFailures = 0;
+  let keyOpens = 0;
+
+  t.mock.method(fs, "open", async (file, ...args) => {
+    const resolvedFile = path.resolve(String(file));
+    if (resolvedFile === keyFile) keyOpens += 1;
+    if (failRecoveryMarker && resolvedFile === markerFile && args[0] === "wx") {
+      markerWriteFailures += 1;
+      throw Object.assign(new Error("Synthetic marker write failure."), { code: "ENOSPC" });
+    }
+    const handle = await originalOpen(file, ...args);
+    if (resolvedFile === dataDir) {
+      const originalSync = handle.sync.bind(handle);
+      handle.sync = async (...syncArgs) => {
+        if (directorySyncFailures === 0) {
+          directorySyncFailures += 1;
+          throw Object.assign(new Error("Synthetic post-rename directory EIO."), { code: "EIO" });
+        }
+        return originalSync(...syncArgs);
+      };
+    }
+    return handle;
+  });
+
+  return {
+    get directorySyncFailures() { return directorySyncFailures; },
+    get markerWriteFailures() { return markerWriteFailures; },
+    get keyOpens() { return keyOpens; },
+  };
+}
+
+function injectTemporarySyncFailure(t, dataDir) {
+  const resolvedDataDir = path.resolve(dataDir);
+  const originalOpen = fs.open.bind(fs);
+  let temporarySyncFailures = 0;
+
+  t.mock.method(fs, "open", async (file, ...args) => {
+    const resolvedFile = path.resolve(String(file));
+    const handle = await originalOpen(file, ...args);
+    if (
+      path.dirname(resolvedFile) === resolvedDataDir &&
+      path.basename(resolvedFile).endsWith(".tmp")
+    ) {
+      handle.sync = async () => {
+        temporarySyncFailures += 1;
+        throw Object.assign(new Error("Synthetic pre-replacement ENOSPC."), { code: "ENOSPC" });
+      };
+    }
+    return handle;
+  });
+
+  return { get temporarySyncFailures() { return temporarySyncFailures; } };
+}
+
+async function assertFencedStoreCannotReopen(fixture, fault, connectionId) {
+  const markerFile = path.join(fixture.config.dataDir, RECOVERY_MARKER_FILE);
+  const markerBytes = await fs.readFile(markerFile);
+  assert.deepEqual(JSON.parse(markerBytes.toString("utf8")), {
+    format: 1,
+    owner: fixture.config.owner,
+    reason: "uncertain_connection_rollback",
+  });
+  for (const canary of [
+    connectionId,
+    "12345.synthetic-access-token",
+    "12345.synthetic-refresh-token",
+  ]) {
+    assert.equal(markerBytes.includes(Buffer.from(canary)), false);
+  }
+  await fs.stat(path.join(fixture.config.dataDir, STORE_FILE));
+
+  await fixture.service.close();
+  await fixture.protectedStore.close();
+  await assert.rejects(
+    storeModule.openConnectionStore(fixture.config),
+    { name: "OAuthError", reason: "storage_recovery_required" },
+  );
+  assert.equal(fault.keyOpens, 0, "recovery must block reopen before key access");
 }
 
 function deferred() {
@@ -271,6 +359,154 @@ test("failed protected commit never reports a connected account", async (t) => {
   assert.equal(await service.completeCallback({ state: stateFrom(begin), code: "disk-failure-code" }), "failed");
   assert.equal(store.records.has(begin.connection_id), false);
   assert.equal(store.calls.puts.length, 1);
+});
+
+test("post-rename new connection commit is fenced before close and reopen", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Windows does not perform the POSIX containing-directory sync exercised here.");
+    return;
+  }
+  const fixture = await createProtectedService(t);
+  const begin = await fixture.service.begin({ bundles: [] });
+  const fault = injectPostRenameDirectorySyncFailure(t, fixture);
+
+  assert.equal(
+    await fixture.service.completeCallback({ state: stateFrom(begin), code: "synthetic-new-connection-code" }),
+    "failed",
+  );
+  assert.equal(fault.directorySyncFailures, 1);
+  assert.equal(fixture.transport.calls.exchanges.length, 1, "uncertain exchange must not be retried");
+  await assertFencedStoreCannotReopen(fixture, fault, begin.connection_id);
+});
+
+test("post-rename reconnect commit quarantines the existing encrypted store", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Windows does not perform the POSIX containing-directory sync exercised here.");
+    return;
+  }
+  const original = syntheticConnection({ label: "Prior good connection" });
+  const fixture = await createProtectedService(t, { initialRecord: original });
+  const liveFile = path.join(fixture.config.dataDir, STORE_FILE);
+  const before = await fs.readFile(liveFile);
+  const begin = await fixture.service.begin({
+    bundles: [],
+    replaceConnectionId: original.connectionId,
+  });
+  const fault = injectPostRenameDirectorySyncFailure(t, fixture);
+
+  assert.equal(
+    await fixture.service.completeCallback({ state: stateFrom(begin), code: "synthetic-reconnect-code" }),
+    "failed",
+  );
+  assert.equal(fault.directorySyncFailures, 1);
+  assert.equal(fixture.transport.calls.exchanges.length, 1, "uncertain exchange must not be retried");
+  const after = await fs.readFile(liveFile);
+  assert.notDeepEqual(after, before, "the injected failure must follow the actual snapshot replacement");
+  await assertFencedStoreCannotReopen(fixture, fault, begin.connection_id);
+});
+
+test("failed recovery-fence write retains ownership after an uncertain callback commit", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Windows does not perform the POSIX containing-directory sync exercised here.");
+    return;
+  }
+  const fixture = await createProtectedService(t);
+  const begin = await fixture.service.begin({ bundles: [] });
+  const fault = injectPostRenameDirectorySyncFailure(t, fixture, true);
+
+  assert.equal(
+    await fixture.service.completeCallback({ state: stateFrom(begin), code: "synthetic-fence-failure-code" }),
+    "failed",
+  );
+  assert.equal(fault.directorySyncFailures, 1);
+  assert.equal(fault.markerWriteFailures, 1);
+  assert.equal(fixture.transport.calls.exchanges.length, 1, "uncertain exchange must not be retried");
+  await assert.rejects(
+    fs.lstat(path.join(fixture.config.dataDir, RECOVERY_MARKER_FILE)),
+    { code: "ENOENT" },
+  );
+  await assert.rejects(fixture.service.close(), {
+    name: "OAuthError",
+    reason: "oauth_flow_unavailable",
+  });
+  await fixture.protectedStore.close();
+  await assert.rejects(
+    storeModule.openConnectionStore(fixture.config),
+    { name: "OAuthError", reason: "storage_conflict" },
+  );
+  assert.equal(fault.keyOpens, 0, "retained ownership must block reopen before key access");
+});
+
+test("pre-replacement callback write failure remains an ordinary failed flow", async (t) => {
+  const fixture = await createProtectedService(t);
+  const begin = await fixture.service.begin({ bundles: [] });
+  const fault = injectTemporarySyncFailure(t, fixture.config.dataDir);
+
+  assert.equal(
+    await fixture.service.completeCallback({ state: stateFrom(begin), code: "synthetic-pre-replace-failure-code" }),
+    "failed",
+  );
+  assert.equal(fault.temporarySyncFailures, 1);
+  await assert.rejects(
+    fs.lstat(path.join(fixture.config.dataDir, RECOVERY_MARKER_FILE)),
+    { code: "ENOENT" },
+  );
+  await fixture.service.close();
+  await fixture.protectedStore.close();
+
+  const reopened = await storeModule.openConnectionStore(fixture.config);
+  try {
+    assert.equal(await reopened.read(begin.connection_id), undefined);
+  } finally {
+    await reopened.close();
+  }
+});
+
+test("token response scope arrays reject members containing multiple scopes", async (t) => {
+  const { service, store, transport } = await createService(t, {
+    transport: {
+      exchange: async () => ({
+        accessToken: "12345.synthetic-access-token",
+        refreshToken: "12345.synthetic-refresh-token",
+        expiresIn: 3600,
+        grants: {
+          scopes: ["shops_r shops_w"],
+          source: "authorization_code_response",
+          checkedAt: 1_800_000_000_000,
+        },
+      }),
+    },
+  });
+  const begin = await service.begin({ bundles: [] });
+
+  assert.equal(
+    await service.completeCallback({ state: stateFrom(begin), code: "synthetic-malformed-scopes-code" }),
+    "failed",
+  );
+  assert.equal(transport.calls.exchanges.length, 1);
+  assert.equal(transport.calls.identities.length, 0);
+  assert.equal(store.calls.puts.length, 0);
+});
+
+test("service rejects malformed stored scope arrays before releasing credentials", async (t) => {
+  for (const malformedRecord of [
+    syntheticConnection({ requestedScopes: ["shops_r shops_w"] }),
+    syntheticConnection({
+      grants: {
+        scopes: ["shops_r shops_w"],
+        source: "authorization_code_response",
+        checkedAt: 1_800_000_000_000,
+      },
+    }),
+  ]) {
+    const fixture = await createService(t, { records: [malformedRecord] });
+
+    await assert.rejects(
+      fixture.service.ensureFresh(malformedRecord.connectionId),
+      { name: "OAuthError", reason: "connection_unavailable" },
+    );
+    assert.deepEqual(fixture.transport.calls.refreshes, []);
+  }
 });
 
 test("identity prefix or required shops_r failure prevents persistence", async (t) => {

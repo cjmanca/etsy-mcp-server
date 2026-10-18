@@ -93,6 +93,30 @@ test("OAuth callback requires an exact HTTPS callback path and absolute paths", 
   );
 });
 
+test("OAuth redirect rejects an empty query delimiter", async (t) => {
+  const fixture = await createOAuthFixture(t);
+  const env = syntheticOAuthEnvironment(fixture);
+
+  assert.throws(() =>
+    parseOAuthConfig({
+      ...env,
+      ETSY_OAUTH_REDIRECT_URI: "https://oauth.invalid/oauth/etsy/callback?",
+    }, false),
+  );
+});
+
+test("OAuth redirect rejects an empty fragment delimiter", async (t) => {
+  const fixture = await createOAuthFixture(t);
+  const env = syntheticOAuthEnvironment(fixture);
+
+  assert.throws(() =>
+    parseOAuthConfig({
+      ...env,
+      ETSY_OAUTH_REDIRECT_URI: "https://oauth.invalid/oauth/etsy/callback#",
+    }, false),
+  );
+});
+
 test("proxy lists reject aliases, ranges, zones, wildcards, and empty entries", async (t) => {
   const fixture = await createOAuthFixture(t);
   const env = syntheticOAuthEnvironment(fixture, {

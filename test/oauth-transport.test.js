@@ -290,3 +290,36 @@ test("granted-scope parser accepts only bounded known names and valid evidence m
   );
   assert.equal(typeof typesModule?.OAuthError, "function");
 });
+
+test("granted-scope arrays require exact bounded unique scope names", () => {
+  assert.equal(typeof scopesModule?.parseGrantedScopeList, "function");
+  const evidence = scopesModule.parseGrantedScopeList(
+    ["shops_r", "transactions_r"],
+    "authorization_code_response",
+    1_800_000_000_000,
+  );
+  assert.deepEqual(evidence.scopes, ["shops_r", "transactions_r"]);
+
+  for (const invalid of [
+    ["shops_r shops_w"],
+    ["shops_r", "shops_r"],
+    Array.from({ length: 33 }, () => "shops_r"),
+  ]) {
+    assert.throws(
+      () => scopesModule.parseGrantedScopeList(
+        invalid,
+        "authorization_code_response",
+        1_800_000_000_000,
+      ),
+      { name: "OAuthError" },
+    );
+  }
+  assert.deepEqual(
+    scopesModule.parseGrantedScopes(
+      "shops_r transactions_r",
+      "authorization_code_response",
+      1_800_000_000_000,
+    ).scopes,
+    ["shops_r", "transactions_r"],
+  );
+});

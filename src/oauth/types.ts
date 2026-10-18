@@ -70,6 +70,7 @@ export type OAuthErrorReason =
   | "key_invalid"
   | "store_closed"
   | "store_write_failed"
+  | "store_commit_uncertain"
   | "development_mode_locked"
   | "request_queue_full"
   | "oauth_request_failed"
@@ -120,6 +121,7 @@ const SAFE_ERROR_MESSAGES: Readonly<Record<OAuthErrorReason, string>> = {
   key_invalid: "The separately provisioned OAuth key is unavailable or invalid.",
   store_closed: "OAuth storage is closed.",
   store_write_failed: "OAuth storage could not durably save the update.",
+  store_commit_uncertain: "OAuth storage commit outcome is uncertain and requires recovery.",
   development_mode_locked: "OAuth POST requests are blocked by the local development lock.",
   request_queue_full: "The Etsy request queue is full. Try again shortly.",
   oauth_request_failed: "The OAuth request could not be completed safely.",

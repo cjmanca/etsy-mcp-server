@@ -1162,7 +1162,10 @@ class EncryptedConnectionStore implements ConnectionStore {
     } catch (error) {
       await handle?.close().catch(() => {});
       if (tempCreated) await fs.unlink(tempFile).catch(() => {});
-      if (replaced) this.poisoned = true;
+      if (replaced) {
+        this.poisoned = true;
+        return fail("store_commit_uncertain");
+      }
       if (error instanceof OAuthError) throw error;
       return fail("store_write_failed");
     }

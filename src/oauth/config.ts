@@ -132,7 +132,12 @@ function parsePeerList(value: string, loopbackBind: boolean): readonly string[] 
 }
 
 function parseRedirectUri(value: string): string {
-  if (value.length > MAX_REDIRECT_LENGTH || /[\u0000-\u0020\u007f]/.test(value)) {
+  if (
+    value.length > MAX_REDIRECT_LENGTH ||
+    /[\u0000-\u0020\u007f]/.test(value) ||
+    value.includes("?") ||
+    value.includes("#")
+  ) {
     return invalidConfiguration();
   }
   let redirect: URL;
