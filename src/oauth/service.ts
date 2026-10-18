@@ -37,6 +37,34 @@ export interface BeginResult {
   human_action: string;
 }
 
+export type ConnectionStatusState =
+  | ConnectionRecord["state"]
+  | "pending"
+  | "denied"
+  | "expired"
+  | "failed"
+  | "disconnected";
+
+export interface ConnectionStatus {
+  connection_id: string;
+  state: ConnectionStatusState;
+  reason?: string;
+  requested_scopes?: readonly Scope[];
+  granted_scopes?: readonly Scope[];
+  enabled_capabilities?: readonly string[];
+  account_id?: number;
+  shop_id?: number;
+  expires_at?: number;
+  reconnect_guidance?: string;
+}
+
+export interface DisconnectResult {
+  connection_id: string;
+  state: "disconnected" | "recovery_required";
+  local_credentials_removed: boolean;
+  upstream_revoked: false;
+}
+
 export type CallbackInput = { state: string; code: string } | { state: string; denied: true };
 export type CallbackOutcome = "complete" | "denied" | "failed";
 
@@ -44,6 +72,8 @@ export interface OAuthService {
   readonly beginAvailable: boolean;
   begin(input: BeginInput): Promise<BeginResult>;
   completeCallback(input: CallbackInput): Promise<CallbackOutcome>;
+  status(connectionId: string): Promise<ConnectionStatus>;
+  disconnect(connectionId: string): Promise<DisconnectResult>;
   /** Internal token lifecycle operation. Never expose the returned record to MCP. */
   ensureFresh(connectionId: string): Promise<ConnectionRecord>;
   /**
@@ -80,6 +110,8 @@ const MAX_TOKEN_LIFETIME_SECONDS = 366 * 24 * 60 * 60;
 const MIN_EPOCH_MS = 946_684_800_000;
 const MAX_EPOCH_MS = 4_102_444_800_000;
 const REFRESH_SKEW_MS = 60_000;
+const MAX_TERMINAL_STATUSES = 100;
+const TERMINAL_STATUS_TTL_MS = 5 * 60 * 1_000;
 const CONNECTION_ID = /^[A-Za-z0-9_-]{22}$/;
 const STORED_CONNECTION_ID = /^[A-Za-z0-9_-]{22,128}$/;
 const STATE_OR_VERIFIER = /^[A-Za-z0-9_-]{43}$/;
@@ -94,6 +126,36 @@ const CONNECTION_STATES = new Set([
 ]);
 const TOKEN_RESULT_KEYS = new Set(["accessToken", "refreshToken", "expiresIn", "grants"]);
 const SCOPE_EVIDENCE_KEYS = new Set(["scopes", "source", "checkedAt"]);
+const SAFE_STATUS_REASONS = new Set([
+  "scope_missing",
+  "scope_verification_required",
+  "refresh_uncertain",
+  "identity_unverified",
+  "consent_denied",
+  "consent_expired",
+  "connection_failed",
+  "access_token_expired",
+  "local_disconnect_incomplete",
+]);
+
+const STATUS_RECONNECT_GUIDANCE: Readonly<Partial<Record<ConnectionStatusState, string>>> = Object.freeze({
+  denied: "Start a new Etsy authorization flow if you still want to connect this account.",
+  expired: "Start a new Etsy authorization flow before using this connection again.",
+  failed: "Start a new Etsy authorization flow if you still want to connect this account.",
+  scope_verification_required: "Start a new Etsy authorization flow to verify scopes before using this connection.",
+  reconnect_required: "Start a new Etsy authorization flow before using this connection again.",
+  recovery_required: "Stop all possible owners and require verified offline recovery or fresh Etsy consent before reusing affected credentials.",
+  disconnected: "Start a new Etsy authorization flow if you want to reconnect this account.",
+});
+
+interface PendingStatus {
+  readonly connectionId: string;
+  readonly state: "pending" | "denied" | "expired" | "failed" | "disconnected" | "recovery_required";
+  readonly requestedScopes: readonly Scope[];
+  readonly expiresAt?: number;
+  readonly reason?: string;
+  readonly retainUntil?: number;
+}
 
 const BUNDLE_SCOPES: Readonly<Record<Bundle, readonly Scope[]>> = Object.freeze({
   catalog_read: ["listings_r"],
@@ -416,6 +478,11 @@ export function createOAuthService(
   const sessionId = bootId;
   const pendingByState = new Map<string, PendingAttempt>();
   const pendingConnections = new Set<string>();
+  const pendingStatuses = new Map<string, PendingStatus>();
+  const locallyDisabledConnections = new Set<string>();
+  const disconnectFlights = new Map<string, Promise<DisconnectResult>>();
+  const activeConnectionLifecycles = new Map<string, number>();
+  const completedDisconnectsPendingDrain = new Set<string>();
   const activeBegins = new Set<Promise<BeginResult>>();
   const activeCompletions = new Set<Promise<CallbackOutcome>>();
   const activeLifecycle = new Set<Promise<unknown>>();
@@ -429,11 +496,68 @@ export function createOAuthService(
   let shutdownCleanupFailed = false;
   let closePromise: Promise<void> | undefined;
 
+  function statusFromPending(entry: PendingStatus): ConnectionStatus {
+    return {
+      connection_id: entry.connectionId,
+      state: entry.state,
+      ...(entry.reason === undefined ? {} : { reason: entry.reason }),
+      requested_scopes: entry.requestedScopes,
+      ...(entry.expiresAt === undefined || entry.state !== "pending"
+        ? {}
+        : { expires_at: entry.expiresAt }),
+      ...(STATUS_RECONNECT_GUIDANCE[entry.state] === undefined
+        ? {}
+        : { reconnect_guidance: STATUS_RECONNECT_GUIDANCE[entry.state] }),
+    };
+  }
+
+  function setTerminalStatus(
+    connectionId: string,
+    state: Exclude<PendingStatus["state"], "pending">,
+    requestedScopes: readonly Scope[],
+    reason?: string,
+    retainUntil?: number,
+  ): void {
+    const currentTime = now();
+    if (!validEpoch(currentTime)) return;
+    pendingStatuses.delete(connectionId);
+    pendingStatuses.set(connectionId, Object.freeze({
+      connectionId,
+      state,
+      requestedScopes: Object.freeze([...requestedScopes]),
+      ...(reason === undefined || !SAFE_STATUS_REASONS.has(reason) ? {} : { reason }),
+      retainUntil: retainUntil ?? currentTime + TERMINAL_STATUS_TTL_MS,
+    }));
+
+    let terminalCount = 0;
+    for (const value of pendingStatuses.values()) {
+      if (value.state !== "pending") terminalCount += 1;
+    }
+    while (terminalCount > MAX_TERMINAL_STATUSES) {
+      const oldest = [...pendingStatuses.entries()].find(([, value]) => value.state !== "pending");
+      if (!oldest) break;
+      pendingStatuses.delete(oldest[0]);
+      terminalCount -= 1;
+    }
+  }
+
   function cleanExpired(currentTime = now()): void {
     for (const [state, pending] of pendingByState) {
       if (currentTime >= pending.expiresAt) {
         pendingByState.delete(state);
         pendingConnections.delete(pending.connectionId);
+        setTerminalStatus(
+          pending.connectionId,
+          "expired",
+          pending.requestedScopes,
+          "consent_expired",
+          pending.expiresAt + TERMINAL_STATUS_TTL_MS,
+        );
+      }
+    }
+    for (const [connectionId, status] of pendingStatuses) {
+      if (status.state !== "pending" && status.retainUntil !== undefined && currentTime >= status.retainUntil) {
+        pendingStatuses.delete(connectionId);
       }
     }
   }
@@ -463,6 +587,50 @@ export function createOAuthService(
       () => activeLifecycle.delete(operation),
     );
     return operation;
+  }
+
+  function clearDisconnectInvalidationWhenDrained(connectionId: string): void {
+    if (
+      !activeConnectionLifecycles.has(connectionId) &&
+      completedDisconnectsPendingDrain.delete(connectionId)
+    ) {
+      locallyDisabledConnections.delete(connectionId);
+    }
+  }
+
+  function trackConnectionLifecycle<T>(
+    connectionId: string,
+    operation: Promise<T>,
+  ): Promise<T> {
+    if (!validStoredConnectionId(connectionId)) return trackLifecycle(operation);
+    activeConnectionLifecycles.set(
+      connectionId,
+      (activeConnectionLifecycles.get(connectionId) ?? 0) + 1,
+    );
+    const tracked = operation.finally(() => {
+      const active = activeConnectionLifecycles.get(connectionId) ?? 0;
+      if (active <= 1) {
+        activeConnectionLifecycles.delete(connectionId);
+        clearDisconnectInvalidationWhenDrained(connectionId);
+      } else {
+        activeConnectionLifecycles.set(connectionId, active - 1);
+      }
+    });
+    return trackLifecycle(tracked);
+  }
+
+  function completeDisconnectInvalidation(connectionId: string): void {
+    completedDisconnectsPendingDrain.add(connectionId);
+    clearDisconnectInvalidationWhenDrained(connectionId);
+  }
+
+  function assertConnectionLifecycleAvailable(connectionId: string): void {
+    if (closed) return fail("oauth_flow_unavailable");
+    assertConnectionNotLocallyDisabled(connectionId);
+  }
+
+  function assertConnectionNotLocallyDisabled(connectionId: string): void {
+    if (locallyDisabledConnections.has(connectionId)) return fail("connection_unavailable");
   }
 
   function runConnectionLock<T>(connectionId: string, operation: () => Promise<T>): Promise<T> {
@@ -514,17 +682,81 @@ export function createOAuthService(
   }
 
   async function readLifecycleRecord(connectionId: string): Promise<ConnectionRecord> {
-    if (closed) return fail("oauth_flow_unavailable");
+    assertConnectionLifecycleAvailable(connectionId);
     let value: ConnectionRecord | undefined;
     try {
       value = await store.read(connectionId);
     } catch (error) {
+      assertConnectionLifecycleAvailable(connectionId);
       if (error instanceof OAuthError) throw error;
       return fail("connection_unavailable");
     }
-    if (closed) return fail("oauth_flow_unavailable");
+    // The store read is an asynchronous boundary: disconnect may have disabled
+    // this connection while the read was pending.
+    assertConnectionLifecycleAvailable(connectionId);
     if (!value) return fail("connection_unavailable");
     return validateConnectionRecord(value, connectionId, config.owner);
+  }
+
+  function statusFromRecord(record: ConnectionRecord): ConnectionStatus {
+    let state: ConnectionStatusState = record.state;
+    let reason = record.reason;
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      record.expiresAt <= now()
+    ) {
+      state = "expired";
+      reason = "access_token_expired";
+    }
+
+    const requested = new Set(record.requestedScopes);
+    const granted = new Set(record.grants.scopes);
+    const capabilities: string[] = [];
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      requested.has("shops_r") && granted.has("shops_r")
+    ) {
+      capabilities.push("account_identity");
+    }
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      requested.has("listings_r") && granted.has("listings_r")
+    ) {
+      capabilities.push("catalog_read");
+    }
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      requested.has("transactions_r") && granted.has("transactions_r")
+    ) {
+      capabilities.push("financial_read");
+    }
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      requested.has("email_r") && granted.has("email_r")
+    ) {
+      capabilities.push("profile_read");
+    }
+    if (
+      (state === "connected" || state === "connected_limited") &&
+      requested.has("address_r") && granted.has("address_r")
+    ) {
+      capabilities.push("address_read");
+    }
+
+    const safeReason = reason !== undefined && SAFE_STATUS_REASONS.has(reason) ? reason : undefined;
+    const guidance = STATUS_RECONNECT_GUIDANCE[state];
+    return Object.freeze({
+      connection_id: record.connectionId,
+      state,
+      ...(safeReason === undefined ? {} : { reason: safeReason }),
+      requested_scopes: Object.freeze([...record.requestedScopes]),
+      granted_scopes: Object.freeze([...record.grants.scopes]),
+      enabled_capabilities: Object.freeze(capabilities),
+      account_id: record.accountId,
+      ...(record.shopId === undefined ? {} : { shop_id: record.shopId }),
+      expires_at: record.expiresAt,
+      ...(guidance === undefined ? {} : { reconnect_guidance: guidance }),
+    });
   }
 
   function requireUnexpiredRecord(record: ConnectionRecord): ConnectionRecord {
@@ -536,8 +768,12 @@ export function createOAuthService(
 
   async function ensureFreshLocked(connectionId: string): Promise<ConnectionRecord> {
     if (config.developmentMode) return fail("development_mode_locked");
-    if (closed) return fail("oauth_flow_unavailable");
+    assertConnectionLifecycleAvailable(connectionId);
     const record = await readLifecycleRecord(connectionId);
+    assertConnectionLifecycleAvailable(connectionId);
+    if (record.connectionId !== connectionId || !validOwner(record.owner, config.owner)) {
+      return fail("connection_unavailable");
+    }
     if (blockedGenerations.has(generationKey(connectionId, record.generation))) {
       return fail("oauth_reconnect_required");
     }
@@ -550,8 +786,16 @@ export function createOAuthService(
 
     let tokenResponse: unknown;
     try {
+      // Revalidate at the credential-bearing dispatch boundary. A refresh that
+      // has already started cannot be undone, but a completed disconnect must
+      // not start a new refresh request.
+      assertConnectionLifecycleAvailable(connectionId);
       tokenResponse = await transport.refresh(record.refreshToken);
     } catch (error) {
+      // Shutdown drains an accepted refresh and must persist an uncertain
+      // rotation fence. Local disconnect instead lets its queued removal own
+      // the final state and suppresses this lifecycle result.
+      assertConnectionNotLocallyDisabled(connectionId);
       const scopeEvidenceMissing = error instanceof OAuthError && error.reason === "oauth_scope_invalid";
       return disableRefreshGeneration(
         record,
@@ -559,6 +803,8 @@ export function createOAuthService(
         scopeEvidenceMissing ? "scope_verification_required" : "refresh_uncertain",
       );
     }
+
+    assertConnectionNotLocallyDisabled(connectionId);
 
     const receivedAt = now();
     let token: ReturnType<typeof validateTokenResult>;
@@ -602,14 +848,24 @@ export function createOAuthService(
     const blockedKey = generationKey(connectionId, record.generation);
     blockedGenerations.add(blockedKey);
     try {
+      assertConnectionNotLocallyDisabled(connectionId);
       await store.put(refreshed, record.generation);
     } catch {
+      if (locallyDisabledConnections.has(connectionId)) return fail("connection_unavailable");
       await requireRecoveryFence();
       return fail("oauth_reconnect_required");
     }
+    if (locallyDisabledConnections.has(connectionId) || closed) {
+      blockedGenerations.delete(blockedKey);
+      return fail(closed ? "oauth_flow_unavailable" : "connection_unavailable");
+    }
     blockedGenerations.delete(blockedKey);
-    if (closed) return fail("oauth_flow_unavailable");
-    return requireUnexpiredRecord(refreshed);
+    assertConnectionLifecycleAvailable(connectionId);
+    const validated = validateConnectionRecord(refreshed, connectionId, config.owner);
+    if (blockedGenerations.has(generationKey(connectionId, validated.generation))) {
+      return fail("oauth_reconnect_required");
+    }
+    return requireUnexpiredRecord(validated);
   }
 
   function getFreshnessFlight(connectionId: string): Promise<ConnectionRecord> {
@@ -634,12 +890,24 @@ export function createOAuthService(
       if (config.developmentMode) return fail("development_mode_locked");
       if (closed) return fail("oauth_flow_unavailable");
       if (!validStoredConnectionId(connectionId)) return fail("connection_unavailable");
+      if (locallyDisabledConnections.has(connectionId)) return fail("connection_unavailable");
       if (lifecycleContext.getStore()?.has(connectionId)) return fail("oauth_flow_invalid");
       const record = await getFreshnessFlight(connectionId);
-      if (closed) return fail("oauth_flow_unavailable");
-      return requireUnexpiredRecord(record);
+      // Freshness is shared and awaited; re-check ownership, generation and
+      // disconnect invalidation before releasing the credential-bearing record.
+      assertConnectionLifecycleAvailable(connectionId);
+      const validated = validateConnectionRecord(record, connectionId, config.owner);
+      if (blockedGenerations.has(generationKey(connectionId, validated.generation))) {
+        return fail("oauth_reconnect_required");
+      }
+      if (validated.state !== "connected" && validated.state !== "connected_limited") {
+        return fail("oauth_reconnect_required");
+      }
+      const unexpired = requireUnexpiredRecord(validated);
+      assertConnectionLifecycleAvailable(connectionId);
+      return unexpired;
     })();
-    return trackLifecycle(operation);
+    return trackConnectionLifecycle(connectionId, operation);
   }
 
   function withConnection<T>(
@@ -650,30 +918,225 @@ export function createOAuthService(
       if (config.developmentMode) return fail("development_mode_locked");
       if (closed) return fail("oauth_flow_unavailable");
       if (!validStoredConnectionId(connectionId)) return fail("connection_unavailable");
+      if (locallyDisabledConnections.has(connectionId)) return fail("connection_unavailable");
       if (lifecycleContext.getStore()?.has(connectionId)) return fail("oauth_flow_invalid");
       if (typeof work !== "function") return fail("oauth_flow_invalid");
       const prepared = await getFreshnessFlight(connectionId);
-      if (closed) return fail("oauth_flow_unavailable");
+      assertConnectionLifecycleAvailable(connectionId);
+      const validatedPrepared = validateConnectionRecord(prepared, connectionId, config.owner);
+      if (
+        blockedGenerations.has(generationKey(connectionId, validatedPrepared.generation)) ||
+        (validatedPrepared.state !== "connected" && validatedPrepared.state !== "connected_limited")
+      ) {
+        return fail("oauth_reconnect_required");
+      }
+
       return runConnectionLock(connectionId, async () => {
+        assertConnectionLifecycleAvailable(connectionId);
         const record = await readLifecycleRecord(connectionId);
-        if (closed) return fail("oauth_flow_unavailable");
+        assertConnectionLifecycleAvailable(connectionId);
         if (
           blockedGenerations.has(generationKey(connectionId, record.generation)) ||
           (record.state !== "connected" && record.state !== "connected_limited") ||
-          record.generation !== prepared.generation ||
-          record.accountId !== prepared.accountId
+          record.connectionId !== validatedPrepared.connectionId ||
+          record.generation !== validatedPrepared.generation ||
+          record.accountId !== validatedPrepared.accountId ||
+          !validOwner(record.owner, config.owner)
         ) {
           return fail("oauth_reconnect_required");
         }
+
         const usableRecord = requireUnexpiredRecord(record);
+        // No async boundary may intervene between this final invalidation and
+        // dispatching the trusted lifecycle callback.
+        assertConnectionLifecycleAvailable(connectionId);
+        if (
+          usableRecord.connectionId !== validatedPrepared.connectionId ||
+          usableRecord.generation !== validatedPrepared.generation ||
+          usableRecord.accountId !== validatedPrepared.accountId ||
+          !validOwner(usableRecord.owner, config.owner) ||
+          blockedGenerations.has(generationKey(connectionId, usableRecord.generation))
+        ) {
+          return fail("oauth_reconnect_required");
+        }
+
         const activeConnections = new Set(lifecycleContext.getStore() ?? []);
         activeConnections.add(connectionId);
-        const result = await lifecycleContext.run(activeConnections, () => work(usableRecord));
-        if (closed) return fail("oauth_flow_unavailable");
+        let result: T;
+        try {
+          result = await lifecycleContext.run(activeConnections, () => work(usableRecord));
+        } catch (error) {
+          // Prefer the invalidation outcome over an error from work which was
+          // already running when the operator disconnected locally.
+          assertConnectionLifecycleAvailable(connectionId);
+          throw error;
+        }
+
+        // Work already dispatched is not cancelled by local disconnect. Its
+        // result is withheld if the connection was invalidated while it ran.
+        assertConnectionLifecycleAvailable(connectionId);
+        const releasedRecord = validateConnectionRecord(usableRecord, connectionId, config.owner);
+        if (
+          releasedRecord.generation !== validatedPrepared.generation ||
+          releasedRecord.accountId !== validatedPrepared.accountId ||
+          (releasedRecord.state !== "connected" && releasedRecord.state !== "connected_limited") ||
+          blockedGenerations.has(generationKey(connectionId, releasedRecord.generation))
+        ) {
+          return fail("oauth_reconnect_required");
+        }
         return result;
       });
     })();
-    return trackLifecycle(operation);
+    return trackConnectionLifecycle(connectionId, operation);
+  }
+
+  function status(connectionId: string): Promise<ConnectionStatus> {
+    const operation = (async () => {
+      if (typeof connectionId !== "string" || !CONNECTION_ID.test(connectionId)) {
+        return fail("connection_unavailable");
+      }
+      if (closed) return fail("oauth_flow_unavailable");
+      cleanExpired();
+
+      const disconnecting = disconnectFlights.get(connectionId);
+      if (disconnecting) await disconnecting.catch(() => undefined);
+      if (closed) return fail("oauth_flow_unavailable");
+
+      const pending = pendingStatuses.get(connectionId);
+      if (
+        pending &&
+        (pending.state === "pending" || pending.state === "disconnected" || pending.state === "recovery_required")
+      ) {
+        return statusFromPending(pending);
+      }
+
+      let stored: ConnectionRecord | undefined;
+      try {
+        stored = await store.read(connectionId);
+      } catch {
+        return fail("connection_unavailable");
+      }
+      if (closed) return fail("oauth_flow_unavailable");
+      const disconnectingAfterRead = disconnectFlights.get(connectionId);
+      if (disconnectingAfterRead) await disconnectingAfterRead.catch(() => undefined);
+      if (closed) return fail("oauth_flow_unavailable");
+      const latestPending = pendingStatuses.get(connectionId);
+      if (
+        latestPending &&
+        (latestPending.state === "pending" || latestPending.state === "disconnected" ||
+          latestPending.state === "recovery_required")
+      ) {
+        return statusFromPending(latestPending);
+      }
+      if (locallyDisabledConnections.has(connectionId)) return fail("connection_unavailable");
+      if (!stored) {
+        if (latestPending) return statusFromPending(latestPending);
+        return fail("connection_unavailable");
+      }
+      try {
+        const record = validateConnectionRecord(stored, connectionId, config.owner);
+        return statusFromRecord(record);
+      } catch {
+        return fail("connection_unavailable");
+      }
+    })();
+    return trackConnectionLifecycle(connectionId, operation);
+  }
+
+  function disconnectResult(
+    connectionId: string,
+    state: DisconnectResult["state"],
+    localCredentialsRemoved: boolean,
+  ): DisconnectResult {
+    return Object.freeze({
+      connection_id: connectionId,
+      state,
+      local_credentials_removed: localCredentialsRemoved,
+      upstream_revoked: false,
+    });
+  }
+
+  function disconnect(connectionId: string): Promise<DisconnectResult> {
+    if (typeof connectionId !== "string" || !CONNECTION_ID.test(connectionId)) {
+      return Promise.reject(new OAuthError("connection_unavailable"));
+    }
+    if (closed) return Promise.reject(new OAuthError("oauth_flow_unavailable"));
+
+    const existingFlight = disconnectFlights.get(connectionId);
+    if (existingFlight) return existingFlight;
+
+    cleanExpired();
+    const priorStatus = pendingStatuses.get(connectionId);
+    if (priorStatus?.state === "disconnected") {
+      return Promise.resolve(disconnectResult(connectionId, "disconnected", true));
+    }
+    if (priorStatus?.state === "recovery_required") {
+      return Promise.resolve(disconnectResult(connectionId, "recovery_required", false));
+    }
+
+    const hadLocalAttempt = priorStatus !== undefined;
+    const requestedScopes = priorStatus?.requestedScopes ?? [];
+    if (priorStatus) setTerminalStatus(connectionId, "disconnected", requestedScopes);
+    locallyDisabledConnections.add(connectionId);
+    for (const [state, attempt] of pendingByState) {
+      if (attempt.connectionId === connectionId) pendingByState.delete(state);
+    }
+    pendingConnections.delete(connectionId);
+
+    const operation = trackLifecycle(runConnectionLock(connectionId, async () => {
+      let stored: ConnectionRecord | undefined;
+      try {
+        stored = await store.read(connectionId);
+      } catch {
+        await requireRecoveryFence();
+        setTerminalStatus(connectionId, "recovery_required", requestedScopes, "local_disconnect_incomplete");
+        return disconnectResult(connectionId, "recovery_required", false);
+      }
+
+      if (!stored) {
+        if (!hadLocalAttempt) {
+          completeDisconnectInvalidation(connectionId);
+          return fail("connection_unavailable");
+        }
+        setTerminalStatus(connectionId, "disconnected", requestedScopes);
+        completeDisconnectInvalidation(connectionId);
+        return disconnectResult(connectionId, "disconnected", true);
+      }
+
+      let record: ConnectionRecord;
+      try {
+        record = validateConnectionRecord(stored, connectionId, config.owner);
+      } catch {
+        return fail("connection_unavailable");
+      }
+
+      try {
+        await store.remove(connectionId, record.generation);
+      } catch {
+        await requireRecoveryFence();
+        setTerminalStatus(
+          connectionId,
+          "recovery_required",
+          record.requestedScopes,
+          "local_disconnect_incomplete",
+        );
+        return disconnectResult(connectionId, "recovery_required", false);
+      }
+
+      setTerminalStatus(connectionId, "disconnected", record.requestedScopes);
+      completeDisconnectInvalidation(connectionId);
+      return disconnectResult(connectionId, "disconnected", true);
+    }));
+    disconnectFlights.set(connectionId, operation);
+    void operation.then(
+      () => {
+        if (disconnectFlights.get(connectionId) === operation) disconnectFlights.delete(connectionId);
+      },
+      () => {
+        if (disconnectFlights.get(connectionId) === operation) disconnectFlights.delete(connectionId);
+      },
+    );
+    return operation;
   }
 
   async function allocateConnectionId(): Promise<string> {
@@ -777,6 +1240,12 @@ export function createOAuthService(
       });
       pendingByState.set(state, pending);
       pendingConnections.add(connectionId);
+      pendingStatuses.set(connectionId, Object.freeze({
+        connectionId,
+        state: "pending",
+        requestedScopes,
+        expiresAt,
+      }));
       keepConnectionReservation = true;
 
       return {
@@ -814,6 +1283,8 @@ export function createOAuthService(
     // Claim before network or durable work. A denial, failure, or uncertain
     // exchange consumes this single-use state permanently.
     pendingByState.delete(candidate.state);
+    let terminalState: "denied" | "failed" = "failed";
+    let connected = false;
     try {
       if (
         now() >= candidate.expiresAt ||
@@ -823,7 +1294,10 @@ export function createOAuthService(
       ) {
         return "failed";
       }
-      if ("denied" in input && input.denied === true) return "denied";
+      if ("denied" in input && input.denied === true) {
+        terminalState = "denied";
+        return "denied";
+      }
       if (!("code" in input)) return "failed";
       if (config.developmentMode) return "failed";
       if (activeExchanges >= MAX_CONCURRENT_EXCHANGES) return "failed";
@@ -831,9 +1305,9 @@ export function createOAuthService(
       activeExchanges += 1;
       try {
         return await runConnectionLock(candidate.connectionId, async () => {
-          if (closed) return "failed";
+          if (closed || locallyDisabledConnections.has(candidate.connectionId)) return "failed";
           const current = await readConnection(candidate.connectionId);
-          if (closed) return "failed";
+          if (closed || locallyDisabledConnections.has(candidate.connectionId)) return "failed";
           if (candidate.replaceRecord) {
             if (
               !current ||
@@ -847,13 +1321,14 @@ export function createOAuthService(
           }
 
           const tokenResponse = await transport.exchange({ code: input.code, verifier: candidate.verifier });
-          if (closed) return "failed";
+          if (closed || locallyDisabledConnections.has(candidate.connectionId)) return "failed";
           const issuedAt = now();
           const token = validateTokenResult(tokenResponse, issuedAt, "authorization_code_response");
           if (!token.grants.scopes.includes("shops_r")) return "failed";
           const identity = await transport.getMe(token.accessToken);
           if (
             closed ||
+            locallyDisabledConnections.has(candidate.connectionId) ||
             !identity ||
             !Number.isSafeInteger(identity.accountId) ||
             identity.accountId <= 0 ||
@@ -882,6 +1357,7 @@ export function createOAuthService(
             grants: token.grants,
           };
           await store.put(record, candidate.replaceRecord ? candidate.replaceRecord.generation : null);
+          if (locallyDisabledConnections.has(candidate.connectionId)) return "failed";
           if (closed) {
             try {
               if (candidate.replaceRecord) {
@@ -905,6 +1381,7 @@ export function createOAuthService(
             }
             return "failed";
           }
+          connected = true;
           return "complete";
         });
       } catch {
@@ -914,6 +1391,18 @@ export function createOAuthService(
       }
     } finally {
       pendingConnections.delete(candidate.connectionId);
+      if (pendingStatuses.get(candidate.connectionId)?.state !== "disconnected") {
+        if (connected) {
+          pendingStatuses.delete(candidate.connectionId);
+        } else {
+          setTerminalStatus(
+            candidate.connectionId,
+            terminalState,
+            candidate.requestedScopes,
+            terminalState === "denied" ? "consent_denied" : "connection_failed",
+          );
+        }
+      }
     }
   }
 
@@ -933,6 +1422,8 @@ export function createOAuthService(
     },
     begin,
     completeCallback,
+    status,
+    disconnect,
     ensureFresh,
     withConnection,
     close() {

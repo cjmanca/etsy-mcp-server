@@ -1,6 +1,6 @@
 # Planned OAuth and account access
 
-**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a), conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2), and internal refresh/lifecycle service (M3.3b; parent M3.3) are complete. Independent security/spec/quality review approved the refresh service after one fix round; final coordinator Windows/native-Linux verification passed, including the real SIGTERM subprocess gate. Concrete evidence is recorded in [TASK.md](../TASK.md). Refresh remains internal, not a user-facing tool. Connection status/disconnect (M3.4), per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) remain unimplemented.
+**Status: partially implemented, with remaining M3/M4 work planned.** The protected store/config/permissions foundation (M3.3a), conditional browser OAuth connection flow (`begin_etsy_connection`, M3.2), and internal refresh/lifecycle service (M3.3b; parent M3.3) are complete and reviewed. M3.4's local status and disconnect controls are complete after independent security/spec/quality review and coordinator Windows/native-Linux verification; coordinator commit is pending. Details and limits are recorded in [TASK.md](../TASK.md) and the [Task 5 report](../.superpowers/sdd/2026-10-17-portable-oauth/task-5-report.md). Refresh remains internal and is not invoked by status. Per-operation scope authorization and diagnostics (M3.5), and private Etsy tools (M4+) remain unimplemented; overall M3 acceptance remains open.
 
 ## M3.1 deployment contract and current implementation status (2026-10-17)
 
@@ -61,33 +61,39 @@ need listings_r. Scope bundles must reflect per-operation security, not verbs.
 The runtime has typed `public`, `account`, `write`, and `event` registration
 groups. By default it registers and enables only the twenty-nine public tools.
 When `ETSY_OAUTH_ENABLED=true` and the protected store, key, and callback listener
-start successfully, it conditionally adds `begin_etsy_connection` under `account`.
-This single entry point starts browser consent and completes a durable protected
-connection after callback identity/scope checks; it does not expose any private
-Etsy resource tools. Internal refresh is verified, but status/disconnect, per-operation scope and
-resource authorization, writes, and event handling are still unimplemented.
+start successfully, it conditionally adds `begin_etsy_connection`,
+`get_etsy_connection_status`, and `disconnect_etsy_connection` under `account`.
+The begin entry point starts browser consent and completes a durable protected
+connection after callback identity/scope checks. The two lifecycle controls inspect
+or remove local connection credentials only; none of these tools exposes private
+Etsy resource data. The lifecycle implementation passed independent review and
+coordinator platform verification. Internal refresh remains separate from status. Per-operation
+scope/resource authorization, writes, and event handling remain unimplemented.
 Registry enablement is trusted startup configuration, never a model argument or
-metadata hint. A blocked/unavailable begin tool is undiscoverable and direct
-dispatch receives a server-generated prerequisite. The public M2.8 `ping_etsy`
+metadata hint. An unavailable begin tool is undiscoverable and direct dispatch
+receives a server-generated prerequisite; status and disconnect remain available
+when the local development lock blocks OAuth POSTs. The public M2.8 `ping_etsy`
 tool remains only an application connectivity diagnostic; it does not establish
 OAuth consent, actual scopes, or private-resource access.
 
 ## Current conditional connection entry point
 
-After an operator completes the [OAuth setup prerequisites](setup-and-access.md#optional-browser-based-account-connection), a client may call `begin_etsy_connection` with a read-capability bundle and optional nonsecret label. The tool returns a generated Etsy authorization URL and required human action; the operator completes consent in a browser. A fixed callback path validates the actual trusted socket peer and state, exchanges the code internally, validates the granted scope and Etsy identity, and commits the credentials to the encrypted store. The callback returns a static completion page. The MCP conversation never receives the raw authorization code, access/refresh token, or PKCE verifier. This flow does not add private account data tools; no connection-status tool exists yet.
+After an operator completes the [OAuth setup prerequisites](setup-and-access.md#optional-browser-based-account-connection), a client may call `begin_etsy_connection` with a read-capability bundle and optional nonsecret label. The tool returns a generated Etsy authorization URL and required human action; the operator completes consent in a browser. A fixed callback path validates the actual trusted socket peer and state, exchanges the code internally, validates the granted scope and Etsy identity, and commits the credentials to the encrypted store. The callback returns a static completion page. The MCP conversation never receives the raw authorization code, access/refresh token, or PKCE verifier. The flow adds no private account data tools; the separately listed lifecycle controls below do not call Etsy.
 
 The tool is present only when OAuth is explicitly enabled and runtime prerequisites succeed. `ETSY_DEVELOPMENT_MODE=true` hides/disables it because the conservative method lock blocks the OAuth POST requests. The default remains the same twenty-nine public tools and does not open a callback listener or read OAuth key/store files.
 
 | Tool | Inputs | Result |
 | --- | --- | --- |
 | `begin_etsy_connection` | Read-capability bundle and optional nonsecret label. | **Conditional current implementation:** authorization URL, human action, pending request ID/status; no token or verifier. M3.2 independent source/docs review and coordinator final platform verification passed. |
-| `get_etsy_connection_status` | `connection_id`. | **Planned (M3.4):** connected/pending/expired state, authorized account/shop IDs, granted capability names, and reauthorization guidance. |
-| `disconnect_etsy_connection` | Connection ID and explicit user intent. | **Planned (M3.4):** local credential removal and disabled account tools. Do not claim Etsy-side token revocation unless an actual supported revocation mechanism is used. |
+| `get_etsy_connection_status` | `connection_id`. | **Conditional current (M3.4; reviewed):** bounded local state, requested/verified granted scopes, consented capability names, verified account/shop IDs, expiry, and fixed reconnect guidance. Does not refresh credentials or expose credentials/URLs. `shops_r` is labeled `account_identity`, not as an implemented private shop-read tool. Recent terminal flow statuses are in-memory, capped at 100 entries and five minutes. |
+| `disconnect_etsy_connection` | `connection_id` and `confirm_local_disconnect: true`. | **Conditional current (M3.4; reviewed):** immediately disables local dispatch, consumes a matching pending attempt, serializes removal behind in-flight lifecycle work, and reports either completed local removal or `recovery_required`. The result always says `upstream_revoked: false`; no Etsy-side token revocation is performed. |
 | `get_etsy_token_scopes` | Connection ID. | **Planned (M3.5b):** scope names from a separately verified `tokenScopes` response, with the stored token injected internally. Never accept a raw token as a model-facing argument. |
 
-These are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access. Keep the public-tool count at twenty-nine by default; the conditional connect tool is additive only when explicitly enabled and ready.
+These are local orchestration features, not extra REST operations in the 105-operation matrix. `tokenScopes` is a POST diagnostic with a token body; HTTP POST alone does not make it a shop mutation. Secure it as credential-bearing account access. Keep the public-tool count at twenty-nine by default; a ready OAuth runtime adds all three conditional connection tools (32 total). With the local development lock enabled, `begin_etsy_connection` is hidden/denied while status and disconnect remain available (31 total).
 
-M3.3b's verified `ensureFresh` and `withConnection` methods are current internal service interfaces only. No current MCP tool or private Etsy handler invokes them. Overlapping callers share a freshness flight, including short-lived responses; rotated credentials and actual grants are committed before release. Ambiguous POST outcomes are not replayed, persistence failures block stale reuse, and expiry is rechecked after commit and before serialized work. Expired rotations remain durably saved but are not released; no same-call refresh loop occurs. Model-facing lifecycle/authorization integration remains M3.4–M3.5 work.
+The supported deployment remains one trusted operator and one stdio transport attachment per server instance. A second attachment is rejected before dispatch; separate operators or less-trusted clients require separate OS/container instances, protected stores, and keys. Connection IDs and MCP client/model labels do not authenticate tenants. Disconnect removes local credentials only, and a recovery-required result keeps access disabled; it is not proof of durable removal or Etsy-side revocation.
+
+M3.3b's verified `ensureFresh` and `withConnection` methods are current internal service interfaces only. No current MCP tool or private Etsy handler invokes them; status performs no refresh. Overlapping callers share a freshness flight, including short-lived responses; rotated credentials and actual grants are committed before release. Ambiguous POST outcomes are not replayed, persistence failures block stale reuse, and expiry is rechecked after commit and before serialized work. Expired rotations remain durably saved but are not released; no same-call refresh loop occurs. M3.4's model-facing local status/disconnect integration is complete and reviewed. Disconnect invalidation is rechecked after awaited reads/flights/work; accepted status calls retain invalidation protection even if a terminal entry expires or is evicted. Already-started work is not cancelled, but its result is withheld after disconnect. Scope authorization and the diagnostic gate remain M3.5 work.
 
 ## Protocol and lifecycle requirements
 

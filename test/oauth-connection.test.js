@@ -738,7 +738,7 @@ test("begin tool appears only with a ready runtime and returns the bounded conse
     mockAdapter((config) => successResponse(config, {}), calls),
     async ({ client }) => {
       const listed = await client.listTools();
-      assert.equal(listed.tools.length, 30);
+      assert.equal(listed.tools.length, 32);
       const tool = listed.tools.find((item) => item.name === "begin_etsy_connection");
       assert.ok(tool);
       assert.deepEqual(tool.annotations, {
@@ -746,6 +746,22 @@ test("begin tool appears only with a ready runtime and returns the bounded conse
         destructiveHint: false,
         idempotentHint: false,
         openWorldHint: true,
+      });
+      const statusTool = listed.tools.find((item) => item.name === "get_etsy_connection_status");
+      assert.ok(statusTool);
+      assert.deepEqual(statusTool.annotations, {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      });
+      const disconnectTool = listed.tools.find((item) => item.name === "disconnect_etsy_connection");
+      assert.ok(disconnectTool);
+      assert.deepEqual(disconnectTool.annotations, {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
       });
       const result = await client.callTool({
         name: "begin_etsy_connection",
@@ -778,6 +794,17 @@ test("locked begin is hidden and direct dispatch is denied before its handler", 
     async completeCallback() {
       return "failed";
     },
+    async status() {
+      return { connection_id: "AAAAAAAAAAAAAAAAAAAAAA", state: "connected" };
+    },
+    async disconnect() {
+      return {
+        connection_id: "AAAAAAAAAAAAAAAAAAAAAA",
+        state: "disconnected",
+        local_credentials_removed: true,
+        upstream_revoked: false,
+      };
+    },
     async close() {},
   };
   const runtime = { developmentMode: true, service, close: async () => {} };
@@ -787,7 +814,9 @@ test("locked begin is hidden and direct dispatch is denied before its handler", 
     async ({ client }) => {
       const listed = await client.listTools();
       assert.equal(listed.tools.some((item) => item.name === "begin_etsy_connection"), false);
-      assert.equal(listed.tools.length, 29);
+      assert.equal(listed.tools.length, 31);
+      assert.equal(listed.tools.some((item) => item.name === "get_etsy_connection_status"), true);
+      assert.equal(listed.tools.some((item) => item.name === "disconnect_etsy_connection"), true);
       const result = await client.callTool({
         name: "begin_etsy_connection",
         arguments: { bundles: [] },

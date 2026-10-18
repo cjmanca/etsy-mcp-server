@@ -1780,6 +1780,15 @@ export function createEtsyMcpServer(
     { name: "etsy-mcp-server", version: SERVER_VERSION },
     { capabilities: { tools: {} } },
   );
+  const connectOnce = server.connect.bind(server);
+  let transportAttached = false;
+  server.connect = async (transport) => {
+    if (transportAttached) {
+      throw new Error("This MCP server instance accepts one transport attachment.");
+    }
+    transportAttached = true;
+    await connectOnce(transport);
+  };
 
   const registrations: CapabilityRegistration[] = [
     {
@@ -1874,6 +1883,7 @@ export function createEtsyMcpServer(
     ...createListingOfferingRegistrations({ get, responseObject, textField, responseText }),
     ...createListingContentRegistrations(contentDependencies),
     ...(options.oauth ? createOAuthRegistrations(options.oauth.service, "connect") : []),
+    ...(options.oauth ? createOAuthRegistrations(options.oauth.service, "lifecycle") : []),
   ];
   const registry = new CapabilityRegistry({
     enabledCapabilities: options.oauth ? ["public", "account"] : ["public"],

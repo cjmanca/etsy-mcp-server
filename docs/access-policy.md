@@ -37,4 +37,4 @@ The MCP interface remains local stdio. The optional OAuth consent entry point an
 
 ## What this policy does not do
 
-It does not grant Etsy approval, perform browser consent, configure or expose a callback network path, authorize a live mutation, or implement private Etsy resource tools. OAuth refresh is verified internal service support only; status/disconnect, scope diagnostics, and per-operation authorization remain planned. Unsupported endpoints remain unsupported until implemented, tested, and documented as current. See [TODO](../TODO.md).
+It does not grant Etsy approval, perform browser consent, configure or expose a callback network path, authorize a live mutation, or implement private Etsy resource tools. OAuth refresh is verified internal service support only. Local connection status/disconnect controls are implemented and independently reviewed (M3.4); scope diagnostics and per-operation authorization remain planned. Disconnect removes credentials locally and does not revoke them at Etsy. Unsupported endpoints remain unsupported until implemented, tested, and documented as current. See [TODO](../TODO.md).

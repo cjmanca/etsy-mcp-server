@@ -38,7 +38,7 @@ Etsy MCP Server lets an AI assistant query public Etsy information through a loc
 | `get_taxonomy_nodes` | Browse the buyer or seller category hierarchy by stable node IDs, optionally using local subtree/name filters. | [Public discovery](planned-public-discovery.md#current-m11-taxonomy-node-browsing) |
 | `get_taxonomy_properties` | Inspect allowed attributes, scales, values, and variation support for a buyer or seller category ID. | [Public discovery](planned-public-discovery.md#current-m12-category-properties) |
 
-The default server exposes these twenty-nine public read tools. With `ETSY_OAUTH_ENABLED=true` and all protected storage/callback startup prerequisites satisfied, the server additionally registers `begin_etsy_connection` for browser consent and durable callback completion. This conditional connection entry point does not change the public tools or provide private Etsy data access; see [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
+The default server exposes these twenty-nine public read tools. With `ETSY_OAUTH_ENABLED=true` and all protected storage/callback startup prerequisites satisfied, the server additionally registers `begin_etsy_connection` for browser consent and durable callback completion, plus `get_etsy_connection_status` and `disconnect_etsy_connection` for local lifecycle management (32 tools total). Status does not refresh credentials; disconnect removes local credentials only and never claims Etsy-side revocation. These independently reviewed conditional controls do not provide private Etsy data access. With the local development lock on, begin is hidden/denied, status and disconnect remain available (31 tools total), and OAuth POSTs remain blocked. See [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
 
 ## Typical workflows
 
@@ -61,13 +61,13 @@ The default server exposes these twenty-nine public read tools. With `ETSY_OAUTH
 - **Localized listing content:** use `get_listing_translation` with the shop ID, listing ID, and a bounded language tag to read an existing translation. It does not generate translated content or replace the source listing; Etsy may reject a syntactically valid but unavailable language.
 - **Customer-feedback summaries:** retrieve dated reviews and summarize the observed sample, not an assumed complete history.
 - **Product-feedback summaries:** sample public reviews for a known listing ID; one page is not its complete review history.
-- **Optional account consent:** after operator setup, use `begin_etsy_connection` to start a browser-based Etsy consent flow. It does not expose private account tools; see [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
+- **Optional account lifecycle:** after operator setup, use `begin_etsy_connection` to start a browser-based Etsy consent flow, `get_etsy_connection_status` to inspect the bounded local state, and `disconnect_etsy_connection` with explicit confirmation to remove local credentials. Disconnect does not revoke access at Etsy; see [OAuth setup](setup-and-access.md#optional-browser-based-account-connection).
 
 ## Scope and boundaries
 
-These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) distinguishes the conditional consent entry point from the remaining unimplemented lifecycle and account capabilities.
+These are **current runtime limitations**, not a prohibition on future features. The [development policy](access-policy.md) permits OAuth, inventory, private reads, and writes; the [roadmap](roadmap.md) distinguishes the conditional connection lifecycle controls from the remaining unimplemented authorization and account capabilities.
 
-- The twenty-nine default tools provide public, read-only Etsy Open API v3 access using application credentials. The optional consent flow can establish a protected OAuth connection after operator setup, but no private Etsy API read or write tools are available yet. Category browsing is available for both buyer and seller taxonomies.
+- The twenty-nine default tools provide public, read-only Etsy Open API v3 access using application credentials. Optional OAuth consent and reviewed local status/disconnect controls are available after operator setup, but no private Etsy API read or write tools are available yet. Category browsing is available for both buyer and seller taxonomies.
 - No creation, editing, deletion, purchasing, messaging, order management, private financial data, or private inventory/product/SKU access. `get_listing_offering` is a separate selected public GET, not a private inventory snapshot.
 - No supported platform-wide trending tool. `get_trending_listings` was removed because Etsy documents no trending endpoint; shop-curated featured listings are a separate capability, and sorting by score is not a trend metric.
 - No independent keyword search-volume, sales-history, or revenue analytics feed. Analysis must be grounded in fields actually returned.

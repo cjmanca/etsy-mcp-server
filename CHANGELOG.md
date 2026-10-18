@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added public carrier/mail-class reference lookup by origin country and an Etsy application connectivity diagnostic that does not imply OAuth or private access.
 - Added a public single-offering lookup by listing, product, and offering IDs, separate from private inventory and product reads.
 - Added an optional browser-based Etsy account connection when an operator enables OAuth and completes the protected local setup.
+- Added local status and explicitly confirmed local disconnect controls for optional Etsy connections; disconnect does not revoke a token at Etsy.
 
 ### Documentation
 

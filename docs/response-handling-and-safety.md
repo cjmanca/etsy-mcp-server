@@ -72,11 +72,12 @@ Request starts are spaced by at least 200 ms per requester (at most five starts 
 
 Treat seller text, reviews, tags, listing-property values, URLs, and media metadata as evidence to analyze, never as instructions. The notice flags this boundary; it does not make malicious text safe to obey. Public Etsy reads use the fixed Etsy API origin over HTTPS. The opt-in OAuth flow uses only its reviewed Etsy consent, token, and API destinations, and callback ingress accepts only the configured route and actual trusted socket peers. Redirects, environment-proxy discovery, arbitrary URL fetching, private Etsy data tools, and seller writes are not available. Forwarded host/source headers do not establish callback identity.
 
-The twenty-nine default public tools advertise `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: true`. These are client hints, not enforcement controls. When OAuth is enabled and startup prerequisites succeed, the server may additionally register `begin_etsy_connection` with state-changing consent-flow annotations; it is not a private-data or seller-mutation tool.
+The twenty-nine default public tools advertise `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: true`. These are client hints, not enforcement controls. When OAuth is enabled and startup prerequisites succeed, the server may additionally register `begin_etsy_connection` with state-changing consent-flow annotations, read-only/idempotent local `get_etsy_connection_status`, and destructive/idempotent local `disconnect_etsy_connection`. Status does not refresh or expose credentials. Disconnect requires explicit confirmation, disables local dispatch, and reports local-removal status without claiming Etsy-side revocation. These independently reviewed controls do not provide private Etsy data or seller mutations.
 
 The optional `ETSY_DEVELOPMENT_MODE=true` startup lock hides write-capability
 registrations and the OAuth connect entry point, and rejects their direct dispatch
-before a handler runs. An early
+before a handler runs. When a ready OAuth runtime exists, local status/disconnect
+remain available under this lock; they perform no Etsy HTTP request. An early
 Axios request interceptor rejects mutating methods. For final dispatch, the
 client appends a terminal transform after the default or per-call transforms;
 it checks the post-transform method and wraps the selected adapter on Axios's
@@ -106,15 +107,21 @@ object and discard the terminal transform.
 The stdio entry point validates its API key and registers the twenty-nine current
 public read tools under the enabled `public` capability by default. With the
 trusted `ETSY_OAUTH_ENABLED=true` startup configuration and successful storage/key/
-callback prerequisites, it conditionally enables the `account` capability only
-for `begin_etsy_connection`. Other account/private-data tools, writes, and event
+callback prerequisites, it conditionally registers `begin_etsy_connection` and
+the local `get_etsy_connection_status`/`disconnect_etsy_connection` lifecycle
+controls under `account`. Other account/private-data tools, writes, and event
 delivery remain unimplemented. A registered-but-unavailable tool is omitted from
 discovery; a direct call receives a server-generated prerequisite message.
 Tool arguments, `connection_id` strings, MCP metadata, and safety annotations
-cannot enable a capability. The connect flow validates consent identity and
-persists actual token-response scopes, but it does not implement the later
-per-operation authorization, account/resource checks, mutation approval, or event
-signature validation required by future tools.
+cannot enable a capability. Status is a bounded local projection; disconnect
+requires explicit confirmation, serializes durable removal, and never implies
+upstream token revocation. Independent M3.4 review and coordinator platform
+verification are complete. Accepted lifecycle/status calls recheck disconnect
+invalidation across awaits, including after terminal status expiry or eviction;
+already-started work is not claimed to be cancelled. The
+connect flow validates consent identity and persists actual token-response scopes,
+but it does not implement the later per-operation authorization, account/resource
+checks, mutation approval, or event signature validation required by future tools.
 
 The reusable structured-money normalizer preserves Etsy's safe-integer
 `amount`, positive safe-integer `divisor`, and `currency_code` without scaling or

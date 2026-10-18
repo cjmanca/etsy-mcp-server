@@ -129,8 +129,8 @@ contract audit: 105/105; scoped whitespace clean. See [M3.2 evidence in TASK.md]
 and its Task 3/platform/limiter reports. The steps below retain the original
 execution checklist; current completion is tracked in `TASK.md`. Task 3 was
 committed as `217325c`. Task 4's M3.3b internal refresh and parent M3.3 are
-complete after independent review and final coordinator verification; Tasks 5–6
-remain planned. No Docker, deployed callback/proxy,
+complete after independent review and final coordinator verification; Task 5 is
+also complete as recorded below; Task 6 remains planned. No Docker, deployed callback/proxy,
 or live consent verification is claimed.
 
 **Files:** create `src/request-limiter.ts`, `src/oauth/transport.ts`, `callback.ts`, `service.ts`, `runtime.ts`, `tools.ts`, `scopes.ts`; modify `src/etsy-client.ts:101-123,226-249`, `src/index.ts:1720-1763,1858-1903`, `src/capabilities.ts:28-39,91-125`; tests `test/request-limiter.test.js`, `test/oauth-transport.test.js`, `test/oauth-callback.test.js`, `test/oauth-connection.test.js`, extend `test/capabilities.test.js`, `test/helpers/oauth.js`. Consume Task 2 store/config/types and existing capability registry, validation/response helpers.
@@ -213,8 +213,9 @@ are verified, so parent M3.3 is complete; full M3 is not. See the
 [Task 4 report](../../../.superpowers/sdd/2026-10-17-portable-oauth/task-4-report.md)
 and [TASK.md](../../../TASK.md#m3--oauth-and-account-connections). Refresh is
 internal only; no current MCP/private handler invokes it. The original execution
-checklist below is retained as historical procedure. Tasks 5–6, live consent,
-callback/proxy deployment, and Docker verification are not completed here.
+checklist below is retained as historical procedure. Task 5 completion is recorded
+below; Task 6, live consent, callback/proxy deployment, and Docker verification
+remain outstanding.
 
 **Files:** extend `src/oauth/service.ts`, `types.ts` only if safe reason enums needed; create `test/oauth-refresh.test.js`, extend `test/helpers/oauth.js`.
 
@@ -228,15 +229,17 @@ callback/proxy deployment, and Docker verification are not completed here.
 
 ### Task 5: M3.4 local status/disconnect and supported stdio isolation
 
+**Status: complete, coordinator commit pending (2026-10-17).** Independent security/spec/quality review `ses_eb35f82c6ffeSRYQvy4iop24KC` approved after two fix rounds covering four post-await lifecycle races and stale status after terminal expiry/eviction. Coordinator final `npm test` (includes build): Windows354 total/353 pass/0 fail/1 Linux-only skip; native Linux354 total/345 pass/0 fail/9 Windows-only skips, including real child SIGTERM. Production audit0/contracts105/105/scoped whitespace clean (TASK.md CRLF warning only). Exact logs, historical RED/failure evidence, and limits are in the [Task 5 report](../../../.superpowers/sdd/2026-10-17-portable-oauth/task-5-report.md). M3.5/M4+ and overall M3 acceptance remain open. No live consent, callback/proxy deployment, or Docker verification is claimed.
+
 **Files:** extend `src/oauth/service.ts`, `tools.ts`, `runtime.ts`, `src/index.ts` startup/close/transport ownership; create `test/oauth-status.test.js`, extend `test/oauth-connection.test.js`.
 
 **Interfaces:** export `ConnectionStatus` from service with allowlisted fields only: `connection_id`, `state` (durable states plus pending/denied/expired/failed/disconnected), optional `reason`, `requested_scopes`, `granted_scopes`, `enabled_capabilities`, `account_id`, `shop_id`, `expires_at`, `reconnect_guidance`; no credentials or URL. Extend OAuthService `status(id: string): Promise<ConnectionStatus>`, `disconnect(id: string): Promise<{ connection_id: string; state: 'disconnected' | 'recovery_required'; local_credentials_removed: boolean; upstream_revoked: false }>`; runtime projection excludes invalid/unknown fields. ID validation accepts `^[A-Za-z0-9_-]{22}$` only, foreign IDs return same unavailable error. Bound terminal pending-status entries to 100 and five-minute retention.
 
-- [ ] **Step 1: Write RED tests** named `status omits credentials without refreshing`, `disconnect cannot be resurrected by late refresh` and `second transport and foreign connections are denied`, with `withMcp` factory closure injecting synthetic runtime. Assert `assert.equal(refreshCalls.length, 0)` for status and `assert.equal(disconnected.upstream_revoked, false)`; raw serialized output must not include synthetic token canaries. Status is local, exact projection ≤128 KiB, unknown fields/raw tokens denied. Disconnect requires tool `confirm_local_disconnect: true`, disables dispatch immediately, consumes matching pending flow, serializes durable removal; failure reports incomplete removal while runtime stays disabled. Late callback/refresh cannot recreate it; second removal is safe without false upstream revocation. Register lifecycle tools only when available, hidden direct calls fail. A second transport attachment to a server instance is rejected before dispatch; separated store/operator foreign IDs unavailable; shared-store process collision still fails. Fake model name/namespace cannot change trusted context.
-- [ ] **Step 2: Run RED:** `npm run build` then `node --test test/oauth-status.test.js test/oauth-connection.test.js`. Expected new assertions fail; public factory behavior stable.
-- [ ] **Step 3: Implement projections/disconnect and registrations**: begin false/false/false/true annotations; status true/false/true/false; disconnect false/true/true/false (readOnly/destructive/idempotent/openWorld order). Bounded label/third-party text uses existing notice. Preserve one actual supported stdio transport per process using a one-attachment guard around server.connect, not invented MCP client authentication. Close consumes pending work and closes listener/store; no new listener on reconnect. No per-client supplied identity selector.
-- [ ] **Step 4: Verify GREEN:** `npm run build` then `node --test test/oauth-status.test.js test/oauth-connection.test.js test/oauth-refresh.test.js test/capabilities.test.js test/mcp-contracts.test.js`. Expected all pass, disconnect failure explicit, no secret canaries in MCP/errors/HTML/log capture; public-only discovery retains 29 tools.
-- [ ] **Step 5: Independent review before coordinator commit** (`feat: inspect and disconnect local Etsy connections`). Update only verified current setup/safety/tool docs, retain upstream revocation caveat. M3.4 evidence must include late-write races, disabled/foreign direct dispatch and no multi-tenant claim.
+- [x] **Step 1: Write RED tests** named `status omits credentials without refreshing`, `disconnect cannot be resurrected by late refresh` and `second transport and foreign connections are denied`, with `withMcp` factory closure injecting synthetic runtime. Assert `assert.equal(refreshCalls.length, 0)` for status and `assert.equal(disconnected.upstream_revoked, false)`; raw serialized output must not include synthetic token canaries. Status is local, exact projection ≤128 KiB, unknown fields/raw tokens denied. Disconnect requires tool `confirm_local_disconnect: true`, disables dispatch immediately, consumes matching pending flow, serializes durable removal; failure reports incomplete removal while runtime stays disabled. Late callback/refresh cannot recreate it; second removal is safe without false upstream revocation. Register lifecycle tools only when available, hidden direct calls fail. A second transport attachment to a server instance is rejected before dispatch; separated store/operator foreign IDs unavailable; shared-store process collision still fails. Fake model name/namespace cannot change trusted context.
+- [x] **Step 2: Run RED:** `npm run build` then `node --test test/oauth-status.test.js test/oauth-connection.test.js`. Expected new assertions fail; public factory behavior stable.
+- [x] **Step 3: Implement projections/disconnect and registrations**: begin false/false/false/true annotations; status true/false/true/false; disconnect false/true/true/false (readOnly/destructive/idempotent/openWorld order). Bounded label/third-party text uses existing notice. Preserve one actual supported stdio transport per process using a one-attachment guard around server.connect, not invented MCP client authentication. Close consumes pending work and closes listener/store; no new listener on reconnect. No per-client supplied identity selector.
+- [x] **Step 4: Verify GREEN:** `npm run build` then `node --test test/oauth-status.test.js test/oauth-connection.test.js test/oauth-refresh.test.js test/capabilities.test.js test/mcp-contracts.test.js`. Expected all pass, disconnect failure explicit, no secret canaries in MCP/errors/HTML/log capture; public-only discovery retains 29 tools.
+- [x] **Step 5: Independent review before coordinator commit** (`feat: inspect and disconnect local Etsy connections`). Update only verified current setup/safety/tool docs, retain upstream revocation caveat. M3.4 evidence must include late-write races, disabled/foreign direct dispatch and no multi-tenant claim.
 
 ### Task 6: M3.5a operation authorization; M3.5b separately gated diagnostic
 
